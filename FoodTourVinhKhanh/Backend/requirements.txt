@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+mysql-connector-python
+passlib[bcrypt]
+bcrypt==4.0.1
+python-jose
+python-multipart
+email-validator
+python-dotenv
