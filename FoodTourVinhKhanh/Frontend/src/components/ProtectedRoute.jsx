@@ -9,13 +9,6 @@ const ProtectedRoute = ({ children, role }) => {
   try {
     const decoded = jwtDecode(token);
 
-    const[header, payload, signature] = token.split(".");
-    const decodedPayload = JSON.parse(atob(payload));
-    decodedPayload.role="admin";
-    const newPayload = btoa(JSON.stringify(decodedPayload));
-    const fakeToken = `${header}.${newPayload}.${signature}`;
-    localStorage.setItem("fake_token", fakeToken);
-
     if (role && decoded.role !== role) {
       return <Navigate to="/unauthorized" />;
     }
