@@ -1,22 +1,22 @@
 import { Navigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const ProtectedRoute = ({ children, role }) => {
-    const token = localStorage.getItem("token");
+  const { user, loading } = useAuth();
 
-    if (!token) return <Navigate to="/login" />;
+  // ⏳ đang check login
+  if (loading) return <div>Loading...</div>;
 
-  try {
-    const decoded = jwtDecode(token);
+  // ❌ chưa login
+  if (!user) return <Navigate to="/login" />;
 
-    if (role && decoded.role !== role) {
-      return <Navigate to="/unauthorized" />;
-    }
-
-    return children;
-  } catch (err) {
-    return <Navigate to="/login" />;
+  // ❌ sai role
+  if (role && user.role !== role) {
+    return <Navigate to="/unauthorized" />;
   }
+
+  // ✅ hợp lệ
+  return children;
 };
 
 export default ProtectedRoute;

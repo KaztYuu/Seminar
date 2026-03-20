@@ -8,18 +8,21 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
     const res = await fetch("http://localhost:8000/auth/login", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+
     const data = await res.json();
+
     if (!res.ok) {
-        alert(data.message);
-        return;
+      alert(data.detail || data.message);
+      return;
     }
 
-    localStorage.setItem("token", data.access_token);
     alert("Đăng nhập thành công!");
   };
 

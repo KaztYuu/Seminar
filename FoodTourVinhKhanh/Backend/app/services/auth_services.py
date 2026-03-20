@@ -66,13 +66,11 @@ def userLogin(email, password):
     if not verify_password(password, user["password"]):
         return None
 
-    token = create_access_token({
-        "user_id": user["id"],
+    return {
+        "id": user["id"],
         "email": user["email"],
         "role": user["role"]
-    })
-
-    return token
+    }
 
 
 # register
