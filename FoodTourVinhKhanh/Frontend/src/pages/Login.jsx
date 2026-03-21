@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import banner from "../assets/pho-am-thuc-vinh-khanh-banner.jpg";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const { fetchUser, user } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -23,7 +26,23 @@ function Login() {
       return;
     }
 
+    const userData = await fetchUser();
+
     alert("Đăng nhập thành công!");
+    switch (userData.role) {
+      case "admin":
+        navigate("/admin");
+        break;
+      case "tourist":
+        navigate("/tourist");
+        break;
+      case "vendor":
+        navigate("/vendor");
+        break;
+      default:
+        navigate("/login");
+    }
+
   };
 
   return (

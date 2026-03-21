@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response, Depends
+from app.services.auth_middleware import get_current_user
 from app.schemas.user_schema import UserRegister, UserLogin
 from app.services.auth_services import createUser, userLogin
 import uuid
@@ -29,12 +30,12 @@ def login(user: UserLogin, response: Response):
             detail="Invalid email or password"
         )
 
-    # 👉 tạo session
+    #tạo session
     session_id = str(uuid.uuid4())
 
     set_session(session_id, user_data)
 
-    # 👉 set cookie
+    #set cookie
     response.set_cookie(
         key="session_id",
         value=session_id,
@@ -45,20 +46,10 @@ def login(user: UserLogin, response: Response):
 
     return {"message": "Login success"}
 
-@router.get("/profile")
-def profile(request: Request):
-
-    session_id = request.cookies.get("session_id")
-
-    if not session_id:
-        raise HTTPException(status_code=401)
-
-    user = get_session(session_id)
-
-    if not user:
-        raise HTTPException(status_code=401)
-
+@router.get("/currentUser")
+def getCurrentUser(user=Depends(get_current_user)):
     return user
+    
 
 @router.post("/logout")
 def logout(request: Request, response: Response):
@@ -68,6 +59,11 @@ def logout(request: Request, response: Response):
     if session_id:
         delete_session(session_id)
 
-    response.delete_cookie("session_id")
+    response.delete_cookie(
+        key="session_id",
+        httponly=True,
+        samesite="Lax",
+        secure=False
+    )
 
     return {"message": "Logged out"}
