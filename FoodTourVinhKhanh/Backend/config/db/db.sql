@@ -8,11 +8,12 @@ CREATE TABLE users (
     password VARCHAR(255),
     role ENUM('tourist','vendor','admin'),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME,
 	is_Blocked BOOLEAN DEFAULT FALSE,
 	is_Deleted BOOLEAN DEFAULT FALSE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE shops (
+CREATE TABLE pois (
 	id INT AUTO_INCREMENT PRIMARY KEY,
     owner_id INT,
     name VARCHAR(255),
@@ -26,40 +27,52 @@ CREATE TABLE shops (
         ON UPDATE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE shop_position (
+CREATE TABLE poi_position (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    shop_id INT,
+    poi_id INT,
     latitude DOUBLE,
     longitude DOUBLE,
     range_meter INT,
-    FOREIGN KEY (shop_id) REFERENCES shops(id)
+    FOREIGN KEY (poi_id) REFERENCES pois(id)
 		ON DELETE CASCADE
         ON UPDATE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE shop_localized_data (
+CREATE TABLE poi_localized_data (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    shop_id INT,
+    poi_id INT,
     lang_code VARCHAR(10),
     name VARCHAR(255),
     description TEXT,
     audio_url VARCHAR(255),
-    FOREIGN KEY (shop_id) REFERENCES shops(id)
+    FOREIGN KEY (poi_id) REFERENCES pois(id)
 		ON DELETE CASCADE
         ON UPDATE CASCADE,
-	UNIQUE(shop_id, lang_code)
+	UNIQUE(poi_id, lang_code)
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE subscription_packages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255), -- Ví dụ: "Gói du khách 1 ngày", "Gói chủ quán 1 tháng"
+    target_role ENUM('tourist', 'vendor'), -- Gói này dành cho ai
+    price DECIMAL(10,2),
+    duration_hours INT, -- Thời hạn của gói tính bằng giờ
+    is_Active BOOLEAN DEFAULT TRUE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
     amount DECIMAL(10,2),
-    payment_type ENUM('tourist','vendor'),
+    package_id INT,
     payment_method VARCHAR(50),
 	status ENUM('pending','success','failed'),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 		ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    FOREIGN KEY (package_id) REFERENCES subscription_packages(id)
+        ON DELETE SET NULL
         ON UPDATE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -79,11 +92,11 @@ CREATE TABLE tourist_sessions (
 
 CREATE TABLE vendor_subscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    shop_id INT,
+    poi_id INT,
     start_time DATETIME,
     expire_time DATETIME,
     payment_id INT,
-    FOREIGN KEY (shop_id) REFERENCES shops(id)
+    FOREIGN KEY (poi_id) REFERENCES pois(id)
 		ON DELETE CASCADE
         ON UPDATE CASCADE,
     FOREIGN KEY (payment_id) REFERENCES payments(id)
