@@ -26,12 +26,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const logout = async () => {
+    try {
+      await fetch("http://localhost:8000/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUser(null);
+    }
+  }
+
   useEffect(() => {
     fetchUser()
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, fetchUser }}>
+    <AuthContext.Provider value={{ user, loading, fetchUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
