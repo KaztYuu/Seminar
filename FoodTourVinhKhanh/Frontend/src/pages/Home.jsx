@@ -1,29 +1,3 @@
-// import { Link } from "react-router-dom"
-// import banner from "../assets/pho-am-thuc-vinh-khanh-banner.jpg";
-
-// export default function Home() {
-//   return (
-//     <div 
-//       className="min-h-screen min-w-screen flex flex-col items-center justify-center bg-cover bg-center bg-no-repeat"
-//       style={{ 
-//         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('${banner}')` 
-//       }}
-//     >
-//       <p className="text-2xl text-gray-200 mb-8 text-center max-w-4xl px-4 drop-shadow-md">
-//         Khám phá thiên đường ẩm thực đường phố Vĩnh Khánh với bản đồ
-//         tương tác, mô tả chi tiết các gian hàng và hướng dẫn dành
-//         cho khách du lịch.
-//         <div className="text-blue text-lg">Chưa có tài khoản?
-//           <br></br>
-//           <div className="text-base text-green-500">
-//             <Link to="/login"> Đăng nhập</Link>/<Link to="/signup" className="text-green-300">Đăng ký</Link>
-//           </div>
-//         </div>
-//       </p>
-//     </div>
-//   )
-// }
-
 import { Link } from "react-router-dom"
 import banner from "../assets/pho-am-thuc-vinh-khanh-banner.jpg";
 
