@@ -1,9 +1,12 @@
 from app.database import get_db_connection
 from passlib.context import CryptContext
 from jose import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
+
+from app.services.redis_services import delete_session, set_session
+import uuid
 
 load_dotenv()
 
@@ -66,11 +69,31 @@ def userLogin(email, password):
     if not verify_password(password, user["password"]):
         return None
 
-    return {
+    # Tạo session
+    session_id = str(uuid.uuid4())
+    user_data = {
         "id": user["id"],
         "email": user["email"],
         "name": user["name"],
-        "role": user["role"]
+        "role": user["role"],
+        "login_time": datetime.now(timezone.utc).isoformat()
+    }
+    set_session(session_id, user_data)
+
+    # Cập nhật last_login
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    sql = "UPDATE users SET last_login = %s WHERE id = %s"
+    cursor.execute(sql, (datetime.now(timezone.utc).isoformat(), user["id"]))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return {
+        "user_data": user_data,
+        "session_id": session_id
     }
 
 
@@ -116,3 +139,8 @@ def createUser(user):
     conn.close()
 
     return True
+
+#logout
+def userLogout(session_id: str, user_id: int):
+    # Xóa session khỏi Redis
+    delete_session(session_id)

@@ -3,22 +3,15 @@ import { Toaster } from "react-hot-toast"
 import "./App.css"
 import { useAuth } from "./context/AuthContext" 
 import Home from "./pages/Home.jsx"
-import Login from "./pages/Login.jsx"
-import Signup from "./pages/Signup.jsx"
+import Login from "./pages/auth/Login.jsx"
+import Signup from "./pages/auth/Signup.jsx"
 import DashBoardLayout from "./layouts/DashboardLayout.jsx"
-import TouristDashboard from "./pages/dashboard/TouristDashboard.jsx"
-import Admin from "./pages/Admin.jsx"
-import Tourist from "./pages/Tourist.jsx"
-import Vendor from "./pages/Vendor.jsx"
+import TouristDashboard from "./pages/tourist/TouristDashboard.jsx"
 import ProtectedRoute from "./components/ProtectedRoute.jsx"
-import Unauthorized from "./pages/Unauthorized.jsx"
+import Unauthorized from "./pages/auth/Unauthorized.jsx"
 import profileImg from "./assets/ProfileImage.png";
+import { touristMenu, vendorMenu, adminMenu } from "./components/MenuConstants.jsx";
 
-const touristMenu = [
-  { label: 'Tổng quan', icon: '🏠', path: '/tourist' },
-  { label: 'Khám phá', icon: '🗺️', path: '/tourist/explore' },
-  { label: 'Hồ sơ cá nhân', icon: '👤', path: '/tourist/profile' },
-]
 
 function App() {
   const { user } = useAuth();
@@ -29,14 +22,13 @@ function App() {
 
       <Routes>
 
-        <Route 
+        {/* <Route 
           path="/admin"
           element={
             <ProtectedRoute role="admin">
-              <Admin />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         <Route 
           path="/tourist"
@@ -52,14 +44,13 @@ function App() {
           <Route index element={<TouristDashboard />} />
         </Route>
 
-        <Route 
+        {/* <Route 
           path="/vendor"
           element={
             <ProtectedRoute role="vendor">
-              <Vendor />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         <Route path="/" element={<Home />} />
 

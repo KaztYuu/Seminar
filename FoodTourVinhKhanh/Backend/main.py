@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import redis
+from app.middlewares.session_middleware import session_middleware
 
 from app.routes.auth_router import router as auth_router
 
 app = FastAPI()
 
+app.middleware("http")(session_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],

@@ -7,7 +7,7 @@ redis_client = redis.Redis(
     decode_responses=True
 )
 
-SESSION_EXPIRE = 3600
+SESSION_EXPIRE = 300 # 5 phút
 
 def set_session(session_id, user_data):
     redis_client.setex(
@@ -24,3 +24,10 @@ def get_session(session_id):
 
 def delete_session(session_id):
     redis_client.delete(session_id)
+
+def refresh_session(session_id):
+    key = f"session:{session_id}"
+    if redis_client.exists(key):
+        redis_client.expire(key, SESSION_EXPIRE)
+        return True
+    return False

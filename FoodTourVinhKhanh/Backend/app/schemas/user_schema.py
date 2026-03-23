@@ -16,3 +16,6 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserLogout(BaseModel):
+    id: int

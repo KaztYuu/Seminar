@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import banner from "../assets/pho-am-thuc-vinh-khanh-banner.jpg";
-import { useAuth } from "../context/AuthContext";
+import banner from "../../assets/pho-am-thuc-vinh-khanh-banner.jpg";
+import { useAuth } from "../../context/AuthContext";
 
 function Login() {
   const [email, setEmail] = useState("");

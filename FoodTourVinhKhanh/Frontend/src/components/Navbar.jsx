@@ -20,19 +20,19 @@ const Navbar = ({ userName, profileImg }) => {
           <div className="absolute right-0 top-full w-24 bg-white text-gray-800 rounded-md shadow-lg hidden group-hover:block border border-gray-100 overflow-hidden">
             <button 
               onClick={() => setLang('VN')} 
-              className="block w-full px-4 py-2 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
+              className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
             >
               VN
             </button>
             <button 
               onClick={() => setLang('EN')} 
-              className="block w-full px-4 py-2 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
+              className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
             >
               EN
             </button>
             <button 
               onClick={() => setLang('KR')} 
-              className="block w-full px-4 py-2 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
+              className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
             >
               KR
             </button>

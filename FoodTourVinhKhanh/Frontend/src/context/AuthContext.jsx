@@ -26,18 +26,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      await fetch("http://localhost:8000/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
+const logout = async () => {
+  try {
+    const res = await fetch("http://localhost:8000/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    
+    if (res.ok) {
       setUser(null);
+      return { success: true, message: "Đăng xuất thành công!" };
+    } else {
+      return { success: false, message: "Có lỗi xảy ra khi đăng xuất" };
     }
+  } catch (err) {
+    console.error("Logout error:", err);
+    return { success: false, message: "Không thể kết nối đến server" };
   }
+};
 
   useEffect(() => {
     fetchUser()

@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Zap } from 'lucide-react';
-import banner from '../../assets/pho-am-thuc-vinh-khanh-banner.jpg';
-
+import { useAuth } from '../../context/AuthContext';
+  
 const TouristDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { user } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const userData = {
-    name: "Nguyễn Văn A",
-    joinDate: "2026-03-20T10:00:00",
-  };
-
   const getSessionDuration = () => {
-    const start = new Date(userData.joinDate);
-    const diff = Math.abs(currentTime - start);
+    if (!user?.login_time) return "";
+
+    const start = new Date(user.login_time);
+    const diff = currentTime - start;
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
     return `${hours} giờ ${minutes} phút`;
   };
 
@@ -28,7 +28,7 @@ const TouristDashboard = () => {
       {/* Banner lời chào */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-orange-500 to-red-600 p-8 rounded-3xl text-white shadow-xl">
         <div>
-          <h1 className="text-3xl font-bold">Chào buổi chiều, {userData.name.split(' ').pop()}! 👋</h1>
+          <h1 className="text-3xl font-bold">Chào buổi chiều, {user.name.split(' ').pop()}! 👋</h1>
           <p className="opacity-90 mt-2 text-lg">Hôm nay bạn đã sẵn sàng khám phá món ngon Vĩnh Khánh chưa?</p>
         </div>
         <div className="bg-white/20 backdrop-blur-md p-4 rounded-2xl text-center min-w-[160px]">
