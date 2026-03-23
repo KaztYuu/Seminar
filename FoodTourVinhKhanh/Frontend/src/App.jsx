@@ -7,6 +7,8 @@ import Login from "./pages/auth/Login.jsx"
 import Signup from "./pages/auth/Signup.jsx"
 import DashBoardLayout from "./layouts/DashboardLayout.jsx"
 import TouristDashboard from "./pages/tourist/TouristDashboard.jsx"
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx"
+import Users from "./pages/admin/Users.jsx"
 import ProtectedRoute from "./components/ProtectedRoute.jsx"
 import Unauthorized from "./pages/auth/Unauthorized.jsx"
 import profileImg from "./assets/ProfileImage.png";
@@ -29,6 +31,21 @@ function App() {
             </ProtectedRoute>
           }
         /> */}
+
+        <Route 
+          path="/admin"
+          element={
+            <ProtectedRoute role="admin">
+              <DashBoardLayout 
+                userName={user ? user.name : "Admin"}
+                profileImg={profileImg} 
+                menuItems={adminMenu}
+              />
+            </ProtectedRoute>
+          }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<Users />} />
+        </Route>
 
         <Route 
           path="/tourist"
