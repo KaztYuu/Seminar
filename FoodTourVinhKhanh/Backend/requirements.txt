@@ -7,3 +7,4 @@ python-jose
 python-multipart
 email-validator
 python-dotenv
+redis==7.3.0
