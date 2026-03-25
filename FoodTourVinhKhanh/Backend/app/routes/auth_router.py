@@ -33,7 +33,7 @@ def login(user: UserLogin, response: Response):
         key="session_id",
         value=result["session_id"],
         httponly=True,
-        max_age=20,  # 5 phút
+        max_age=3600,  # 1 tiếng
         samesite="Lax",
         secure=False
     )
@@ -57,3 +57,7 @@ def logout(request: Request, response: Response, user=Depends(get_current_user))
     
     response.delete_cookie(key="session_id", httponly=True, samesite="Lax", secure=False)
     return {"message": "Logged out successfully"}
+
+@router.get("/test")
+def test(user=Depends(require_role("admin"))):
+    return testService(user)

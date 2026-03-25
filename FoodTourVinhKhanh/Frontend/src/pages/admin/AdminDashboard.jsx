@@ -5,6 +5,7 @@ export default function Admin(){
             <h1>
                 This is admin dashboard page!
             </h1>
+            <button onClick={handleTest}>Call Test Service</button>
         </>
     )
 }

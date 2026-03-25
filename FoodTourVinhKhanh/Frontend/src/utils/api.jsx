@@ -20,7 +20,9 @@ api.interceptors.response.use(
         
         } else if (error.response?.status === 403) {
             toast.error(message);
-            window.location.href = "/unauthorized";
+              setTimeout(() => {
+                    window.location.href = "/unauthorized";
+                }, 1000); // 1 giây
 
         } else {
             toast.error(message);

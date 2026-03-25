@@ -144,3 +144,7 @@ def createUser(user):
 def userLogout(session_id: str, user_id: int):
     # Xóa session khỏi Redis
     delete_session(session_id)
+
+#Test service
+def testService(user):
+    return {"message": f"This is a test service run by {user['name']}"}
