@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import banner from "../../assets/pho-am-thuc-vinh-khanh-banner.jpg";
+import api from "../../utils/api";
 
 function Signup() {
   const [name, setName] = useState("");
@@ -15,18 +16,16 @@ function Signup() {
 
     // Kiểm tra mật khẩu khớp nhau
     if (password !== confirmPassword) {
-      alert("Mật khẩu nhập lại không trùng!");
+      toast.error("Mật khẩu nhập lại không trùng!");
       return;
     }
 
-    const res = await fetch("http://localhost:8000/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role }),
-    });
-
-    const data = await res.json();
-    alert(data.message);
+    try {
+      const res = await api.post("/auth/register", { name, email, password, role });
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Đăng ký thất bại");
+    }
   };
 
   return (

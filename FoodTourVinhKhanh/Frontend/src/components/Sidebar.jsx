@@ -30,6 +30,7 @@
 
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ menuItems }) => {
@@ -39,10 +40,10 @@ const Sidebar = ({ menuItems }) => {
   const handleLogout = async () => {
     const result = await logout();
     if (result.success) {
-      alert(result.message);
+      toast.success(result.message);
       navigate('/login');
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 

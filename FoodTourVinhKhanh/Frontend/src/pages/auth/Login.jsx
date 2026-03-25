@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import banner from "../../assets/pho-am-thuc-vinh-khanh-banner.jpg";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../utils/api";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -12,37 +14,28 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:8000/auth/login", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await api.post("/auth/login", { email, password });
 
-    const data = await res.json();
+      const userData = await fetchUser();
 
-    if (!res.ok) {
-      alert(data.detail || data.message);
-      return;
+      toast.success("Đăng nhập thành công!");
+      switch (userData.role) {
+        case "admin":
+          navigate("/admin");
+          break;
+        case "tourist":
+          navigate("/tourist");
+          break;
+        case "vendor":
+          navigate("/vendor");
+          break;
+        default:
+          navigate("/login");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.response?.data?.message || "Đăng nhập thất bại");
     }
-
-    const userData = await fetchUser();
-
-    alert("Đăng nhập thành công!");
-    switch (userData.role) {
-      case "admin":
-        navigate("/admin");
-        break;
-      case "tourist":
-        navigate("/tourist");
-        break;
-      case "vendor":
-        navigate("/vendor");
-        break;
-      default:
-        navigate("/login");
-    }
-
   };
 
   return (

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, require_role
 from app.schemas.user_schema import UserRegister, UserLogin
-from app.services.auth_services import createUser, userLogin, userLogout
+from app.services.auth_services import createUser, userLogin, userLogout, testService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -33,7 +33,7 @@ def login(user: UserLogin, response: Response):
         key="session_id",
         value=result["session_id"],
         httponly=True,
-        max_age=300,  # 5 phút
+        max_age=20,  # 5 phút
         samesite="Lax",
         secure=False
     )

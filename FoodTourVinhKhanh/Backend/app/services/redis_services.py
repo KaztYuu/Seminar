@@ -7,7 +7,7 @@ redis_client = redis.Redis(
     decode_responses=True
 )
 
-SESSION_EXPIRE = 300 # 5 phút
+SESSION_EXPIRE = 20 # 5 phút
 
 def set_session(session_id, user_data):
     redis_client.setex(

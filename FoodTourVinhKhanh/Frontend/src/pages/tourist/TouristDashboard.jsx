@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/api';
   
 const TouristDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());

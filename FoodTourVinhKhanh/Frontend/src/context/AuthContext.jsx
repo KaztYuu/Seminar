@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import api from "../utils/api";
 
 const AuthContext = createContext();
 
@@ -9,16 +10,12 @@ export const AuthProvider = ({ children }) => {
 
   
   const fetchUser = async () => {
+    
     try {
-      const res = await fetch("http://localhost:8000/auth/currentUser", {
-        credentials: "include",
-      });
+      const res = await api.get("/auth/currentUser");
 
-      if (!res.ok) throw new Error();
-
-      const data = await res.json();
-      setUser(data);
-      return data;
+      setUser(res.data);
+      return res.data;
     } catch {
       setUser(null);
     } finally {
@@ -28,12 +25,9 @@ export const AuthProvider = ({ children }) => {
 
 const logout = async () => {
   try {
-    const res = await fetch("http://localhost:8000/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
+    const res = await api.post("/auth/logout");
     
-    if (res.ok) {
+    if (res.status === 200) {
       setUser(null);
       return { success: true, message: "Đăng xuất thành công!" };
     } else {
