@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.middlewares.session_middleware import session_middleware
 
 from app.routes.auth_router import router as auth_router
+from app.routes.package_router import router as package_router
 
 app = FastAPI()
 
-app.middleware("http")(session_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -14,8 +14,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.middleware("http")(session_middleware)
 
 app.include_router(auth_router)
+app.include_router(package_router)
 
 
 @app.get("/")
