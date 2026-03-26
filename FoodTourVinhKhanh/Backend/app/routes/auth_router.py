@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.dependencies.auth import get_current_user, require_role
 from app.schemas.user_schema import UserRegister, UserLogin
-from app.services.auth_services import createUser, userLogin, userLogout, testService
+from app.services.auth_services import createUser, userLogin, userLogout
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -12,7 +12,10 @@ def register(user: UserRegister):
     success = createUser(user)
 
     if not success:
-        return {"message": "Email đã tồn tại"}
+        raise HTTPException(
+            status_code=400,
+            detail="Email đã tồn tại"
+        )
 
     return {"message": "Tạo tài khoản thành công"}
 
@@ -40,7 +43,7 @@ def login(user: UserLogin, response: Response):
 
     return {"message": "Login success"}
 
-@router.get("/currentUser")
+@router.get("/me")
 def getCurrentUser(user=Depends(get_current_user)):
     return user
     
@@ -49,7 +52,7 @@ def getCurrentUser(user=Depends(get_current_user)):
 def logout(request: Request, response: Response, user=Depends(get_current_user)):
     session_id = request.cookies.get("session_id")
     
-    if not session_id or not user:
+    if not session_id:
         response.delete_cookie(key="session_id", httponly=True, samesite="Lax", secure=False)
         return {"message": "No active session"}
     
@@ -57,7 +60,3 @@ def logout(request: Request, response: Response, user=Depends(get_current_user))
     
     response.delete_cookie(key="session_id", httponly=True, samesite="Lax", secure=False)
     return {"message": "Logged out successfully"}
-
-@router.get("/test")
-def test(user=Depends(require_role("admin"))):
-    return testService(user)

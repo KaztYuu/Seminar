@@ -65,6 +65,7 @@ CREATE TABLE payments (
     user_id INT,
     amount DECIMAL(10,2),
     package_id INT,
+    transaction_ref VARCHAR(100) UNIQUE,
     payment_method VARCHAR(50),
 	status ENUM('pending','success','failed'),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

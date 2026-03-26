@@ -4,7 +4,7 @@ from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/packages", tags=["Packages"])
 
-@router.get("/get-packages-by-role")
+@router.get("/")
 def get_packages(user=Depends(get_current_user)):
     role = user["role"]
 
@@ -14,4 +14,7 @@ def get_packages(user=Depends(get_current_user)):
     else:
         packages = get_packages_by_role(role)
 
-    return {"data": packages}
+    return {
+        "success": True,
+        "data": packages
+        }

@@ -24,6 +24,8 @@ api.interceptors.response.use(
                     window.location.href = "/unauthorized";
                 }, 1000); // 1 giây
 
+        } else if (error.response?.status == 400) {
+            toast.error(message);
         } else {
             toast.error(message);
         }

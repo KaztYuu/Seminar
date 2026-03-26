@@ -12,7 +12,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         <div className="text-gray-600">{children}</div>
         <div className="mt-6 flex justify-end">
           <button onClick={onClose} className="text-sm font-semibold text-gray-400 hover:text-gray-600 transition-colors">
-            Đóng lại
+            Hủy
           </button>
         </div>
       </div>

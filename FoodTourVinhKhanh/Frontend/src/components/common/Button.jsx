@@ -10,7 +10,7 @@ const Button = ({ children, onClick, variant = "primary", size = "md", className
   const styles = {
     primary: "bg-blue-600 text-white shadow-md shadow-blue-200 hover:bg-blue-700 hover:shadow-lg",
     danger: "bg-red-500 text-white shadow-md shadow-red-200 hover:bg-red-600",
-    outline: "border-2 border-gray-200 text-gray-600 hover:border-blue-500 hover:text-blue-600 bg-white"
+    outline: "border-2 border-gray-200 text-gray-400 hover:border-blue-500 hover:text-blue-600 bg-white"
   };
 
   return (
