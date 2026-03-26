@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.dependencies.auth import get_current_user, require_role
 from app.schemas.user_schema import UserRegister, UserLogin
-from app.services.auth_services import createUser, userLogin, userLogout, testService
+from app.services.auth_services import createUser, userLogin, userLogout
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -57,7 +57,3 @@ def logout(request: Request, response: Response, user=Depends(get_current_user))
     
     response.delete_cookie(key="session_id", httponly=True, samesite="Lax", secure=False)
     return {"message": "Logged out successfully"}
-
-@router.get("/test")
-def test(user=Depends(require_role("admin"))):
-    return testService(user)
