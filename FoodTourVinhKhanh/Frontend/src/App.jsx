@@ -9,8 +9,12 @@ import SubscriptionPackages from "./pages/SubscriptionPackages.jsx"
 import PaymentResult from "./pages/PaymentResult.jsx"
 import DashBoardLayout from "./layouts/DashboardLayout.jsx"
 import TouristDashboard from "./pages/tourist/TouristDashboard.jsx"
+import TouristProfile from "./pages/tourist/TouristProfile.jsx"
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx"
+import AdminProfile from "./pages/admin/AdminProfile.jsx"
 import Users from "./pages/admin/Users.jsx"
+import VendorDashboard from "./pages/vendor/VendorDashboard.jsx"
+import VendorProfile from "./pages/vendor/VendorProfile.jsx"
 import ProtectedRoute from "./components/ProtectedRoute.jsx"
 import Unauthorized from "./pages/auth/Unauthorized.jsx"
 import profileImg from "./assets/ProfileImage.png";
@@ -26,14 +30,6 @@ function App() {
 
       <Routes>
 
-        {/* <Route 
-          path="/admin"
-          element={
-            <ProtectedRoute role="admin">
-            </ProtectedRoute>
-          }
-        /> */}
-
         <Route 
           path="/admin"
           element={
@@ -47,6 +43,7 @@ function App() {
           }>
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<Users />} />
+          <Route path="profile" element={<AdminProfile />} />
         </Route>
 
         <Route 
@@ -61,15 +58,23 @@ function App() {
             </ProtectedRoute>
           }>
           <Route index element={<TouristDashboard />} />
+          <Route path="profile" element={<TouristProfile />} />
         </Route>
 
-        {/* <Route 
+        <Route 
           path="/vendor"
           element={
             <ProtectedRoute role="vendor">
+              <DashBoardLayout 
+                userName={user ? user.name : "Vendor"}
+                profileImg={profileImg} 
+                menuItems={vendorMenu}
+              />
             </ProtectedRoute>
-          }
-        /> */}
+          }>
+          <Route index element={<VendorDashboard />} />
+          <Route path="profile" element={<VendorProfile />} />
+        </Route>
 
         <Route path="/" element={<Home />} />
 

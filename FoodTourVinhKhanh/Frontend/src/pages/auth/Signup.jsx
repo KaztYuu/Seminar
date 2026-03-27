@@ -23,7 +23,10 @@ function Signup() {
     try {
       const res = await api.post("/auth/register", { name, email, password, role });
       toast.success(res.data.message);
-      window.location.href = "/login";
+      // Chuyển hướng đến trang đăng nhập sau khi đăng ký thành công
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1000);
     } catch (error) {
       toast.error(error.response?.data?.message || "Đăng ký thất bại");
     }
