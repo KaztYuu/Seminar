@@ -6,6 +6,7 @@ import Home from "./pages/Home.jsx"
 import Login from "./pages/auth/Login.jsx"
 import Signup from "./pages/auth/Signup.jsx"
 import SubscriptionPackages from "./pages/SubscriptionPackages.jsx"
+import PaymentResult from "./pages/PaymentResult.jsx"
 import DashBoardLayout from "./layouts/DashboardLayout.jsx"
 import TouristDashboard from "./pages/tourist/TouristDashboard.jsx"
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx"
@@ -77,6 +78,8 @@ function App() {
         <Route path="/signup" element={<Signup />} />
 
         <Route path="/packages" element={<SubscriptionPackages />} />
+
+        <Route path="/payment-result" element={<PaymentResult />} />
 
         <Route path="/unauthorized" element={<Unauthorized />} />
 

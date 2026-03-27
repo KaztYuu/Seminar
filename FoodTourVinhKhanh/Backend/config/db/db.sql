@@ -93,14 +93,14 @@ CREATE TABLE tourist_sessions (
 
 CREATE TABLE vendor_subscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    poi_id INT,
+    user_id INT,
     start_time DATETIME,
-    expire_time DATETIME,
+    end_time DATETIME,
     payment_id INT,
-    FOREIGN KEY (poi_id) REFERENCES pois(id)
-		ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
         ON UPDATE CASCADE,
     FOREIGN KEY (payment_id) REFERENCES payments(id)
-		ON DELETE SET NULL
+        ON DELETE SET NULL
         ON UPDATE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

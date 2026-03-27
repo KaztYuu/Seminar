@@ -10,17 +10,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 🔥 CONFIG (đổi theo của bạn)
 VNPAY_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
 VNPAY_API_URL = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"
 VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET")
-RETURN_URL = "http://localhost:8000/payments/vnpay-return"
-IPN_URL = "http://localhost:8000/payments/vnpay-ipn"
+RETURN_URL = "https://ilse-unmasticated-toney.ngrok-free.dev/payments/vnpay-return"
+IPN_URL = "https://ilse-unmasticated-toney.ngrok-free.dev/payments/vnpay-ipn"
 
-# =========================================================
-# 🔥 2. CREATE VNPAY URL
-# =========================================================
 def create_vnpay_url(payment):
     params = {
         "vnp_Version": "2.1.0",
@@ -58,31 +54,40 @@ def create_vnpay_url(payment):
     
     return f"{VNPAY_URL}?{query_string}&vnp_SecureHash={secure_hash}"
 
-# =========================================================
-# 🔥 3. VERIFY SIGNATURE
-# =========================================================
+
 def verify_vnpay(params: dict):
     vnp_secure_hash = params.get("vnp_SecureHash")
-
+    
     if not vnp_secure_hash:
         return False
 
-    filtered_params = {k: v for k, v in params.items() if k != "vnp_SecureHash"}
+    # 1. Loại bỏ các tham số không tham gia vào chuỗi hash
+    # Thông thường là vnp_SecureHash và vnp_SecureHashType
+    filtered_params = {
+        k: v for k, v in params.items() 
+        if k != "vnp_SecureHash" and k != "vnp_SecureHashType"
+    }
 
+    # 2. Sắp xếp các tham số theo thứ tự alphabet
     sorted_params = sorted(filtered_params.items())
-    hash_data = "&".join([f"{k}={v}" for k, v in sorted_params])
 
+    # 3. Tạo chuỗi hash_data (Bắt buộc phải quote_plus các value)
+    # Lưu ý: VNPay yêu cầu định dạng k=v&k=v...
+    hash_data = "&".join([
+        f"{k}={urllib.parse.quote_plus(str(v))}" 
+        for k, v in sorted_params
+    ])
+
+    # 4. Tính toán mã hash bằng HMAC-SHA512
     calculated_hash = hmac.new(
         VNPAY_HASH_SECRET.encode(),
-        hash_data.encode(),
+        hash_data.encode('utf-8'),
         hashlib.sha512
     ).hexdigest()
 
-    return calculated_hash == vnp_secure_hash
+    # 5. So sánh (nên dùng .lower() để tránh lỗi khác biệt hoa thường)
+    return calculated_hash.lower() == vnp_secure_hash.lower()
 
-# =========================================================
-# 🔥 7. QUERY TRANSACTION (OPTIONAL)
-# =========================================================
 def query_vnpay(payment):
     request_id = str(uuid.uuid4())[:32]
 
