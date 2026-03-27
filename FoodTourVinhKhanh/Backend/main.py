@@ -4,6 +4,7 @@ from app.middlewares.session_middleware import session_middleware
 
 from app.routes.auth_router import router as auth_router
 from app.routes.package_router import router as package_router
+from app.routes.payment_router import router as payment_router
 
 app = FastAPI()
 
@@ -18,6 +19,7 @@ app.middleware("http")(session_middleware)
 
 app.include_router(auth_router)
 app.include_router(package_router)
+app.include_router(payment_router)
 
 
 @app.get("/")

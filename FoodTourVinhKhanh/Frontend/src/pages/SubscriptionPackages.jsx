@@ -53,15 +53,15 @@ const SubscriptionPackage = () => {
     setIsModalOpen(true);
   };
 
-  const handlePayment = async (methodId) => {
+  const handlePayment = async (pkg, methodId) => {
     setIsProcessing(true);
     try {
-      // Giả lập gọi API tạo link thanh toán
-      // const res = await api.post("/payment/create", { packageId: selectedPackage.id, method: methodId });
-      // window.location.href = res.data.paymentUrl;
-      
-      toast.success(`Đang kết nối với cổng ${methodId.toUpperCase()}...`);
-      console.log(`Thanh toán gói ${selectedPackage.name} qua ${methodId}`);
+      const res = await api.post("/payments/create", {
+        package_id: pkg.id,
+        payment_method: methodId
+      });
+
+      window.location.href = res.data.payment_url;
     } catch (error) {
       toast.error("Lỗi khởi tạo thanh toán");
     } finally {
@@ -143,7 +143,7 @@ const SubscriptionPackage = () => {
               <button
                 key={method.id}
                 disabled={isProcessing}
-                onClick={() => handlePayment(method.id)}
+                onClick={() => handlePayment(selectedPackage, method.id)}
                 className="w-full flex items-center justify-between p-4 border-2 border-gray-100 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all group active:scale-[0.98]"
               >
                 <div className="flex items-center gap-4">
