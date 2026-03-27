@@ -5,8 +5,10 @@ const Input = ({ label, error, ...props }) => {
       <input
         {...props}
         className={`px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none transition-all
-          focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500
-          placeholder:text-gray-400 ${error ? "border-red-500 ring-red-500/10" : ""}`}
+            text-gray-900  {/* <--- THÊM DÒNG NÀY */}
+            focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500
+            disabled:text-gray-500 disabled:bg-gray-100 {/* <--- CHO CÁC TRƯỜNG CHỈ XEM */}
+            placeholder:text-gray-400 ${error ? "border-red-500 ring-red-500/10" : ""}`}
       />
       {error && <span className="text-xs text-red-500 ml-1">{error}</span>}
     </div>
