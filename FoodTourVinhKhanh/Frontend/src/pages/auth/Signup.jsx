@@ -23,6 +23,7 @@ function Signup() {
     try {
       const res = await api.post("/auth/register", { name, email, password, role });
       toast.success(res.data.message);
+      window.location.href = "/login";
     } catch (error) {
       toast.error(error.response?.data?.message || "Đăng ký thất bại");
     }

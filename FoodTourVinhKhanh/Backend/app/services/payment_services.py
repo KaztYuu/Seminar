@@ -82,7 +82,7 @@ def handle_vnpay_ipn(params: dict):
                 (txn_ref,)
             )
             # Kích hoạt gói dịch vụ
-            activate_package(cursor, payment["user_id"], payment["package_id"])
+            activate_package(cursor, payment["user_id"], payment["package_id"], payment["id"])
         else:
             # Giao dịch lỗi/hủy (Ví dụ: khách bấm nút Hủy trên cổng thanh toán)
             cursor.execute(
