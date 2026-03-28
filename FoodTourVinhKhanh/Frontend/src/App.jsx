@@ -10,6 +10,7 @@ import PaymentResult from "./pages/PaymentResult.jsx"
 import DashBoardLayout from "./layouts/DashboardLayout.jsx"
 import TouristDashboard from "./pages/tourist/TouristDashboard.jsx"
 import TouristProfile from "./pages/tourist/TouristProfile.jsx"
+import TourisTransactions from "./pages/tourist/TouristTransactions.jsx"
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx"
 import AdminProfile from "./pages/admin/AdminProfile.jsx"
 import Users from "./pages/admin/Users.jsx"
@@ -59,6 +60,7 @@ function App() {
           }>
           <Route index element={<TouristDashboard />} />
           <Route path="profile" element={<TouristProfile />} />
+          <Route path="transactions" element={<TourisTransactions />} />
         </Route>
 
         <Route 

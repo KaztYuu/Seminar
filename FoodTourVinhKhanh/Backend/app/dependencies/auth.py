@@ -15,10 +15,14 @@ def get_current_user(request: Request):
 
     return user
 
-def require_role(required_role: str):
-    def role_checker(user=Depends(get_current_user)):
+def require_role(required_roles):
+    if isinstance(required_roles, str):
+        roles = [required_roles]
+    else:
+        roles = required_roles
 
-        if user["role"] != required_role:
+    def role_checker(user=Depends(get_current_user)):
+        if user["role"] not in roles:
             raise HTTPException(status_code=403, detail="Forbidden")
 
         return user

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from app.services.vnpay_services import verify_vnpay
-from app.dependencies.auth import get_current_user
-from app.services.payment_services import create_payment_service, handle_vnpay_ipn
+from app.dependencies.auth import get_current_user, require_role
+from app.services.payment_services import create_payment_service, handle_vnpay_ipn, get_payment_history
 from fastapi.responses import JSONResponse, RedirectResponse
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -35,3 +35,23 @@ def vnpay_ipn(request: Request):
     result = handle_vnpay_ipn(params)
 
     return JSONResponse(content=result)
+
+@router.get("/my-payments")
+def get_my_payments(user=Depends(require_role(["tourist", "vendor"]))):
+
+    payments = get_payment_history(user["id"])
+
+    data = [
+        {
+            "package_name": p["package_name"],
+            "amount": float(p["amount"]),
+            "payment_method": p["payment_method"],
+            "bought_at": p["created_at"].isoformat(),
+        }
+        for p in payments
+    ]
+
+    return {
+        "success": True,
+        "data": data
+    }

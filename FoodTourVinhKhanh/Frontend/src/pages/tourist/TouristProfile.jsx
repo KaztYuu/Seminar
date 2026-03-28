@@ -407,7 +407,7 @@
 // export default VendorProfile;
 
 import { useState, useEffect } from "react";
-import { Lock, Save, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Save, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import Card from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";

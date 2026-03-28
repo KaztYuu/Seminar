@@ -162,3 +162,22 @@ def activate_package(cursor, user_id, package_id, payment_id):
                 INSERT INTO vendor_subscriptions (user_id, start_time, end_time, payment_id)
                 VALUES (%s, %s, %s, %s)
             """, (user_id, now, now + duration, payment_id))
+
+def get_payment_history(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT p.*, sp.name AS package_name
+        FROM payments p
+        JOIN subscription_packages sp ON p.package_id = sp.id
+        WHERE p.user_id = %s
+        ORDER BY p.created_at DESC
+    """, (user_id,))
+
+    payments = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return payments
