@@ -1,4 +1,4 @@
-from app.services.package_service import get_packages_by_role
+from app.services.package_services import get_packages_by_role
 from fastapi import APIRouter, Depends
 from app.dependencies.auth import get_current_user
 
