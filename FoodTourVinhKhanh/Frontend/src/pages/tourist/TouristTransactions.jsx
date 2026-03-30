@@ -58,6 +58,17 @@ const TouristTransactions = () => {
       ),
     },
     {
+      header: "Thời hạn",
+      accessor: "duration",
+      render: (row) => (
+        <div className="hidden md:block">
+          <span className="font-mono font-bold text-gray-900">
+            {row.duration < 24 ? `${row.duration} giờ` : Math.floor(row.duration / 24) + " ngày" + (row.duration % 24 > 0 ? ` ${row.duration % 24} giờ` : "")}
+          </span>
+        </div>
+      ),
+    },
+    {
       header: "Ngày thanh toán",
       render: (row) => {
         const date = new Date(row.bought_at);

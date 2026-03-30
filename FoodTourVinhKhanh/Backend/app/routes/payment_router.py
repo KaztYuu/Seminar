@@ -46,6 +46,7 @@ def get_my_payments(user=Depends(require_role(["tourist", "vendor"]))):
             "package_name": p["package_name"],
             "amount": float(p["amount"]),
             "payment_method": p["payment_method"],
+            "duration": p["duration_hours"],
             "bought_at": p["created_at"].isoformat(),
         }
         for p in payments

@@ -10,12 +10,13 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def update_me(data: UpdateProfileRequest, request: Request, user=Depends(get_current_user)):
     
     # 1. update DB
-    update_profile(user["id"], data.name)
+    update_profile(user["id"], data.name, data.phoneNumber)
 
     # 2. update Redis
     session_id = request.cookies.get("session_id")
 
     user["name"] = data.name
+    user["phoneNumber"] = data.phoneNumber
     set_session(session_id, user)
 
     return {

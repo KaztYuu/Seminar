@@ -1,8 +1,22 @@
 USE FoodTourVinhKhanh;
 
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS tourist_sessions;
 DROP TABLE IF EXISTS vendor_subscriptions;
 DROP TABLE IF EXISTS payments;
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    password VARCHAR(255),
+    phoneNumber VARCHAR(15),
+    role ENUM('tourist','vendor','admin'),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME,
+	is_Blocked BOOLEAN DEFAULT FALSE,
+	is_Deleted BOOLEAN DEFAULT FALSE
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,

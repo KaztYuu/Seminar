@@ -6,6 +6,7 @@ CREATE TABLE users (
     name VARCHAR(100),
     email VARCHAR(100) UNIQUE,
     password VARCHAR(255),
+    phoneNumber VARCHAR(15),
     role ENUM('tourist','vendor','admin'),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_login DATETIME,

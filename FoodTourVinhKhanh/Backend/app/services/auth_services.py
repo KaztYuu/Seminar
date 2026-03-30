@@ -75,6 +75,7 @@ def userLogin(email, password):
         "id": user["id"],
         "email": user["email"],
         "name": user["name"],
+        "phoneNumber": user["phoneNumber"],
         "role": user["role"],
         "login_time": datetime.now(timezone.utc).isoformat()
     }
@@ -122,14 +123,15 @@ def createUser(user):
     hashed_password = hash_password(user.password)
 
     sql = """
-        INSERT INTO users(name,email,password,role)
-        VALUES(%s,%s,%s,%s)
+        INSERT INTO users(name,email,password,phoneNumber,role)
+        VALUES(%s,%s,%s,%s,%s)
     """
 
     cursor.execute(sql, (
         user.name,
         user.email,
         hashed_password,
+        user.phoneNumber,
         role
     ))
 

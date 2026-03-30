@@ -420,6 +420,7 @@ const TouristProfile = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    phoneNumber: "",
     currentPass: "",
     newPass: "",
     confirmPass: "",
@@ -448,6 +449,7 @@ const TouristProfile = () => {
       setFormData((prev) => ({
         ...prev,
         name: user.name,
+        phoneNumber: user.phoneNumber || "",
       }));
     }
   }, [user]);
@@ -468,6 +470,7 @@ const TouristProfile = () => {
 
       await api.put("/users/me", {
         name: formData.name,
+        phoneNumber: formData.phoneNumber,
       });
 
       await fetchUser(); // 🔥 sync lại global user
@@ -577,13 +580,23 @@ const TouristProfile = () => {
           <Input label="Vai trò" value={user?.role || ""} disabled />
         </div>
 
-        <Input
-          label="Họ và tên"
-          value={formData.name}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, name: e.target.value }))
-          }
-        />
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <Input
+            label="Họ và tên"
+            value={formData.name}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, name: e.target.value }))
+            }
+          />
+
+          <Input
+            label="Số điện thoại"
+            value={formData.phoneNumber}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
+            }
+          />
+        </div>
 
         <div className="flex justify-end mt-4">
           <Button

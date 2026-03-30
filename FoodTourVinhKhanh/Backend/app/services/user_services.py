@@ -2,12 +2,12 @@ from app.database import get_db_connection
 from app.database import get_db_connection
 from app.services.auth_services import verify_password, hash_password
 
-def update_profile(user_id: int, name: str):
+def update_profile(user_id: int, name: str, phoneNumber: str):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    sql = "UPDATE users SET name = %s WHERE id = %s"
-    cursor.execute(sql, (name, user_id))
+    sql = "UPDATE users SET name = %s, phoneNumber = %s WHERE id = %s"
+    cursor.execute(sql, (name, phoneNumber, user_id))
 
     conn.commit()
 
