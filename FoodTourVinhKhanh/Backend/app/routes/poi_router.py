@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.schemas.poi_schema import POICreateAdmin, POICreateVendor
-from app.services.poi_services import activate_pois, getPois, createPOI
+from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
+from app.services.poi_services import activate_pois, getPois, createPOI, updatePOI, getPOIById
 from app.dependencies.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/pois", tags=["POIs"])
@@ -18,12 +18,27 @@ def activate_pois(user=Depends(require_role("vendor"))):
     }
 
 @router.get("/get-pois")
-def get_pois(user=Depends(get_current_user)):
-    pois = getPois(user)
+def get_pois(lang: str = "vi", user=Depends(get_current_user)):
+    pois = getPois(user, lang=lang)
 
     return {
         "success": True,
         "data": pois
+    }
+
+@router.get("/get-poi-by-id/{poi_id}")
+def get_poi_by_id(poi_id: int, lang: str = "vi", user=Depends(get_current_user)):
+    poi = getPOIById(user=user, poi_id=poi_id, lang=lang)
+
+    if not poi:
+        raise HTTPException(
+            status_code=404, 
+            detail="Không tìm thấy POI hoặc bạn không có quyền truy cập"
+        )
+
+    return {
+        "success": True,
+        "data": poi
     }
 
 @router.post("/admin/create")
@@ -39,3 +54,19 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
     if not success:
         raise HTTPException(status_code=400, detail=message)
     return {"success": True, "message": message, "poi_id": poi_id}
+
+@router.put("/admin/update/{poi_id}")
+async def update_poi_admin(poi_id: int, data: POIUpdateAdmin, user=Depends(require_role("admin"))):
+    success, message, updated_id = await updatePOI(user, poi_id, data)
+    if not success:
+        status_code = 404 if "không tìm thấy" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message)
+    
+    return {"success": True, "message": message, "poi_id": updated_id}
+
+@router.put("/vendor/update/{poi_id}")
+async def update_poi_vendor(poi_id: int, data: POIUpdateVendor, user=Depends(require_role("vendor"))):
+    success, message, updated_poi_id = await updatePOI(user, poi_id, data)
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    return {"success": True, "message": message, "poi_id": updated_poi_id}

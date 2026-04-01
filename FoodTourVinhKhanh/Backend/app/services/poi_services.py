@@ -2,11 +2,8 @@ from app.database import get_db_connection
 from app.services.subscription_services import is_vendor_active
 from app.services.gemini_services import gemini_service
 from app.services.image_services import image_service
+from app.services.audio_services import audio_service
 
-
-# ========================
-# ACTIVATE POIS
-# ========================
 def activate_pois(user_id: int):
     if not is_vendor_active(user_id):
         return False, "Bạn chưa kích hoạt gói dịch vụ hoặc gói dịch vụ đã hết hạn"
@@ -29,10 +26,6 @@ def activate_pois(user_id: int):
 
     return True, f"Đã kích hoạt {affected} POIs"
 
-
-# ========================
-# GET POIS
-# ========================
 def getPois(user, lang="vi"):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -132,72 +125,171 @@ async def createPOI(user, data):
     cursor = conn.cursor()
 
     try:
-
+        # 1. Lưu ảnh
         thumbnail_path = image_service.save_image(data.thumbnail, "thumb")
         banner_path = image_service.save_image(data.banner, "banner")
 
-        if user["role"] == "admin":
-            is_active = data.is_active
-            range_meter = data.position.range_meter
-        else:
-            is_active = False
-            range_meter = None
-
+        # 2. Dịch thuật
         translations = await gemini_service.translate_to_multiple_languages(data.localized.description)
-        
-        # Tạo danh sách các bản ghi localized (Gồm bản gốc + các bản dịch)
-        localized_items = [
-            {
-                "lang_code": "vi", 
-                "name": data.localized.name, 
-                "description": data.localized.description
-            }
-        ]
-        
-        # Thêm các bản dịch từ Gemini vào danh sách (en, kr, fr)
+        localized_items = [{"lang_code": "vi", "name": data.localized.name, "description": data.localized.description}]
         for lang, text in translations.items():
-            localized_items.append({
-                "lang_code": lang,
-                "name": data.localized.name,
-                "description": text
-            })
+            localized_items.append({"lang_code": lang, "name": data.localized.name, "description": text})
 
+        # 3. Insert bảng POI chính ĐỂ LẤY poi_id
         cursor.execute("""
             INSERT INTO pois (owner_id, thumbnail, banner, is_Active)
             VALUES (%s, %s, %s, %s)
-        """, (user["id"], thumbnail_path, banner_path, is_active))
+        """, (user["id"], thumbnail_path, banner_path, data.is_active if user["role"]=="admin" else False))
         
-        poi_id = cursor.lastrowid
+        poi_id = cursor.lastrowid # <--- ĐÃ CÓ ID ĐỂ ĐẶT TÊN FILE AUDIO
 
+        # 4. Insert Vị trí
         cursor.execute("""
             INSERT INTO poi_position (poi_id, latitude, longitude, range_meter)
             VALUES (%s, %s, %s, %s)
-        """, (poi_id, data.position.latitude, data.position.longitude, range_meter))
+        """, (poi_id, data.position.latitude, data.position.longitude, data.position.range_meter if user["role"]=="admin" else 20))
 
+        # 5. Xử lý Audio và Localized Data
         for item in localized_items:
-            # Tạo file âm thanh cho từng ngôn ngữ dựa trên mô tả tương ứng
-            audio_url = await gemini_service.text_to_speech(item["description"])
+            # Gọi Gemini lấy bytes
+            audio_bytes = await gemini_service.text_to_speech(item["description"])
+            
+            # Lưu file thông qua AudioService
+            audio_url = audio_service.save_audio(audio_bytes, poi_id, item["lang_code"])
             
             cursor.execute("""
-                INSERT INTO poi_localized_data 
-                (poi_id, lang_code, name, description, audio_url)
+                INSERT INTO poi_localized_data (poi_id, lang_code, name, description, audio_url)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (
-                poi_id, 
-                item["lang_code"], 
-                item["name"], 
-                item["description"], 
-                audio_url
-            ))
+            """, (poi_id, item["lang_code"], item["name"], item["description"], audio_url))
 
         conn.commit()
-        return True, "Tạo POI và bản dịch đa ngôn ngữ thành công", poi_id
+        return True, "Thành công", poi_id
 
     except Exception as e:
         conn.rollback()
-        print(f"Create POI Error: {e}")
+        image_service.delete_image(thumbnail_path)
+        image_service.delete_image(banner_path)
         return False, str(e), None
+    finally:
+        cursor.close()
+        conn.close()
 
+def getPOIById(user, poi_id, lang="vi"):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    poi = None
+
+    try:
+        if user["role"] == 'tourist':
+            # Dùng LEFT JOIN để an toàn nếu thiếu bản dịch
+            cursor.execute("""
+                SELECT p.*, pos.latitude, pos.longitude, pos.range_meter,
+                       ld.name, ld.description, ld.audio_url, ld.lang_code
+                FROM pois p
+                LEFT JOIN poi_position pos ON p.id = pos.poi_id
+                LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
+                WHERE p.id = %s AND p.is_Deleted = FALSE
+            """, (lang, poi_id))
+        else:
+            # Vendor/Admin sửa bài: Lấy bản 'vi' chuẩn
+            cursor.execute("""
+                SELECT p.*, pos.latitude, pos.longitude, pos.range_meter,
+                       ld.name, ld.description
+                FROM pois p
+                LEFT JOIN poi_position pos ON p.id = pos.poi_id
+                LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = 'vi'
+                WHERE p.id = %s AND p.is_Deleted = FALSE
+            """, (poi_id,))
+        
+        poi = cursor.fetchone()
+
+    except Exception as e:
+        print(f"Get POI Error: {e}")
+    finally:
+        # Đảm bảo luôn đóng connection dù thành công hay thất bại
+        cursor.close()
+        conn.close()
+        
+    return poi
+
+async def updatePOI(user, poi_id, data):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # 1. Kiểm tra quyền sở hữu
+        cursor.execute("SELECT owner_id, thumbnail, banner FROM pois WHERE id = %s", (poi_id,))
+        old_poi = cursor.fetchone()
+        
+        if not old_poi:
+            return False, "Không tìm thấy POI", None
+            
+        if user["role"] != "admin" and old_poi["owner_id"] != user["id"]:
+            return False, "Bạn không có quyền chỉnh sửa POI này", None
+
+        # 2. Xử lý Ảnh (Nếu có ảnh mới thì lưu, nếu không thì giữ đường dẫn cũ)
+        new_thumbnail_path = image_service.save_image(data.thumbnail, "thumb")
+        new_banner_path = image_service.save_image(data.banner, "banner")
+
+        # 3. Dịch thuật lại
+        translations = await gemini_service.translate_to_multiple_languages(data.localized.description)
+        
+        localized_items = [
+            {"lang_code": "vi", "name": data.localized.name, "description": data.localized.description}
+        ]
+        for lang, text in translations.items():
+            localized_items.append({"lang_code": lang, "name": data.localized.name, "description": text})
+        
+        # 4. Cập nhật bảng POI chính
+        is_active = data.is_active if user["role"] == "admin" else old_poi["is_Active"]
+        cursor.execute("""
+            UPDATE pois 
+            SET thumbnail = %s, banner = %s, is_Active = %s 
+            WHERE id = %s
+        """, (new_thumbnail_path, new_banner_path, is_active, poi_id))
+
+        # 5. Cập nhật Vị trí
+        cursor.execute("""
+            UPDATE poi_position 
+            SET latitude = %s, longitude = %s, range_meter = IF(%s = 'admin', %s, poi_position.range_meter) 
+            WHERE poi_id = %s
+        """, (data.position.latitude, data.position.longitude, user["role"], data.position.range_meter, poi_id))
+
+        # 6. Cập nhật Localized Data & Audio
+        # Cách sạch nhất: Xóa các bản dịch cũ và file audio cũ của POI này, sau đó insert mới
+        
+        # Lấy danh sách audio cũ để xóa sau khi commit thành công
+        cursor.execute("SELECT audio_url FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
+        old_audios = cursor.fetchall()
+
+        cursor.execute("DELETE FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
+
+        for item in localized_items:
+            # Sinh Audio mới từ Gemini
+            audio_bytes = await gemini_service.text_to_speech(item["description"])
+            # Lưu file audio mới (AudioService sẽ tự ghi đè hoặc tạo file mới theo poi_id)
+            audio_url = audio_service.save_audio(audio_bytes, poi_id, item["lang_code"])
+            
+            cursor.execute("""
+                INSERT INTO poi_localized_data (poi_id, lang_code, name, description, audio_url)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (poi_id, item["lang_code"], item["name"], item["description"], audio_url))
+
+        conn.commit()
+        
+        # Xóa ảnh cũ nếu đường dẫn đã thay đổi
+        if new_thumbnail_path != old_poi["thumbnail"]:
+            image_service.delete_image(old_poi["thumbnail"])
+            
+        if new_banner_path != old_poi["banner"]:
+            image_service.delete_image(old_poi["banner"])
+
+        return True, "Cập nhật POI thành công", poi_id
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Update POI Error: {e}")
+        return False, f"Lỗi cập nhật: {str(e)}", None
     finally:
         cursor.close()
         conn.close()

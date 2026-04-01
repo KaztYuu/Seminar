@@ -1,18 +1,19 @@
-// import React, { useState, useEffect } from 'react';
-// import api from '../../utils/api'; 
-// import { toast } from 'react-hot-toast';
-// import Button from '../../components/common/Button';
-// import Card from '../../components/common/Card';
-// import Input from '../../components/common/Input';
-// import Modal from '../../components/common/Modal';
-// import Table from '../../components/common/Table';
+import React, { useState, useEffect } from 'react';
+import api from '../../utils/api'; 
+import { toast } from 'react-hot-toast';
+import Button from '../../components/common/Button';
+import Card from '../../components/common/Card';
+import Input from '../../components/common/Input';
+import Modal from '../../components/common/Modal';
+import Table from '../../components/common/Table';
+import FullPageLoading from '../../components/common/FullPageLoading';
 
 // const POIAdminManager = () => {
+
 //   const [pois, setPois] = useState([]);
 //   const [isModalOpen, setIsModalOpen] = useState(false);
 //   const [loading, setLoading] = useState(false);
 
-//   // Hàm sinh tọa độ ngẫu nhiên quanh khu vực Vĩnh Khánh, Q4 để test
 //   const generateRandomCoords = () => ({
 //     latitude: (10.7580 + Math.random() * 0.005).toFixed(6),
 //     longitude: (106.7050 + Math.random() * 0.005).toFixed(6)
@@ -43,6 +44,15 @@
 //     }
 //   };
 
+//   const handleGetLocation = () => {
+//     const coords = generateRandomCoords();
+//     setFormData(prev => ({
+//       ...prev,
+//       position: { ...prev.position, ...coords }
+//     }));
+//     toast.success("Đã lấy tọa độ giả lập mới!");
+//   };
+
 //   const handleFileChange = (e, field) => {
 //     const file = e.target.files[0];
 //     const reader = new FileReader();
@@ -52,32 +62,58 @@
 //     if (file) reader.readAsDataURL(file);
 //   };
 
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setLoading(true);
-//     try {
-//       // Gọi API create (Sử dụng POICreateAdmin schema)
-//       const res = await api.post('/pois/admin/create', formData);
-//       if (res.data.success) {
-//         toast.success("Tạo POI và giọng đọc AI thành công!");
-//         setIsModalOpen(false);
-//         fetchPois();
-//         // Reset form và sinh tọa độ mới cho lần sau
-//         const newCoords = generateRandomCoords();
-//         setFormData({
-//           thumbnail: "", banner: "", is_Active: true,
-//           position: { ...newCoords, range_meter: 50 },
-//           localized: { lang_code: "vi", name: "", description: "" }
-//         });
-//       }
-//     } catch (err) {
-//       toast.error(err.response?.data?.detail || "Lỗi hệ thống");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
 
-//   // Cấu hình các cột cho Component Table
+//         const { thumbnail, banner, localized } = formData;
+        
+//         if (!thumbnail) return toast.error("Vui lòng chọn ảnh đại diện!");
+//         if (!banner) return toast.error("Vui lòng chọn ảnh banner!");
+        
+//         if (!localized.name.trim()) {
+//         return toast.error("Tên địa điểm không được để trống!");
+//         }
+        
+//         if (!localized.description.trim()) {
+//         return toast.error("Mô tả không được để trống!");
+//         }
+//         if (localized.description.trim().length < 10) {
+//         return toast.error("Mô tả nên chi tiết một chút, ít nhất 10 ký tự!");
+//         }
+
+//         if (loading) return;
+//         setLoading(true);
+
+//         try {
+//             const res = await api.post('/pois/admin/create', formData);
+
+//             if (res.data.success) {
+//                 toast.success("Tạo POI và bản dịch AI thành công!");
+//                 setIsModalOpen(false);
+//                 fetchPois();
+
+//                 const newCoords = generateRandomCoords();
+//                 setFormData({
+//                 thumbnail: "", 
+//                 banner: "", 
+//                 is_Active: true,
+//                 position: { ...newCoords, range_meter: 50 },
+//                 localized: { lang_code: "vi", name: "", description: "" }
+//                 });
+//             }
+//         } catch (err) {
+
+//             const serverError = err.response?.data?.detail;
+//             if (Array.isArray(serverError)) {
+//                 toast.error(serverError[0].msg);
+//             } else {
+//                 toast.error(serverError || "Không thể kết nối server!");
+//             }
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
 //   const columns = [
 //     {
 //       header: "Hình ảnh",
@@ -93,6 +129,10 @@
 //     { 
 //       header: "Tọa độ", 
 //       render: (row) => <span className="font-mono text-xs text-gray-500">{row.latitude}, {row.longitude}</span> 
+//     },
+//     {
+//         header: "Bán kính",
+//         render: (row) => <span className="text-gray-600">{row.range_meter}m</span>
 //     },
 //     {
 //       header: "Trạng thái",
@@ -114,118 +154,131 @@
 //   ];
 
 //   return (
-//     <div className="p-8 max-w-7xl mx-auto space-y-8">
-//       <div className="flex justify-between items-end">
-//         <div>
-//           <h1 className="text-3xl font-extrabold text-gray-900">Quản lý POIs</h1>
-//           <p className="text-gray-500 mt-1">Quản lý các điểm ẩm thực trên bản đồ FoodTour</p>
+//     <>
+//         {loading && <FullPageLoading message="Đang xử lý dữ liệu và dịch thuật..." />}
+//         <div className="p-8 max-w-7xl mx-auto space-y-8">
+//           <div className="flex justify-between items-end">
+//               <div>
+//               <h1 className="text-3xl font-extrabold text-gray-900">Quản lý POIs</h1>
+//               <p className="text-gray-500 mt-1">Quản lý các điểm ẩm thực trên bản đồ FoodTour</p>
+//               </div>
+//               <Button onClick={() => setIsModalOpen(true)} size="lg">
+//               + Thêm địa điểm
+//               </Button>
+//           </div>
+
+//         <Card className="h-[55vh] overflow-auto">
+//             <Table columns={columns} data={pois} />
+//         </Card>
+
+//         <Modal 
+//             isOpen={isModalOpen} 
+//             onClose={() => setIsModalOpen(false)} 
+//             title="Thêm địa điểm mới"
+//             showCloseButton={false}
+//             extraClasses='!w-3xl'
+//         >
+//             <form onSubmit={handleSubmit} className="space-y-3 mt-4">
+//             {/* File Uploads */}
+//             <div className="grid grid-cols-2 gap-4">
+//                 <div className="space-y-1">
+//                 <label className="text-xs font-bold text-gray-400 uppercase">Ảnh đại diện</label>
+//                 <input type="file" onChange={(e) => handleFileChange(e, 'thumbnail')} className="text-xs w-full hover:cursor-pointer" />
+//                 </div>
+//                 <div className="space-y-1">
+//                 <label className="text-xs font-bold text-gray-400 uppercase">Ảnh Banner</label>
+//                 <input type="file" onChange={(e) => handleFileChange(e, 'banner')} className="text-xs w-full hover:cursor-pointer" />
+//                 </div>
+//             </div>
+
+//             <Input 
+//                 label="Tên địa điểm" 
+//                 placeholder="Nhập tên quán..."
+//                 value={formData.localized.name}
+//                 onChange={(e) => setFormData({...formData, localized: {...formData.localized, name: e.target.value}})}
+//             />
+
+//             <div className="flex flex-col gap-1.5">
+//                 <label className="text-sm font-medium text-gray-700 ml-1">Mô tả</label>
+//                 <textarea 
+//                 className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
+//                 rows="3"
+//                 placeholder="Mô tả đặc điểm, giá cả..."
+//                 value={formData.localized.description}
+//                 onChange={(e) => setFormData({...formData, localized: {...formData.localized, description: e.target.value}})}
+//                 />
+//             </div>
+
+//             {/* Position Section */}
+//             <div className="space-y-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+//                 <div className="grid grid-cols-2 gap-4">
+//                     <Input label="Vĩ độ" value={formData.position.latitude} disabled />
+//                     <Input label="Kinh độ" value={formData.position.longitude} disabled />
+//                 </div>
+//                 <Button 
+//                     type="button" 
+//                     variant="outline" 
+//                     className="w-full bg-white text-blue-600 border-blue-200 hover:bg-blue-50" 
+//                     size="sm"
+//                     onClick={handleGetLocation}
+//                 >
+//                     📍 Lấy tọa độ hiện tại
+//                 </Button>
+//             </div>
+
+//             <div className="grid grid-cols-2 gap-4">
+//                 <Input 
+//                     label="Bán kính hiển thị (m)" 
+//                     type="number"
+//                     value={formData.position.range_meter}
+//                     onChange={(e) => setFormData({...formData, position: {...formData.position, range_meter: parseInt(e.target.value)}})}
+//                 />
+//                 <div className="flex flex-col gap-1.5">
+//                     <label className="text-sm font-medium text-gray-700 ml-1">Trạng thái</label>
+//                     <select 
+//                         className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
+//                         value={formData.is_Active}
+//                         onChange={(e) => setFormData({...formData, is_Active: e.target.value === "true"})}
+//                     >
+//                         <option value="true">Hoạt động (Active)</option>
+//                         <option value="false">Tạm ẩn (Inactive)</option>
+//                     </select>
+//                 </div>
+//             </div>
+
+//             <div className="pt-2 flex gap-3">
+//                 <Button 
+//                 className="flex-[2]" 
+//                 type="submit" 
+//                 disabled={loading}
+//                 >
+//                 {loading ? "Đang xử lý..." : "Xác nhận thêm"}
+//                 </Button>
+//             </div>
+//             </form>
+//         </Modal>
 //         </div>
-//         <Button onClick={() => setIsModalOpen(true)} size="lg">
-//           + Thêm địa điểm
-//         </Button>
-//       </div>
-
-//       <Card>
-//         <Table columns={columns} data={pois} />
-//       </Card>
-
-//       <Modal 
-//         isOpen={isModalOpen} 
-//         onClose={() => setIsModalOpen(false)} 
-//         title="Thêm địa điểm mới"
-//       >
-//         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-//           <div className="grid grid-cols-2 gap-4">
-//             <div className="space-y-1">
-//                <label className="text-xs font-bold text-gray-400 uppercase">Ảnh đại diện</label>
-//                <input type="file" onChange={(e) => handleFileChange(e, 'thumbnail')} className="text-xs w-full" />
-//             </div>
-//             <div className="space-y-1">
-//                <label className="text-xs font-bold text-gray-400 uppercase">Ảnh Banner</label>
-//                <input type="file" onChange={(e) => handleFileChange(e, 'banner')} className="text-xs w-full" />
-//             </div>
-//           </div>
-
-//           <Input 
-//             label="Tên địa điểm (VN)" 
-//             placeholder="Nhập tên quán..."
-//             value={formData.localized.name}
-//             onChange={(e) => setFormData({...formData, localized: {...formData.localized, name: e.target.value}})}
-//           />
-
-//           <div className="flex flex-col gap-1.5">
-//             <label className="text-sm font-medium text-gray-700 ml-1">Mô tả món ăn</label>
-//             <textarea 
-//               className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
-//               rows="3"
-//               placeholder="Mô tả đặc điểm, giá cả..."
-//               value={formData.localized.description}
-//               onChange={(e) => setFormData({...formData, localized: {...formData.localized, description: e.target.value}})}
-//             />
-//           </div>
-
-//           <div className="grid grid-cols-2 gap-4">
-//             <Input 
-//                 label="Kinh độ (Auto)" 
-//                 value={formData.position.latitude} 
-//                 disabled 
-//             />
-//             <Input 
-//                 label="Vĩ độ (Auto)" 
-//                 value={formData.position.longitude} 
-//                 disabled 
-//             />
-//           </div>
-
-//           <div className="pt-2">
-//             <Button 
-//               className="w-full" 
-//               type="submit" 
-//               disabled={loading}
-//             >
-//               {loading ? "Đang xử lý AI & Dịch thuật..." : "Xác nhận thêm"}
-//             </Button>
-//           </div>
-//         </form>
-//       </Modal>
-//     </div>
+//     </>
 //   );
 // };
 
 // export default POIAdminManager;
 
-import React, { useState, useEffect } from 'react';
-import api from '../../utils/api'; 
-import { toast } from 'react-hot-toast';
-import Button from '../../components/common/Button';
-import Card from '../../components/common/Card';
-import Input from '../../components/common/Input';
-import Modal from '../../components/common/Modal';
-import Table from '../../components/common/Table';
-import FullPageLoading from '../../components/common/FullPageLoading';
-
 const POIAdminManager = () => {
-
   const [pois, setPois] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
-  const generateRandomCoords = () => ({
-    latitude: (10.7580 + Math.random() * 0.005).toFixed(6),
-    longitude: (106.7050 + Math.random() * 0.005).toFixed(6)
-  });
-
-  const [formData, setFormData] = useState({
+  const initialForm = {
     thumbnail: "",
     banner: "",
-    is_Active: true,
-    position: { 
-        latitude: 10.7589, 
-        longitude: 106.7076, 
-        range_meter: 50 
-    },
+    is_active: true,
+    position: { latitude: 10.7589, longitude: 106.7076, range_meter: 50 },
     localized: { lang_code: "vi", name: "", description: "" }
-  });
+  };
+
+  const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => {
     fetchPois();
@@ -240,13 +293,32 @@ const POIAdminManager = () => {
     }
   };
 
-  const handleGetLocation = () => {
-    const coords = generateRandomCoords();
-    setFormData(prev => ({
-      ...prev,
-      position: { ...prev.position, ...coords }
-    }));
-    toast.success("Đã lấy tọa độ giả lập mới!");
+  // Mở modal để Sửa
+  const handleEdit = (row) => {
+    setEditingId(row.id);
+    setFormData({
+      thumbnail: row.thumbnail,
+      banner: row.banner,
+      is_active: Boolean(row.is_Active),
+      position: { 
+        latitude: row.latitude, 
+        longitude: row.longitude, 
+        range_meter: row.range_meter 
+      },
+      localized: { 
+        lang_code: "vi", 
+        name: row.name, 
+        description: row.description 
+      }
+    });
+    setIsModalOpen(true);
+  };
+
+  // Reset form khi đóng modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(initialForm);
   };
 
   const handleFileChange = (e, field) => {
@@ -258,57 +330,57 @@ const POIAdminManager = () => {
     if (file) reader.readAsDataURL(file);
   };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (loading) return;
 
-        const { thumbnail, banner, localized } = formData;
-        
-        if (!thumbnail) return toast.error("Vui lòng chọn ảnh đại diện!");
-        if (!banner) return toast.error("Vui lòng chọn ảnh banner!");
-        
-        if (!localized.name.trim()) {
-        return toast.error("Tên địa điểm không được để trống!");
-        }
-        
-        if (!localized.description.trim()) {
-        return toast.error("Mô tả không được để trống!");
-        }
-        if (localized.description.trim().length < 10) {
-        return toast.error("Mô tả nên chi tiết một chút, ít nhất 10 ký tự!");
-        }
+    // Validate cơ bản
+    if (!formData.thumbnail || !formData.banner) return toast.error("Vui lòng chọn ảnh!");
+    if (!formData.localized.name.trim() || !formData.localized.description.trim()) {
+      return toast.error("Vui lòng điền đầy đủ thông tin!");
+    }
 
-        if (loading) return;
-        setLoading(true);
+    if (formData.localized.description.trim().length < 10) {
+      return toast.error("Mô tả nên chi tiết một chút, ít nhất 10 ký tự!");
+    }
 
-        try {
-            const res = await api.post('/pois/admin/create', formData);
+    setLoading(true);
+    try {
+      let res;
+      if (editingId) {
 
-            if (res.data.success) {
-                toast.success("Tạo POI và bản dịch AI thành công!");
-                setIsModalOpen(false);
-                fetchPois();
+        res = await api.put(`/pois/admin/update/${editingId}`, formData);
+      } else {
 
-                const newCoords = generateRandomCoords();
-                setFormData({
-                thumbnail: "", 
-                banner: "", 
-                is_Active: true,
-                position: { ...newCoords, range_meter: 50 },
-                localized: { lang_code: "vi", name: "", description: "" }
-                });
-            }
-        } catch (err) {
+        res = await api.post('/pois/admin/create', formData);
+      }
 
-            const serverError = err.response?.data?.detail;
-            if (Array.isArray(serverError)) {
-                toast.error(serverError[0].msg);
-            } else {
-                toast.error(serverError || "Không thể kết nối server!");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
+      if (res.data.success) {
+        toast.success(editingId ? "Cập nhật thành công!" : "Tạo mới thành công!");
+        handleCloseModal();
+        fetchPois();
+      }
+    } catch (err) {
+      const serverError = err.response?.data?.detail;
+      toast.error(typeof serverError === 'string' ? serverError : "Lỗi hệ thống!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateRandomCoords = () => ({
+    latitude: (10.7580 + Math.random() * 0.005).toFixed(6),
+    longitude: (106.7050 + Math.random() * 0.005).toFixed(6)
+  });
+
+  const handleGetLocation = () => {
+  const coords = generateRandomCoords();
+    setFormData(prev => ({
+      ...prev,
+      position: { ...prev.position, ...coords }
+    }));
+    toast.success("Đã lấy tọa độ giả lập mới!");
+  };
 
   const columns = [
     {
@@ -327,10 +399,6 @@ const POIAdminManager = () => {
       render: (row) => <span className="font-mono text-xs text-gray-500">{row.latitude}, {row.longitude}</span> 
     },
     {
-        header: "Bán kính",
-        render: (row) => <span className="text-gray-600">{row.range_meter}m</span>
-    },
-    {
       header: "Trạng thái",
       render: (row) => (
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${row.is_Active ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
@@ -342,8 +410,8 @@ const POIAdminManager = () => {
       header: "Hành động",
       render: (row) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="outline">Sửa</Button>
-          <Button size="sm" variant="danger">Xóa</Button>
+          <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>Sửa</Button>
+          <Button size="sm" variant="danger" onClick={() => {/* Logic xóa */}}>Xóa</Button>
         </div>
       )
     }
@@ -351,45 +419,48 @@ const POIAdminManager = () => {
 
   return (
     <>
-        {loading && <FullPageLoading message="Đang xử lý dữ liệu và dịch thuật..." />}
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
+      {loading && <FullPageLoading message="Đang xử lý dữ liệu..." />}
+      <div className="p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-end">
-            <div>
+          <div>
             <h1 className="text-3xl font-extrabold text-gray-900">Quản lý POIs</h1>
-            <p className="text-gray-500 mt-1">Quản lý các điểm ẩm thực trên bản đồ FoodTour</p>
-            </div>
-            <Button onClick={() => setIsModalOpen(true)} size="lg">
-            + Thêm địa điểm
-            </Button>
+            <p className="text-gray-500 mt-1">Cập nhật thông tin thực tế cho thực khách</p>
+          </div>
+          <Button onClick={() => setIsModalOpen(true)} size="lg">+ Thêm địa điểm</Button>
         </div>
 
-        <Card>
-            <Table columns={columns} data={pois} />
+        <Card className="h-[55vh] overflow-auto shadow-sm border-gray-100">
+          <Table columns={columns} data={pois} />
         </Card>
 
         <Modal 
-            isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)} 
-            title="Thêm địa điểm mới"
-            showCloseButton={false}
-            extraClasses='!w-3xl'
+          isOpen={isModalOpen} 
+          onClose={handleCloseModal}
+          title={editingId ? "Cập nhật địa điểm" : "Thêm địa điểm mới"}
+          showCloseButton={false}
+          extraClasses='!w-3xl'
         >
-            <form onSubmit={handleSubmit} className="space-y-3 mt-4">
-            {/* File Uploads */}
+          <form onSubmit={handleSubmit} className="space-y-3 mt-4">
+            {/* FILE UPLOADS: Hiển thị preview nếu là Edit */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Ảnh đại diện</label>
-                <input type="file" onChange={(e) => handleFileChange(e, 'thumbnail')} className="text-xs w-full" />
+                  <label className="text-xs font-bold text-gray-400 uppercase">Ảnh đại diện</label>
+                  <input type="file" onChange={(e) => handleFileChange(e, 'thumbnail')} className="text-xs w-full" />
+                  {editingId && typeof formData.thumbnail === 'string' && formData.thumbnail.startsWith('/') && 
+                    <p className="text-[10px] text-blue-500">Đã có ảnh cũ</p>
+                  }
                 </div>
                 <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase">Ảnh Banner</label>
-                <input type="file" onChange={(e) => handleFileChange(e, 'banner')} className="text-xs w-full" />
+                  <label className="text-xs font-bold text-gray-400 uppercase">Ảnh Banner</label>
+                  <input type="file" onChange={(e) => handleFileChange(e, 'banner')} className="text-xs w-full" />
+                  {editingId && typeof formData.banner === 'string' && formData.banner.startsWith('/') && 
+                    <p className="text-[10px] text-blue-500">Đã có ảnh cũ</p>
+                  }
                 </div>
             </div>
 
             <Input 
-                label="Tên địa điểm" 
-                placeholder="Nhập tên quán..."
+                label="Tên địa điểm"
                 value={formData.localized.name}
                 onChange={(e) => setFormData({...formData, localized: {...formData.localized, name: e.target.value}})}
             />
@@ -397,34 +468,27 @@ const POIAdminManager = () => {
             <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-gray-700 ml-1">Mô tả</label>
                 <textarea 
-                className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
-                rows="3"
-                placeholder="Mô tả đặc điểm, giá cả..."
-                value={formData.localized.description}
-                onChange={(e) => setFormData({...formData, localized: {...formData.localized, description: e.target.value}})}
+                  className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
+                  rows="3"
+                  value={formData.localized.description}
+                  onChange={(e) => setFormData({...formData, localized: {...formData.localized, description: e.target.value}})}
                 />
             </div>
 
             {/* Position Section */}
-            <div className="space-y-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                <div className="grid grid-cols-2 gap-4">
-                    <Input label="Vĩ độ" value={formData.position.latitude} disabled />
-                    <Input label="Kinh độ" value={formData.position.longitude} disabled />
+            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                <Input label="Vĩ độ" value={formData.position.latitude} disabled />
+                <Input label="Kinh độ" value={formData.position.longitude} disabled />
+                <div className="col-span-2">
+                   <Button type="button" variant="outline" className="w-full bg-white" size="sm" onClick={handleGetLocation}>
+                     📍 Cập nhật vị trí hiện tại
+                   </Button>
                 </div>
-                <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full bg-white text-blue-600 border-blue-200 hover:bg-blue-50" 
-                    size="sm"
-                    onClick={handleGetLocation}
-                >
-                    📍 Lấy tọa độ hiện tại
-                </Button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <Input 
-                    label="Bán kính hiển thị (m)" 
+                    label="Bán kính" 
                     type="number"
                     value={formData.position.range_meter}
                     onChange={(e) => setFormData({...formData, position: {...formData.position, range_meter: parseInt(e.target.value)}})}
@@ -433,27 +497,23 @@ const POIAdminManager = () => {
                     <label className="text-sm font-medium text-gray-700 ml-1">Trạng thái</label>
                     <select 
                         className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
-                        value={formData.is_Active}
-                        onChange={(e) => setFormData({...formData, is_Active: e.target.value === "true"})}
+                        value={formData.is_active}
+                        onChange={(e) => setFormData({...formData, is_active: e.target.value === "true"})}
                     >
-                        <option value="true">Hoạt động (Active)</option>
-                        <option value="false">Tạm ẩn (Inactive)</option>
+                        <option value="true">Hoạt động</option>
+                        <option value="false">Tạm ẩn</option>
                     </select>
                 </div>
             </div>
 
             <div className="pt-2 flex gap-3">
-                <Button 
-                className="flex-[2]" 
-                type="submit" 
-                disabled={loading}
-                >
-                {loading ? "Đang xử lý..." : "Xác nhận thêm"}
+                <Button className="flex-[2]" type="submit" disabled={loading}>
+                  {loading ? "Đang xử lý..." : editingId ? "Lưu thay đổi" : "Xác nhận thêm"}
                 </Button>
             </div>
-            </form>
+          </form>
         </Modal>
-        </div>
+      </div>
     </>
   );
 };

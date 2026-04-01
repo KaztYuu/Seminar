@@ -33,12 +33,12 @@ class GeminiService:
                 contents=[types.Content(parts=[types.Part(text=text)])],
                 config=types.GenerateContentConfig(
                     system_instruction=(
-                        "Bạn là chuyên gia dịch thuật. "
-                        "Dịch văn bản sang Tiếng Anh (en), Tiếng Hàn (kr), Tiếng Pháp (fr). "
-                        "Các bản dịch phải giữ nguyên tên riêng, tên đường và thương hiệu. "
-                        "Dịch dựa trên ngữ cảnh để đảm bảo tự nhiên. "
-                        "Tự động sửa các lỗi chính tả hoặc ngữ pháp trong bản gốc nếu có. "
-                        "Trả về JSON: {'en': '...', 'kr': '...', 'fr': '...'}. "
+                        "You are a professional translation expert. "
+                        "Translate the text into English (en), Korean (kr), and French (fr). "
+                        "The translations must preserve proper nouns, street names, and brand names. "
+                        "Translate based on context to ensure natural and fluent results. "
+                        "Automatically correct any spelling or grammatical errors in the original text if necessary. "
+                        "Return the result in JSON format: {'en': '...', 'kr': '...', 'fr': '...'}. "
                     ),
                     response_mime_type="application/json",
                 ),
@@ -48,23 +48,11 @@ class GeminiService:
             print(f"Translation Error: {e}")
             raise e
 
-    async def text_to_speech(self, text: str):
+    async def text_to_speech(self, text: str) -> bytes:
         """
-        Xử lý TTS, lưu file vào Backend và trả về đường dẫn file.
+        Thực hiện gọi API Gemini và trả về nội dung audio thô (bytes).
         """
         try:
-            # 1. Tạo tên file duy nhất dựa trên nội dung (MD5 Hash)
-            file_hash = hashlib.md5(text.encode()).hexdigest()
-            file_name = f"{file_hash}.wav"
-            file_path = os.path.join(self.audio_storage, file_name)
-
-            db_path = f"/uploads/audio/tts/{file_name}"
-
-            # 2. Nếu đã có file (Cache), không gọi API, trả về path luôn
-            if os.path.exists(file_path):
-                return db_path
-
-            # 3. Gọi Gemini TTS nếu chưa có file
             instruction = "Instruction: Read the following text in a warm, welcoming, and natural tour guide voice. Only read the text provided. Text: "
             response = self.client.models.generate_content(
                 model=self.tts_model_id,
@@ -72,19 +60,11 @@ class GeminiService:
                 config=types.GenerateContentConfig(response_modalities=["AUDIO"])
             )
             
-            raw_audio = response.candidates[0].content.parts[0].inline_data.data
-            
-            # 4. Ghi file WAV xuống ổ cứng backend
-            with wave.open(file_path, "wb") as wf:
-                wf.setnchannels(1) 
-                wf.setsampwidth(2)
-                wf.setframerate(24000)
-                wf.writeframes(raw_audio)
-            
-            return db_path
+            # Trả về dữ liệu audio thô
+            return response.candidates[0].content.parts[0].inline_data.data
                 
         except Exception as e:
-            print(f"TTS Storage Error: {e}")
+            print(f"Gemini TTS API Error: {e}")
             raise e
 
     async def chat_with_guide(self, user_query: str, history: list = []):

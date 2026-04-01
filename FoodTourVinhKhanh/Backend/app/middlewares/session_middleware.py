@@ -12,6 +12,7 @@ async def session_middleware(request: Request, call_next):
 
     if session_id:
         refresh_session(session_id)  # reset TTL
+        print(f"Session {session_id} refreshed")
 
     response = await call_next(request)
     return response
