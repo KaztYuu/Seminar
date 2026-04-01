@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 
@@ -16,8 +16,23 @@ class POIPositionVendor(BaseModel):
 
 # ===== LOCALIZED =====
 class POILocalized(BaseModel):
-    name: str
-    description: str
+    lang_code: str = Field(..., min_length=2, max_length=5)
+    name: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=1)
+
+    @field_validator('name')
+    @classmethod
+    def name_must_not_be_empty(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Tên địa điểm không được để trống')
+        return v
+
+    @field_validator('description')
+    @classmethod
+    def description_must_not_be_empty(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Mô tả không được để trống')
+        return v
 
 
 # ===== BASE =====
@@ -69,6 +84,7 @@ class POIResponse(BaseModel):
     longitude: float
     range_meter: int | None
 
+    lang_code: str
     name: str
     description: str
     audio_url: str | None

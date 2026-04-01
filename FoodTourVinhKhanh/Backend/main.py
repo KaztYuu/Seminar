@@ -6,6 +6,7 @@ from app.routes.auth_router import router as auth_router
 from app.routes.package_router import router as package_router
 from app.routes.payment_router import router as payment_router
 from app.routes.user_router import router as user_router
+from app.routes.poi_router import router as poi_router
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
@@ -25,6 +26,7 @@ app.include_router(auth_router)
 app.include_router(package_router)
 app.include_router(payment_router)
 app.include_router(user_router)
+app.include_router(poi_router)
 
 
 @app.get("/")

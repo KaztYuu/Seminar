@@ -1,4 +1,4 @@
-const Button = ({ children, onClick, variant = "primary", size = "md", className = "" }) => {
+const Button = ({ children, onClick, variant = "primary", size = "md", className = "", type = "button" }) => {
   const base = "inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50";
 
   const sizes = {
@@ -15,6 +15,7 @@ const Button = ({ children, onClick, variant = "primary", size = "md", className
 
   return (
     <button 
+      type={type} // <--- THÊM DÒNG NÀY để nhận type="button" hoặc type="submit"
       onClick={onClick} 
       className={`${base} ${sizes[size]} ${styles[variant]} ${className}`}
     >

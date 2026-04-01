@@ -35,7 +35,9 @@ class GeminiService:
                     system_instruction=(
                         "Bạn là chuyên gia dịch thuật. "
                         "Dịch văn bản sang Tiếng Anh (en), Tiếng Hàn (kr), Tiếng Pháp (fr). "
-                        "Các bản dịch phải giữ nguyên tên riêng, tên đường và thương hiệu. Dịch dựa trên ngữ cảnh để đảm bảo tự nhiên. "
+                        "Các bản dịch phải giữ nguyên tên riêng, tên đường và thương hiệu. "
+                        "Dịch dựa trên ngữ cảnh để đảm bảo tự nhiên. "
+                        "Tự động sửa các lỗi chính tả hoặc ngữ pháp trong bản gốc nếu có. "
                         "Trả về JSON: {'en': '...', 'kr': '...', 'fr': '...'}. "
                     ),
                     response_mime_type="application/json",

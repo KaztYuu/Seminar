@@ -13,6 +13,7 @@ import TouristProfile from "./pages/tourist/TouristProfile.jsx"
 import TourisTransactions from "./pages/tourist/TouristTransactions.jsx"
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx"
 import AdminProfile from "./pages/admin/AdminProfile.jsx"
+import POIAdminManager from "./pages/admin/AdminPOIs.jsx"
 import Users from "./pages/admin/Users.jsx"
 import VendorDashboard from "./pages/vendor/VendorDashboard.jsx"
 import VendorProfile from "./pages/vendor/VendorProfile.jsx"
@@ -45,6 +46,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<Users />} />
           <Route path="profile" element={<AdminProfile />} />
+          <Route path="pois" element={<POIAdminManager />} />
         </Route>
 
         <Route 

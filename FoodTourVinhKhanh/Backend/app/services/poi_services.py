@@ -1,5 +1,7 @@
 from app.database import get_db_connection
 from app.services.subscription_services import is_vendor_active
+from app.services.gemini_services import gemini_service
+from app.services.image_services import image_service
 
 
 # ========================
@@ -125,14 +127,15 @@ def getPois(user, lang="vi"):
 
     return pois
 
-def create_poi(user, data):
+async def createPOI(user, data):
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # =========================
-        # 1. XỬ LÝ ROLE
-        # =========================
+
+        thumbnail_path = image_service.save_image(data.thumbnail, "thumb")
+        banner_path = image_service.save_image(data.banner, "banner")
+
         if user["role"] == "admin":
             is_active = data.is_active
             range_meter = data.position.range_meter
@@ -140,58 +143,59 @@ def create_poi(user, data):
             is_active = False
             range_meter = None
 
-        # =========================
-        # 2. INSERT POIS
-        # =========================
+        translations = await gemini_service.translate_to_multiple_languages(data.localized.description)
+        
+        # Tạo danh sách các bản ghi localized (Gồm bản gốc + các bản dịch)
+        localized_items = [
+            {
+                "lang_code": "vi", 
+                "name": data.localized.name, 
+                "description": data.localized.description
+            }
+        ]
+        
+        # Thêm các bản dịch từ Gemini vào danh sách (en, kr, fr)
+        for lang, text in translations.items():
+            localized_items.append({
+                "lang_code": lang,
+                "name": data.localized.name,
+                "description": text
+            })
+
         cursor.execute("""
             INSERT INTO pois (owner_id, thumbnail, banner, is_Active)
             VALUES (%s, %s, %s, %s)
-        """, (
-            user["id"],
-            data.thumbnail,
-            data.banner,
-            is_active
-        ))
-
+        """, (user["id"], thumbnail_path, banner_path, is_active))
+        
         poi_id = cursor.lastrowid
 
-        # =========================
-        # 3. INSERT POSITION
-        # =========================
         cursor.execute("""
             INSERT INTO poi_position (poi_id, latitude, longitude, range_meter)
             VALUES (%s, %s, %s, %s)
-        """, (
-            poi_id,
-            data.position.latitude,
-            data.position.longitude,
-            range_meter
-        ))
+        """, (poi_id, data.position.latitude, data.position.longitude, range_meter))
 
-        # =========================
-        # 4. INSERT LOCALIZED
-        # =========================
-        cursor.execute("""
-            INSERT INTO poi_localized_data 
-            (poi_id, lang_code, name, description, audio_url)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (
-            poi_id,
-            data.localized.lang_code,
-            data.localized.name,
-            data.localized.description,
-            data.localized.audio_url
-        ))
+        for item in localized_items:
+            # Tạo file âm thanh cho từng ngôn ngữ dựa trên mô tả tương ứng
+            audio_url = await gemini_service.text_to_speech(item["description"])
+            
+            cursor.execute("""
+                INSERT INTO poi_localized_data 
+                (poi_id, lang_code, name, description, audio_url)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                poi_id, 
+                item["lang_code"], 
+                item["name"], 
+                item["description"], 
+                audio_url
+            ))
 
-        # =========================
-        # 5. COMMIT
-        # =========================
         conn.commit()
-
-        return True, "Tạo POI thành công", poi_id
+        return True, "Tạo POI và bản dịch đa ngôn ngữ thành công", poi_id
 
     except Exception as e:
         conn.rollback()
+        print(f"Create POI Error: {e}")
         return False, str(e), None
 
     finally:

@@ -1,16 +1,22 @@
 from app.database import get_db_connection
 
-def get_packages_by_role(role=None):
-
-    sql = """
-        SELECT * 
-        FROM subscription_packages 
-        WHERE is_Active = TRUE AND target_role = %s
-    """
+def getPackages(user):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True)   
 
-    cursor.execute(sql, (role,))
+    if user["role"] == "admin":
+        cursor.execute("""
+            SELECT * 
+            FROM subscription_packages
+            WHERE is_Active = TRUE
+                       """)
+    else:
+        cursor.execute("""
+            SELECT * 
+            FROM subscription_packages
+            WHERE is_Active = TRUE AND target_role = %s
+                       """, (user["role"],))
+
     packages = cursor.fetchall()
 
     cursor.close()

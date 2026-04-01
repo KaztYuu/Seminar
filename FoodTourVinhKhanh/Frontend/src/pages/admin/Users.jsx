@@ -69,6 +69,7 @@ const Users = () => {
         isOpen={open} 
         onClose={() => setOpen(false)} 
         title="Thêm người dùng mới"
+        extraClasses="!w-2xl"
       >
         <div className="space-y-5">
           <Input 
