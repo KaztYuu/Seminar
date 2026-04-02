@@ -31,4 +31,21 @@ class AudioService:
         except Exception as e:
             print(f"Delete Audio Error: {e}")
 
+
+    def delete_audio(self, file_path):
+        if not file_path:
+            return
+        try:
+            wd = os.getcwd()
+            clean_path = file_path.lstrip("/")
+            full_path = os.path.join(wd, clean_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+                print(f"Successfully deleted: {full_path}")
+            else:
+                print(f"File not found, skipping delete: {full_path}")
+                
+        except Exception as e:
+            print(f"Delete Audio Error: {e}")
+
 audio_service = AudioService()

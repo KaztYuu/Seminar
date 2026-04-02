@@ -382,6 +382,28 @@ const POIAdminManager = () => {
     toast.success("Đã lấy tọa độ giả lập mới!");
   };
 
+  const handleDelete = async (poi_id) => {
+    
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa POI này không? poi_id: ${poi_id}`)){
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let res;
+      res = await api.delete(`/pois/delete/${poi_id}`)
+      if(res.data.success){
+        toast.success("Xóa POI thành công");
+        fetchPois()
+      }
+    } catch (err){
+      const errorMessage = err.response?.data?.detail || "Không thể xóa địa điểm này!";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const columns = [
     {
       header: "Hình ảnh",
@@ -411,7 +433,7 @@ const POIAdminManager = () => {
       render: (row) => (
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>Sửa</Button>
-          <Button size="sm" variant="danger" onClick={() => {/* Logic xóa */}}>Xóa</Button>
+          <Button size="sm" variant="danger" onClick={() => handleDelete(row.id)}>Xóa</Button>
         </div>
       )
     }
@@ -424,7 +446,7 @@ const POIAdminManager = () => {
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">Quản lý POIs</h1>
-            <p className="text-gray-500 mt-1">Cập nhật thông tin thực tế cho thực khách</p>
+            <p className="text-gray-500 mt-1">Cập nhật thông tin thực tế cho du khách</p>
           </div>
           <Button onClick={() => setIsModalOpen(true)} size="lg">+ Thêm địa điểm</Button>
         </div>
@@ -438,7 +460,7 @@ const POIAdminManager = () => {
           onClose={handleCloseModal}
           title={editingId ? "Cập nhật địa điểm" : "Thêm địa điểm mới"}
           showCloseButton={false}
-          extraClasses='!w-3xl'
+          extraClasses='!w-3xl rounded-xl'
         >
           <form onSubmit={handleSubmit} className="space-y-3 mt-4">
             {/* FILE UPLOADS: Hiển thị preview nếu là Edit */}

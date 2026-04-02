@@ -206,7 +206,7 @@ def getPOIById(user, poi_id, lang="vi"):
     except Exception as e:
         print(f"Get POI Error: {e}")
     finally:
-        # Đảm bảo luôn đóng connection dù thành công hay thất bại
+
         cursor.close()
         conn.close()
         
@@ -293,3 +293,45 @@ async def updatePOI(user, poi_id, data):
     finally:
         cursor.close()
         conn.close()
+
+async def deletePOI(user, poi_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT * FROM pois WHERE id = %s AND is_Deleted = FALSE", (poi_id,))
+        poi = cursor.fetchone()
+
+        if not poi:
+            return False, f"POI không tồn tại hoặc đã bị xóa. ID: {poi_id}"
+
+        if user["role"] == "vendor" and poi["owner_id"] != user["id"]:
+            return False, "Bạn không phải chủ sở hữu của POI này."
+
+        cursor.execute("SELECT audio_url FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
+        audio_rows = cursor.fetchall()
+
+        cursor.execute("DELETE FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
+        cursor.execute("DELETE FROM poi_position WHERE poi_id = %s", (poi_id,))
+        
+        cursor.execute("UPDATE pois SET is_Deleted = TRUE WHERE id = %s", (poi_id,))
+
+        conn.commit()
+
+        for row in audio_rows:
+            if row['audio_url']:
+                audio_service.delete_audio(row['audio_url'])
+        
+        image_service.delete_image(poi["thumbnail"])
+        image_service.delete_image(poi["banner"])
+
+        return True, "Xóa POI thành công"
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Delete POI Error: {e}")
+        return False, f"Lỗi hệ thống: {str(e)}"
+    finally:
+        cursor.close()
+        conn.close()
+            
