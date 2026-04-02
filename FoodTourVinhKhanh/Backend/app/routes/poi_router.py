@@ -18,8 +18,8 @@ def activate_pois(user=Depends(require_role("vendor"))):
     }
 
 @router.get("/get-pois")
-def get_pois(lang: str = "vi", user=Depends(get_current_user)):
-    pois = getPois(user, lang=lang)
+def get_pois(lang: str = "vi", search: str = "", user=Depends(get_current_user)):
+    pois = getPois(user=user, lang=lang, searchTxt=search)
 
     return {
         "success": True,

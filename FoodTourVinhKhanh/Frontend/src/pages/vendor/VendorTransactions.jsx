@@ -4,7 +4,7 @@ import Table from "../../components/common/Table";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 
-const TouristTransactions = () => {
+const VendorTransactions = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,4 +149,4 @@ const TouristTransactions = () => {
   );
 };
 
-export default TouristTransactions;
+export default VendorTransactions;

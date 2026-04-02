@@ -26,99 +26,151 @@ def activate_pois(user_id: int):
 
     return True, f"Đã kích hoạt {affected} POIs"
 
-def getPois(user, lang="vi"):
+# def getPois(user, lang="vi", searchTxt=""):
+#     conn = get_db_connection()
+#     cursor = conn.cursor(dictionary=True)
+
+#     # ===== ADMIN =====
+#     if user["role"] == "admin":
+#         cursor.execute("""
+#             SELECT 
+#                 p.*,
+#                 pos.latitude,
+#                 pos.longitude,
+#                 pos.range_meter,
+#                 ld.name,
+#                 ld.description,
+#                 ld.audio_url
+
+#             FROM pois p
+#             LEFT JOIN poi_position pos ON p.id = pos.poi_id
+#             LEFT JOIN poi_localized_data ld 
+#                 ON p.id = ld.poi_id AND ld.lang_code = %s
+
+#             WHERE ld.name = %s 
+#                 AND p.is_Deleted = FALSE
+#         """, (lang, searchTxt,))
+
+#     # ===== VENDOR =====
+#     elif user["role"] == "vendor":
+#         cursor.execute("""
+#             SELECT 
+#                 p.*,
+#                 pos.latitude,
+#                 pos.longitude,
+#                 pos.range_meter,
+#                 ld.name,
+#                 ld.description,
+#                 ld.audio_url
+
+#             FROM pois p
+#             LEFT JOIN poi_position pos ON p.id = pos.poi_id
+#             LEFT JOIN poi_localized_data ld 
+#                 ON p.id = ld.poi_id AND ld.lang_code = %s
+
+#             WHERE 
+#                 p.owner_id = %s
+#                 AND p.is_Deleted = FALSE
+#         """, (lang, user["id"]))
+
+#     # ===== TOURIST =====
+#     else:
+#         cursor.execute("""
+#             SELECT DISTINCT 
+#                 p.id,
+#                 p.thumbnail,
+#                 p.banner,
+#                 p.created_at,
+
+#                 pos.latitude,
+#                 pos.longitude,
+#                 pos.range_meter,
+
+#                 ld.name,
+#                 ld.description,
+#                 ld.audio_url
+
+#             FROM pois p
+
+#             JOIN users u ON p.owner_id = u.id
+
+#             LEFT JOIN (
+#                 SELECT user_id, MAX(end_time) AS end_time
+#                 FROM vendor_subscriptions
+#                 GROUP BY user_id
+#             ) vs ON p.owner_id = vs.user_id
+
+#             LEFT JOIN poi_position pos ON p.id = pos.poi_id
+
+#             LEFT JOIN poi_localized_data ld 
+#                 ON p.id = ld.poi_id AND ld.lang_code = %s
+
+#             WHERE 
+#                 p.is_Active = TRUE
+#                 AND p.is_Deleted = FALSE
+#                 AND (
+#                     u.role = 'admin'
+#                     OR (u.role = 'vendor' AND vs.end_time > NOW())
+#                 )
+#         """, (lang,))
+
+#     pois = cursor.fetchall()
+
+#     cursor.close()
+#     conn.close()
+
+#     return pois
+
+def getPois(user, lang="vi", searchTxt=""):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    # ===== ADMIN =====
-    if user["role"] == "admin":
-        cursor.execute("""
-            SELECT 
-                p.*,
-                pos.latitude,
-                pos.longitude,
-                pos.range_meter,
-                ld.name,
-                ld.description,
-                ld.audio_url
-
-            FROM pois p
-            LEFT JOIN poi_position pos ON p.id = pos.poi_id
-            LEFT JOIN poi_localized_data ld 
-                ON p.id = ld.poi_id AND ld.lang_code = %s
-
-            WHERE p.is_Deleted = FALSE
-        """, (lang,))
-
-    # ===== VENDOR =====
-    elif user["role"] == "vendor":
-        cursor.execute("""
-            SELECT 
-                p.*,
-                pos.latitude,
-                pos.longitude,
-                pos.range_meter,
-                ld.name,
-                ld.description,
-                ld.audio_url
-
-            FROM pois p
-            LEFT JOIN poi_position pos ON p.id = pos.poi_id
-            LEFT JOIN poi_localized_data ld 
-                ON p.id = ld.poi_id AND ld.lang_code = %s
-
-            WHERE 
-                p.owner_id = %s
-                AND p.is_Deleted = FALSE
-        """, (lang, user["id"]))
-
-    # ===== TOURIST =====
-    else:
-        cursor.execute("""
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        query = """
             SELECT DISTINCT 
-                p.id,
-                p.thumbnail,
-                p.banner,
-                p.created_at,
-
-                pos.latitude,
-                pos.longitude,
-                pos.range_meter,
-
-                ld.name,
-                ld.description,
-                ld.audio_url
-
+                p.*,
+                pos.latitude, pos.longitude, pos.range_meter,
+                ld.name, ld.description, ld.audio_url
             FROM pois p
-
+            LEFT JOIN poi_position pos ON p.id = pos.poi_id
+            LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
             JOIN users u ON p.owner_id = u.id
-
             LEFT JOIN (
                 SELECT user_id, MAX(end_time) AS end_time
                 FROM vendor_subscriptions
                 GROUP BY user_id
             ) vs ON p.owner_id = vs.user_id
+            WHERE p.is_Deleted = FALSE
+        """
+        params = [lang]
 
-            LEFT JOIN poi_position pos ON p.id = pos.poi_id
+        #Phân quyền (Filter theo Role)
+        if user["role"] == "admin":
+            # Admin thấy tất cả
+            pass 
+        elif user["role"] == "vendor":
+            # Vendor chỉ thấy đồ của mình
+            query += " AND p.owner_id = %s"
+            params.append(user["id"])
+        else:
+            # Tourist chỉ thấy POIs Active và Vendor còn hạn sub
+            query += """ 
+                AND p.is_Active = TRUE 
+                AND (u.role = 'admin' OR (u.role = 'vendor' AND vs.end_time > NOW()))
+            """
 
-            LEFT JOIN poi_localized_data ld 
-                ON p.id = ld.poi_id AND ld.lang_code = %s
+        #Tích hợp Tìm kiếm (Search logic)
+        if searchTxt.strip():
+            query += " AND ld.name LIKE %s"
+            params.append(f"%{searchTxt}%")
 
-            WHERE 
-                p.is_Active = TRUE
-                AND p.is_Deleted = FALSE
-                AND (
-                    u.role = 'admin'
-                    OR (u.role = 'vendor' AND vs.end_time > NOW())
-                )
-        """, (lang,))
+        cursor.execute(query, params)
+        pois = cursor.fetchall()
+        return pois
 
-    pois = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return pois
+    finally:
+        cursor.close()
+        conn.close()
 
 async def createPOI(user, data):
     conn = get_db_connection()
