@@ -33,7 +33,7 @@ const SubscriptionPackage = () => {
   useEffect(() => {
     const fetchPackages = async () => {
       try {
-        const res = await api.get("/packages");
+        const res = await api.get("/packages/get-packages");
         const dataWithImages = res.data.data.map(pkg => ({
           ...pkg,
           image: images[Math.floor(Math.random() * images.length)]

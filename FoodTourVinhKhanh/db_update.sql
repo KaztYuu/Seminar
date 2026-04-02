@@ -1,7 +1,7 @@
 USE FoodTourVinhKhanh;
 
 DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS tourist_sessions;
+DROP TABLE IF EXISTS tourist_subscriptions;
 DROP TABLE IF EXISTS vendor_subscriptions;
 DROP TABLE IF EXISTS payments;
 
@@ -35,7 +35,7 @@ CREATE TABLE payments (
         ON UPDATE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE tourist_sessions (
+CREATE TABLE tourist_subscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
     start_time DATETIME,

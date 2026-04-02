@@ -49,18 +49,34 @@ class GeminiService:
             raise e
 
     async def text_to_speech(self, text: str) -> bytes:
-        """
-        Thực hiện gọi API Gemini và trả về nội dung audio thô (bytes).
-        """
         try:
-            instruction = "Instruction: Read the following text in a warm, welcoming, and natural tour guide voice. Only read the text provided. Text: "
+            # Nếu text rỗng hoặc quá ngắn, trả về lỗi sớm
+            if not text or len(text.strip()) < 2:
+                raise ValueError("Văn bản quá ngắn để chuyển thành giọng nói")
+
+            instruction = "Read the following text in a warm, welcoming, and natural tour guide voice. Text: "
+            
             response = self.client.models.generate_content(
                 model=self.tts_model_id,
                 contents=instruction + text,
-                config=types.GenerateContentConfig(response_modalities=["AUDIO"])
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    # Nới lỏng bộ lọc an toàn để tránh lỗi NoneType do chặn nhầm
+                    safety_settings=[
+                        types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                    ]
+                )
             )
             
-            # Trả về dữ liệu audio thô
+            # KIỂM TRA AN TOÀN TRƯỚC KHI TRUY CẬP
+            if not response.candidates or not response.candidates[0].content:
+                finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
+                print(f"Gemini từ chối tạo Audio. Lý do: {finish_reason}")
+                raise ValueError(f"Không thể tạo âm thanh (Lý do: {finish_reason})")
+
             return response.candidates[0].content.parts[0].inline_data.data
                 
         except Exception as e:

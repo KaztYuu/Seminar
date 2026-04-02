@@ -1,7 +1,7 @@
-from app.services.user_services import update_profile, change_password
-from app.schemas.user_schema import ChangePasswordRequest, UpdateProfileRequest
+from app.services.user_services import update_profile, change_password, createUser, updateUser, getUserById, getUsers
+from app.schemas.user_schema import ChangePasswordRequest, UpdateProfileRequest, CreateUserRequest, UpdateUserRequest, UserResponse
 from fastapi import APIRouter, Request, Depends, HTTPException
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, require_role
 from app.services.redis_services import set_session, delete_session
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -43,3 +43,49 @@ def change_password_api(data: ChangePasswordRequest, request: Request, user=Depe
         "success": True,
         "message": message
         }
+
+@router.get("/get-users")
+def get_all_users(search: str = "", user=Depends(require_role("admin"))):
+    users = getUsers(searchTxt=search)
+
+    return {
+        "success": True,
+        "data": users
+    }
+
+@router.get("/get-user-by-id/{user_id}")
+def get_user_detail(user_id: int, admin=Depends(require_role("admin"))):
+    user = getUserById(user_id)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng này.")
+        
+    return {
+        "success" : True,
+        "data" : user
+    }
+
+@router.post("/create")
+def create_user(data: CreateUserRequest, user=Depends(require_role("admin"))):
+    success, message = createUser(data=data)
+
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    
+    return {
+        "success" : success,
+        "message" : message
+    }
+
+@router.put("/update/{user_id}")
+def update_user(user_id: int, data: UpdateUserRequest, user=Depends(require_role("admin"))):
+    success, message = updateUser(user_id, data)
+
+    if not success:
+        status_code = 404 if "không tồn tại" in message else 400
+        raise HTTPException(status_code=status_code, detail=message)
+    
+    return {
+        "success": success,
+        "message": message
+    }

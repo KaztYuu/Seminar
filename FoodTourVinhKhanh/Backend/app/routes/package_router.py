@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 router = APIRouter(prefix="/packages", tags=["Packages"])
 
-@router.get("/")
+@router.get("/get-packages")
 def get_packages(user=Depends(get_current_user)):
 
     packages = getPackages(user)

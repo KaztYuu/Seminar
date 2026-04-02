@@ -28,7 +28,7 @@ def login(user: UserLogin, response: Response):
     if not result:
         raise HTTPException(
             status_code=401,
-            detail="Invalid email or password"
+            detail="Invalid email or password or the account is blocked"
         )
 
     #set cookie

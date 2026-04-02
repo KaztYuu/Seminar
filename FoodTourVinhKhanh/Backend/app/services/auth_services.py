@@ -47,7 +47,7 @@ def getUserByEmail(email):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    sql = "SELECT * FROM users WHERE email = %s"
+    sql = "SELECT * FROM users WHERE email = %s AND users.is_Deleted = FALSE"
 
     cursor.execute(sql, (email,))
     user = cursor.fetchone()
@@ -63,7 +63,7 @@ def userLogin(email, password):
 
     user = getUserByEmail(email)
 
-    if not user:
+    if not user or user["is_Blocked"]:
         return None
 
     if not verify_password(password, user["password"]):

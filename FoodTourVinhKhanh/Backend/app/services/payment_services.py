@@ -120,7 +120,7 @@ def activate_package(cursor, user_id, package_id, payment_id):
     if pkg["target_role"] == "tourist":
 
         cursor.execute("""
-            SELECT * FROM tourist_sessions
+            SELECT * FROM tourist_subscriptions
             WHERE user_id = %s AND end_time > NOW()
             ORDER BY end_time DESC LIMIT 1
         """, (user_id,))
@@ -130,13 +130,13 @@ def activate_package(cursor, user_id, package_id, payment_id):
             new_end = current["end_time"] + duration
 
             cursor.execute("""
-                UPDATE tourist_sessions
+                UPDATE tourist_subscriptions
                 SET end_time = %s, payment_id = %s
                 WHERE id = %s
             """, (new_end, payment_id, current["id"]))
         else:
             cursor.execute("""
-                INSERT INTO tourist_sessions (user_id, start_time, end_time, payment_id)
+                INSERT INTO tourist_subscriptions (user_id, start_time, end_time, payment_id)
                 VALUES (%s, %s, %s, %s)
             """, (user_id, now, now + duration, payment_id))
 

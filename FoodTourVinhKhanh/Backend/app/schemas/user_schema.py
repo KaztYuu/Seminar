@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from enum import Enum
+from typing import Literal, Optional
+from datetime import datetime
 
 class UserRole(str, Enum):
     tourist = "tourist"
@@ -40,3 +42,32 @@ class UpdateProfileRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+class CreateUserRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    phoneNumber: str
+    role: Literal["tourist", "vendor", "admin"]
+    is_Blocked: bool = False
+
+class UpdateUserRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    phoneNumber: Optional[str] = None
+    role: Optional[Literal["tourist", "vendor", "admin"]] = None
+    is_Blocked: Optional[bool] = None
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    phoneNumber: str
+    role: str
+    is_Blocked: bool
+    last_login: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
