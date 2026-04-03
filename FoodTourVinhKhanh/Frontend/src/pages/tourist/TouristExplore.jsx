@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown } from 'lucide-react';
@@ -156,11 +156,17 @@ const TouristExplore = () => {
                         {userLoc && <RecenterAutomatically lat={userLoc.lat} lng={userLoc.lng} />}
 
                         {userLoc && (
-                            <Marker position={[userLoc.lat, userLoc.lng]} 
+                            <Marker 
+                                position={[userLoc.lat, userLoc.lng]} 
                                 icon={L.divIcon({
-                                    className: 'user-marker',
-                                    html: `<div class="relative"><div class="absolute -inset-2 bg-blue-500/30 rounded-full animate-ping"></div><div class="relative bg-blue-600 w-4 h-4 rounded-full border-2 border-white shadow-lg"></div></div>`,
-                                    iconSize: [25, 25]
+                                className: 'user-marker',
+                                html: `
+                                    <div class="relative">
+                                    <div class="absolute -inset-2 bg-blue-500/30 rounded-full animate-ping"></div>
+                                    <div class="relative bg-blue-600 w-4 h-4 rounded-full border-2 border-white shadow-lg"></div>
+                                    </div>
+                                `,
+                                iconSize: [20, 20]
                                 })}
                             />
                         )}
@@ -203,7 +209,7 @@ const TouristExplore = () => {
                                 {nearbyPois.map(poi => (
                                     <div 
                                         key={poi.id} 
-                                        className="flex-shrink-0 w-44 bg-white rounded-2xl border border-gray-100 p-2 mt-2 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                                        className="flex-shrink-0 w-44 bg-white rounded-sm border border-gray-100 p-2 mt-2 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all cursor-pointer group"
                                         onClick={() => handleViewDetail(poi.id)}
                                     >
                                         <div className="relative overflow-hidden rounded-xl w-full h-28">

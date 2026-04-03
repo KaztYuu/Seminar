@@ -3,6 +3,17 @@ from app.services.gemini_services import gemini_service
 from app.services.image_services import image_service
 from app.services.audio_services import audio_service
 
+def check_vendor_poi_limit(vendor_id: int, limit: int = 5):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) as total FROM pois WHERE owner_id = %s", (vendor_id,))
+        result = cursor.fetchone()
+        return result['total'] < limit
+    finally:
+        cursor.close()
+        conn.close()
+
 def activate_pois():
     conn = get_db_connection()
     cursor = conn.cursor()

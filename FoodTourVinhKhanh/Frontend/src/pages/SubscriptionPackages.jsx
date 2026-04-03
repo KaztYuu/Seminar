@@ -4,6 +4,8 @@ import Button from "../components/common/Button";
 import Modal from "../components/common/Modal";
 import api from "../utils/api";
 import toast from "react-hot-toast";
+import vnpayIcon from "../assets/vnpay-logo.png"
+import vietqrIcon from "../assets/vietqr-logo.png"
 
 const images = [
   "https://cdn-icons-png.flaticon.com/512/1165/1165629.png",
@@ -14,8 +16,8 @@ const images = [
 
 // Danh sách cổng thanh toán
 const PAYMENT_METHODS = [
-  { id: "vnpay", name: "VNPay", icon: "https://vnpay.vn/s1/statics.vnpay.vn/2023/6/0oxhzjmdfn0y1686545866048.png" },
-  { id: "vietqr", name: "VietQR / Chuyển khoản", icon: "https://pay.google.com/about/static/images/logos/google-pay-logo.svg" },
+  { id: "vnpay", name: "VNPay", icon: vnpayIcon },
+  { id: "vietqr", name: "VietQR / Chuyển khoản", icon: vietqrIcon },
   { id: "momo", name: "Ví MoMo", icon: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" }
 ];
 

@@ -1,6 +1,35 @@
 from app.database import get_db_connection
 from fastapi import HTTPException
 
+def getMyPackage(user_id: int, role: str):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    target_table = "tourist_subscriptions" if role == "tourist" else "vendor_subscriptions"
+
+    try:
+        query = f"""
+            SELECT sp.*, ts.start_time, ts.end_time, p.status as payment_status
+            FROM subscription_packages sp
+            JOIN payments p ON sp.id = p.package_id
+            JOIN {target_table} ts ON p.id = ts.payment_id
+            WHERE ts.user_id = %s 
+              AND ts.end_time > NOW()
+            ORDER BY ts.end_time DESC
+            LIMIT 1
+        """
+        
+        cursor.execute(query, (user_id,))
+        result = cursor.fetchone()
+        return result
+        
+    except Exception as e:
+        print(f"Lỗi lấy gói của tôi: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
 def getPackages(user):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)   
@@ -9,7 +38,6 @@ def getPackages(user):
         cursor.execute("""
             SELECT * 
             FROM subscription_packages
-            WHERE is_Active = TRUE
                        """)
     else:
         cursor.execute("""

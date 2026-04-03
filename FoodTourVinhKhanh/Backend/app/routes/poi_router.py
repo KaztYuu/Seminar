@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
-from app.services.poi_services import getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois
+from app.services.poi_services import getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, check_vendor_poi_limit
+from app.services.redis_services import get_cache, set_cache, invalidate_poi_cache
 from app.dependencies.auth import get_current_user, require_role
 from app.dependencies.subscription import verify_active_subscription
 
@@ -15,6 +16,7 @@ def api_activate_pois_bulk(user=Depends(require_role("admin"))):
             status_code=500, 
             detail=message
         )
+    invalidate_poi_cache()
     return {
         "success": True,
         "message": message
@@ -22,15 +24,36 @@ def api_activate_pois_bulk(user=Depends(require_role("admin"))):
 
 @router.get("/get-pois")
 def get_pois(lang: str = "vi", search: str = "", user=Depends(verify_active_subscription)):
+    cache_key = f"all_pois:{user['role']}:{lang}:{search}"
+    
+    cached_pois = get_cache(cache_key)
+    
+    if cached_pois:
+        return {
+            "success": True,
+            "data": cached_pois,
+            "source": "cache"
+        }
+
     pois = getPois(user=user, lang=lang, searchTxt=search)
+
+    set_cache(cache_key, pois)
 
     return {
         "success": True,
-        "data": pois
+        "data": pois,
+        "source": "database"
     }
 
 @router.get("/get-poi-by-id/{poi_id}")
 def get_poi_by_id(poi_id: int, lang: str = "vi", user=Depends(verify_active_subscription)):
+
+    cache_key = f"poi_detail:{poi_id}:{lang}"
+    cached_poi = get_cache(cache_key)
+
+    if cached_poi:
+        return {"success": True, "data": cached_poi, "source": "cache"}
+
     poi = getPOIById(user=user, poi_id=poi_id, lang=lang)
 
     if not poi:
@@ -38,10 +61,13 @@ def get_poi_by_id(poi_id: int, lang: str = "vi", user=Depends(verify_active_subs
             status_code=404, 
             detail="Không tìm thấy POI hoặc bạn không có quyền truy cập"
         )
+    
+    set_cache(cache_key, poi)
 
     return {
         "success": True,
-        "data": poi
+        "data": poi,
+        "source" : "database"
     }
 
 @router.post("/admin/create")
@@ -49,13 +75,24 @@ async def create_poi_admin(data: POICreateAdmin, user=Depends(require_role("admi
     success, message, poi_id = await createPOI(user, data)
     if not success:
         raise HTTPException(status_code=400, detail=message)
+    invalidate_poi_cache()
     return {"success": True, "message": message, "poi_id": poi_id}
 
 @router.post("/vendor/create")
 async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
+    
+    can_create = check_vendor_poi_limit(user["id"], limit=5)
+    
+    if not can_create:
+        raise HTTPException(
+            status_code=400, 
+            detail="Bạn đã đạt giới hạn tối đa 5 địa điểm. Vui lòng xóa bớt hoặc nâng cấp gói!"
+        )
+    
     success, message, poi_id = await createPOI(user, data)
     if not success:
         raise HTTPException(status_code=400, detail=message)
+    invalidate_poi_cache()
     return {"success": True, "message": message, "poi_id": poi_id}
 
 @router.put("/admin/update/{poi_id}")
@@ -64,7 +101,7 @@ async def update_poi_admin(poi_id: int, data: POIUpdateAdmin, user=Depends(requi
     if not success:
         status_code = 404 if "không tìm thấy" in message.lower() else 400
         raise HTTPException(status_code=status_code, detail=message)
-    
+    invalidate_poi_cache(poi_id)
     return {"success": True, "message": message, "poi_id": updated_id}
 
 @router.put("/vendor/update/{poi_id}")
@@ -72,6 +109,7 @@ async def update_poi_vendor(poi_id: int, data: POIUpdateVendor, user=Depends(req
     success, message, updated_poi_id = await updatePOI(user, poi_id, data)
     if not success:
         raise HTTPException(status_code=400, detail=message)
+    invalidate_poi_cache(poi_id)
     return {"success": True, "message": message, "poi_id": updated_poi_id}
 
 @router.delete("/delete/{poi_id}")
@@ -86,5 +124,5 @@ async def delete_poi(poi_id: int, user=Depends(require_role(["vendor", "admin"])
             status_code = 500
             
         raise HTTPException(status_code=status_code, detail=message)
-    
+    invalidate_poi_cache(poi_id)
     return {"success": True, "message": message}

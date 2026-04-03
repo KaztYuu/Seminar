@@ -125,9 +125,9 @@ const TouristTransactions = () => {
         </div>
 
         {/* Table Content */}
-        <Card className="p-0 overflow-hidden border-none shadow-xl shadow-gray-200/50">
+        <Card className="p-0 max-h-90 overflow-hidden border-none shadow-xl shadow-gray-200/50">
           {payments.length > 0 ? (
-            <Table columns={columns} data={payments} />
+            <Table columns={columns} data={payments} className="max-h-[300px]" />
           ) : (
             <div className="p-20 text-center">
               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
