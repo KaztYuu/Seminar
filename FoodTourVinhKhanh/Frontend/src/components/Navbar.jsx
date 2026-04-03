@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 
 const Navbar = ({ userName, profileImg }) => {
-  const [lang, setLang] = useState('VN');
+  const [lang, setLang] = useState(localStorage.getItem('language') || 'vi');
+
+  const changeLanguage = (newLang) => {
+    setLang(newLang);
+    localStorage.setItem('language', newLang); // Lưu lại
+    
+    // Bắn ra một event để các component khác (như Map) nghe thấy và gọi lại API
+    window.dispatchEvent(new Event('languageChange'));
+  };
 
   return (
     // Thay w-screen bằng w-full, thêm left-0, right-0
@@ -19,22 +27,28 @@ const Navbar = ({ userName, profileImg }) => {
           {/* Bỏ mt-2, thay bằng pt-2 để không có khoảng trống gây mất hover */}
           <div className="absolute right-0 top-full w-24 bg-white text-gray-800 rounded-md shadow-lg hidden group-hover:block border border-gray-100 overflow-hidden">
             <button 
-              onClick={() => setLang('VN')} 
+              onClick={() => changeLanguage('VI')} 
               className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
             >
               VN
             </button>
             <button 
-              onClick={() => setLang('EN')} 
+              onClick={() => changeLanguage('EN')} 
               className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
             >
               EN
             </button>
             <button 
-              onClick={() => setLang('KR')} 
+              onClick={() => changeLanguage('KR')} 
               className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
             >
               KR
+            </button>
+            <button 
+              onClick={() => changeLanguage('FR')} 
+              className="block w-full px-4 py-2 text-gray-400 hover:bg-orange-50 hover:text-orange-600 text-left transition-colors"
+            >
+              FR
             </button>
           </div>
         </div>

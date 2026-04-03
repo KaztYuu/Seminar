@@ -6,6 +6,17 @@ const api = axios.create({
   withCredentials: true, // Gửi cookie với mỗi request
 });
 
+api.interceptors.request.use((config) => {
+    const currentLang = localStorage.getItem('language') || 'vi';
+    
+    config.params = {
+        ...config.params,
+        lang: currentLang.toLowerCase() // vi, en, kr
+    };
+    
+    return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -19,13 +30,27 @@ api.interceptors.response.use(
             }
         
         } else if (error.response?.status === 403) {
-            toast.error(message);
-              setTimeout(() => {
+
+
+            if (error.response.data.detail && error.response.data.detail.errorCode === "SUBSCRIPTION_EXPIRED") {
+                toast.error("Tính năng yêu cầu gói dịch vụ còn hạn! Đang chuyển hướng đến trang thanh toán...");
+                setTimeout(() => {
+                window.location.href = "/packages"; 
+                }, 1500);
+            } else {
+                toast.error(message);
+                setTimeout(() => {
                     window.location.href = "/unauthorized";
-                }, 1000); // 1 giây
+                }, 1000);
+            }
 
         } else if (error.response?.status == 400) {
             toast.error(message);
+        } else if (error.response?.status == 402){
+            toast.error("Tính năng yêu cầu gói dịch vụ còn hạn! Đang chuyển hướng đến trang thanh toán...");
+            setTimeout(() => {
+                window.location.href = "/packages"; 
+            }, 1500);
         } else {
             toast.error(message);
         }

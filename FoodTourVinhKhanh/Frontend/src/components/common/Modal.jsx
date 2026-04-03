@@ -1,7 +1,9 @@
+import ReactDOM from 'react-dom';
+
 const Modal = ({ isOpen, onClose, title, children, showCloseButton = true, extraClasses = "" }) => {
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
@@ -23,7 +25,8 @@ const Modal = ({ isOpen, onClose, title, children, showCloseButton = true, extra
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
