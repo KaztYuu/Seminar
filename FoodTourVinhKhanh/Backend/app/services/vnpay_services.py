@@ -14,8 +14,8 @@ VNPAY_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
 VNPAY_API_URL = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"
 VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE")
 VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET")
-RETURN_URL = "https://ilse-unmasticated-toney.ngrok-free.dev/payments/vnpay-return"
-IPN_URL = "https://ilse-unmasticated-toney.ngrok-free.dev/payments/vnpay-ipn"
+RETURN_URL = os.getenv("RETURN_URL")
+IPN_URL = os.getenv("IPN_URL")
 
 def create_vnpay_url(payment):
     params = {
@@ -28,7 +28,7 @@ def create_vnpay_url(payment):
         "vnp_OrderInfo": f"Thanh toan goi {payment['package_id']}",
         "vnp_OrderType": "billpayment",
         "vnp_Locale": "vn",
-        "vnp_ReturnUrl": RETURN_URL, # Đảm bảo biến này không được để trống/None
+        "vnp_ReturnUrl": RETURN_URL,
         "vnp_CreateDate": datetime.now().strftime("%Y%m%d%H%M%S"),
         "vnp_IpAddr": "127.0.0.1"
     }
@@ -41,8 +41,6 @@ def create_vnpay_url(payment):
         f"{k}={urllib.parse.quote_plus(str(v))}" 
         for k, v in sorted_params
     ])
-
-    #hash_data = "&".join([f"{k}={v}" for k, v in sorted_params.items()])
 
     # 3. Tính toán Secure Hash
     secure_hash = hmac.new(

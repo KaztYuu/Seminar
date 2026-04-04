@@ -12,10 +12,9 @@ const TouristDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Chạy đồng hồ hệ thống
+    // Chạy đồng hồ hệ thống
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
 
-    // 2. Hàm lấy dữ liệu gói cước (Định nghĩa bên trong useEffect)
     const fetchMyPackage = async () => {
       try {
         const res = await api.get("/packages/get-my-package");
@@ -23,7 +22,7 @@ const TouristDashboard = () => {
           setMyPackage(res.data.data);
         }
       } catch (err) {
-        // Chỉ hiện lỗi nếu không phải lỗi 404 (chưa có gói)
+        
         if (err.response?.status !== 404) {
           toast.error("Không thể lấy thông tin gói dịch vụ");
         }
@@ -62,8 +61,6 @@ const TouristDashboard = () => {
           <p className="text-2xl font-mono font-bold">{currentTime.toLocaleTimeString('vi-VN')}</p>
         </div>
       </div>
-
-      {/* Thẻ thống kê */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
           <div className="p-3 bg-blue-50 rounded-xl"><Clock className="text-lime-600" size={24} /></div>

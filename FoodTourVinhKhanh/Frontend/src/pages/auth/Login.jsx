@@ -86,4 +86,3 @@ function Login() {
 }
 
 export default Login;
-// Note: The Admin and Vendor pages are currently not implemented, so the routes for them are commented out in App.jsx. Once those pages are created, you can uncomment the routes to enable access for admin and vendor users.

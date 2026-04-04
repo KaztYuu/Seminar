@@ -10,6 +10,7 @@ import Table from '../../components/common/Table';
 import FullPageLoading from '../../components/common/FullPageLoading';
 import SearchBar from '../../components/common/SearchBar';
 import MapPicker from '../../components/common/MapPicker';
+import { Camera } from 'lucide-react';
 
 
 const POIAdminManager = () => {
@@ -18,6 +19,8 @@ const POIAdminManager = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const getUserCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -37,11 +40,11 @@ const POIAdminManager = () => {
     }
   };
 
-  useEffect(() => {
-    if (isModalOpen && !editingId) {
-        getUserCurrentLocation();
-    }
-  }, [isModalOpen, editingId]);
+  // useEffect(() => {
+  //   if (isModalOpen && !editingId) {
+  //       getUserCurrentLocation();
+  //   }
+  // }, [isModalOpen, editingId]);
 
   const setMapPosition = (coords) => {
     setFormData(prev => ({
@@ -289,22 +292,70 @@ const POIAdminManager = () => {
           extraClasses='!w-3xl rounded-xl'
         >
           <form onSubmit={handleSubmit} className="space-y-3 mt-4">
-            {/* FILE UPLOADS: Hiển thị preview nếu là Edit */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Ảnh đại diện</label>
-                  <input type="file" onChange={(e) => handleFileChange(e, 'thumbnail')} className="text-xs w-full" />
-                  {editingId && typeof formData.thumbnail === 'string' && formData.thumbnail.startsWith('/') && 
-                    <p className="text-[10px] text-blue-500">Đã có ảnh cũ</p>
-                  }
+            <div className="space-y-4">
+              {/* Banner Preview */}
+              <div className="space-y-1">
+                <label className="text-xs font-black text-gray-400 uppercase ml-1">Ảnh Banner</label>
+                <div className="relative h-32 w-full bg-gray-100 rounded-2xl overflow-hidden border border-dashed border-gray-300">
+                  {formData.banner ? (
+                    <img 
+                      src={(typeof formData.banner === 'string' && formData.banner.startsWith('data:')) 
+                        ? formData.banner 
+                        : `${API_URL}${formData.banner}`} 
+                      className="w-full h-full object-cover" 
+                      alt="Banner"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 text-sm italic">Chưa có banner</div>
+                  )}
+                  
+                  {/* Overlay chọn file */}
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <label className="cursor-pointer bg-white/90 px-4 py-2 rounded-xl text-xs font-bold shadow-xl">
+                      <Camera size={14} className="inline mr-1 text-blue-600" /> {editingId ? "Đổi Banner" : "Chọn Banner"}
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => handleFileChange(e, 'banner')} 
+                      />
+                    </label>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Ảnh Banner</label>
-                  <input type="file" onChange={(e) => handleFileChange(e, 'banner')} className="text-xs w-full" />
-                  {editingId && typeof formData.banner === 'string' && formData.banner.startsWith('/') && 
-                    <p className="text-[10px] text-blue-500">Đã có ảnh cũ</p>
-                  }
+              </div>
+
+              {/* Thumbnail Preview */}
+              <div className="space-y-1">
+                <label className="text-xs font-black text-gray-400 uppercase ml-1">Ảnh đại diện (Thumbnail)</label>
+                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border shrink-0">
+                    {formData.thumbnail ? (
+                      <img 
+                        src={(typeof formData.thumbnail === 'string' && formData.thumbnail.startsWith('data:')) 
+                          ? formData.thumbnail 
+                          : `${API_URL}${formData.thumbnail}`} 
+                        className="w-full h-full object-cover" 
+                        alt="Thumb"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <Camera size={16} className="text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <input 
+                      type="file" 
+                      onChange={(e) => handleFileChange(e, 'thumbnail')} 
+                      className="text-xs w-full file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                      accept="image/*"
+                    />
+                    {editingId && typeof formData.thumbnail === 'string' && formData.thumbnail.startsWith('/') && (
+                      <p className="text-[10px] text-blue-500 mt-1 ml-1 font-medium">✨ Đang sử dụng ảnh từ hệ thống</p>
+                    )}
+                  </div>
                 </div>
+              </div>
             </div>
 
             <Input 

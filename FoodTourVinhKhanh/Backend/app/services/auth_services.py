@@ -42,7 +42,6 @@ def create_access_token(data: dict):
     return token
 
 
-# get user by email
 def getUserByEmail(email):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -114,7 +113,7 @@ def createUser(user):
         conn.close()
         return False
 
-    # count users
+    # user đầu tiên tạo luôn là admin
     cursor.execute("SELECT COUNT(*) as count FROM users")
     result = cursor.fetchone()
 

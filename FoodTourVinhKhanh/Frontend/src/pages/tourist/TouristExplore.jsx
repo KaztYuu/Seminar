@@ -5,27 +5,22 @@ import 'leaflet/dist/leaflet.css';
 import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
-
-// Common Components
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
 import SearchBar from '../../components/common/SearchBar';
 import FullPageLoading from '../../components/common/FullPageLoading';
 
-// --- HÀM HỖ TRỢ ĐIỀU KHIỂN BẢN ĐỒ ---
 const RecenterAutomatically = ({ lat, lng }) => {
     const map = useMap();
-    // Sử dụng useRef để lưu trạng thái đã bay về vị trí hay chưa
     const hasCentered = useRef(false);
 
     useEffect(() => {
-        // Chỉ thực hiện flyTo nếu có vị trí VÀ chưa từng centered lần nào
         if (lat && lng && !hasCentered.current) {
             map.flyTo([lat, lng], 16, { animate: true });
-            hasCentered.current = true; // Đánh dấu là đã thực hiện xong
+            hasCentered.current = true;
         }
-    }, [lat, lng]); // Vẫn lắng nghe lat/lng nhưng bị chặn bởi ref
+    }, [lat, lng]);
 
     return null;
 };
@@ -42,7 +37,7 @@ const TouristExplore = () => {
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-    // 1. Theo dõi vị trí và tải dữ liệu ban đầu
+    // Theo dõi vị trí và tải dữ liệu ban đầu
     useEffect(() => {
         const watchId = navigator.geolocation.watchPosition(
             (pos) => {
@@ -109,10 +104,6 @@ const TouristExplore = () => {
                 ...prev.filter(p => p.id !== poi.id)
             ];
 
-            // if (!isExisted) {
-            //     toast.success(`Khám phá mới: ${poi.name}`, { icon: '📍' });
-            // }
-
             return updatedList;
         });
 
@@ -134,7 +125,7 @@ const TouristExplore = () => {
 
                 {/* THANH TÌM KIẾM NỔI */}
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-lg px-4">
-                    <Card className="!p-0 border-none shadow-2xl"> 
+                    <Card className="!p-0 border rounded-lg shadow-2xl"> 
                         <SearchBar 
                             placeholder="Bạn muốn đi đâu hôm nay?" 
                             onSearch={handleSearch}

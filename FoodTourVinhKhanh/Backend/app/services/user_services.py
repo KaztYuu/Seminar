@@ -130,7 +130,7 @@ def updateUser(user_id, data):
         if not update_data:
             return False, "Không có dữ liệu nào để cập nhật."
 
-        # Nếu có đổi password thì phải hash lại
+        # Hash lại password khi đổi
         if "password" in update_data:
             update_data["password"] = hash_password(update_data["password"])
 

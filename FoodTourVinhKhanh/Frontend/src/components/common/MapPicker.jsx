@@ -28,7 +28,6 @@ const RecenterAutomatically = ({ lat, lng }) => {
   return null;
 };
 
-// Component chính để export
 const MapPicker = ({ position, setPosition }) => {
   return (
     <MapContainer 

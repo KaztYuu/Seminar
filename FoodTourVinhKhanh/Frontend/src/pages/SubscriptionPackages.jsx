@@ -27,7 +27,6 @@ const SubscriptionPackage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerPage = 3;
 
-  // State cho Modal thanh toán
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,8 +61,8 @@ const SubscriptionPackage = () => {
         package_id: pkg.id,
         payment_method: methodId
       });
-      console.log(res.data.payment_url);
-      //window.location.href = res.data.payment_url;
+
+      window.location.href = res.data.payment_url; // Chuyển hướng đến trang thanh toán
     } catch (error) {
       toast.error("Lỗi khởi tạo thanh toán");
     } finally {

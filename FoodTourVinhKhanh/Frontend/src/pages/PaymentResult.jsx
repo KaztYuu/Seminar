@@ -21,10 +21,10 @@ const PaymentResult = () => {
         loadUser();
     }, []);
 
-    // 🔥 loading UI
+    // Loading UI
     if (loading) {
         return (
-            <div className="h-screen flex items-center justify-center">
+            <div className="h-full flex items-center justify-center">
                 <p className="text-gray-500 animate-pulse">
                     Đang tải thông tin người dùng...
                 </p>

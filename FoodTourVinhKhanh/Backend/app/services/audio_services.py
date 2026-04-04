@@ -23,7 +23,7 @@ class AudioService:
             return None
 
     def delete_poi_audios(self, poi_id: int):
-        """Xóa tất cả file audio liên quan đến một POI (dùng khi xóa POI)"""
+        # Xóa tất cả file audio liên quan đến một POI (dùng khi xóa POI)
         try:
             for file in os.listdir(self.audio_storage):
                 if file.startswith(f"poi_{poi_id}_"):
@@ -33,6 +33,7 @@ class AudioService:
 
 
     def delete_audio(self, file_path):
+        # Xóa theo đường dẫn
         if not file_path:
             return
         try:

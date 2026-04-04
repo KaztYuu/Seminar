@@ -151,7 +151,6 @@ const VendorPOIs = () => {
 
     return (
         <div className="h-full bg-white-200 relative">
-        {/* Hiện loading đè lên mọi thứ khi đang xử lý */}
         {loading && <FullPageLoading message="Đang xử lý dữ liệu..." />}
 
             <div className="min-h-full bg-white/70 p-6">

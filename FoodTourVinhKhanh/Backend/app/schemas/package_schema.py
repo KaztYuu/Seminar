@@ -19,9 +19,8 @@ class PackageBase(BaseModel):
         ..., 
         gt=0, 
         description="Thời hạn sử dụng tính theo giờ",
-        examples=[720] # 30 ngày
+        examples=[720]
     )
-    # Dùng Literal để Swagger tạo Dropdown chọn role
     target_role: Literal["vendor", "tourist"] = Field(
         ..., 
         description="Đối tượng áp dụng gói"

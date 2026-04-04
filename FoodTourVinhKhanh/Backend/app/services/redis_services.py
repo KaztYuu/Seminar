@@ -63,10 +63,9 @@ def delete_cache(key):
     redis_client.delete(f"cache:{key}")
 
 def delete_cache_by_pattern(pattern):
-    """
-    Xóa cache theo pattern, ví dụ: delete_cache_by_pattern("all_pois:*")
-    Rất hữu ích khi bạn muốn xóa cache của tất cả ngôn ngữ cùng lúc.
-    """
+    # Xóa cache theo pattern, ví dụ: delete_cache_by_pattern("all_pois:*")
+    # Dùng khi muốn xóa cache của tất cả ngôn ngữ cùng lúc.
+    
     keys = redis_client.keys(f"cache:{pattern}")
     if keys:
         redis_client.delete(*keys)

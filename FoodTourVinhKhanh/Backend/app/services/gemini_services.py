@@ -61,7 +61,7 @@ class GeminiService:
                 contents=instruction + text,
                 config=types.GenerateContentConfig(
                     response_modalities=["AUDIO"],
-                    # Nới lỏng bộ lọc an toàn để tránh lỗi NoneType do chặn nhầm
+                    # Nới lỏng bộ lọc an toàn để dễ tạo audio hơn
                     safety_settings=[
                         types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
                         types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
@@ -71,7 +71,6 @@ class GeminiService:
                 )
             )
             
-            # KIỂM TRA AN TOÀN TRƯỚC KHI TRUY CẬP
             if not response.candidates or not response.candidates[0].content:
                 finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
                 print(f"Gemini từ chối tạo Audio. Lý do: {finish_reason}")
@@ -101,7 +100,7 @@ class GeminiService:
                 contents=history + [types.Content(parts=[types.Part(text=user_query)])],
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
-                    temperature=0.7 # Độ sáng tạo vừa phải
+                    temperature=0.7 # Độ sáng tạo
                 )
             )
             return response.text

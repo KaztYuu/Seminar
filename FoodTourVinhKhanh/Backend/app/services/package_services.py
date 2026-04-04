@@ -112,7 +112,7 @@ def deletePackage(package_id: int):
         return cursor.rowcount > 0
     except Exception as e:
         conn.rollback()
-        # Lỗi thường gặp: Gói này đang được dùng ở bảng khác (Foreign Key Constraint)
+
         raise HTTPException(status_code=400, detail="Không thể xóa gói này vì đang có dữ liệu liên quan!")
     finally:
         cursor.close()

@@ -15,7 +15,7 @@ const Button = ({ children, onClick, variant = "primary", size = "md", className
 
   return (
     <button 
-      type={type} // <--- THÊM DÒNG NÀY để nhận type="button" hoặc type="submit"
+      type={type}
       onClick={onClick} 
       className={`${base} ${sizes[size]} ${styles[variant]} ${className}`}
     >
