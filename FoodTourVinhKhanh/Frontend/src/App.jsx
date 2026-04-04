@@ -18,6 +18,7 @@ import POIAdminManager from "./pages/admin/AdminPOIs.jsx"
 import Users from "./pages/admin/Users.jsx"
 import VendorDashboard from "./pages/vendor/VendorDashboard.jsx"
 import VendorProfile from "./pages/vendor/VendorProfile.jsx"
+import VendorPOIs from "./pages/vendor/VendorPOIs.jsx"
 import VendorTransactions from "./pages/vendor/VendorTransactions.jsx"
 import ProtectedRoute from "./components/ProtectedRoute.jsx"
 import Unauthorized from "./pages/auth/Unauthorized.jsx"
@@ -82,6 +83,7 @@ function App() {
           <Route index element={<VendorDashboard />} />
           <Route path="profile" element={<VendorProfile />} />
           <Route path="transactions" element={<VendorTransactions />} />
+          <Route path="my-pois" element={<VendorPOIs />} />
         </Route>
 
         <Route path="/" element={<Home />} />

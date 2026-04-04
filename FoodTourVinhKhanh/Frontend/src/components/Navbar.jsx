@@ -1,13 +1,27 @@
 import React, { useState } from 'react';
+import api from '../utils/api';
+
+const SUPPORTED_LANGUAGES = ['VI', 'EN', 'KR', 'FR'];
+const DEFAULT_LANG = 'VI';
 
 const Navbar = ({ userName, profileImg }) => {
-  const [lang, setLang] = useState(localStorage.getItem('language') || 'vi');
+
+  const getValidLang = (lang) => {
+    return SUPPORTED_LANGUAGES.includes(lang) ? lang : DEFAULT_LANG;
+  };
+
+  const [lang, setLang] = useState(getValidLang(localStorage.getItem('language')));
+  
+
 
   const changeLanguage = (newLang) => {
-    setLang(newLang);
-    localStorage.setItem('language', newLang); // Lưu lại
+    const validLang = getValidLang(newLang);
+  
+    setLang(validLang);
+    localStorage.setItem('language', validLang);
+
+    api.defaults.headers.common['X-Language-Code'] = validLang;
     
-    // Bắn ra một event để các component khác (như Map) nghe thấy và gọi lại API
     window.dispatchEvent(new Event('languageChange'));
   };
 

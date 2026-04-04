@@ -5,7 +5,7 @@ from app.services.audio_services import audio_service
 
 def check_vendor_poi_limit(vendor_id: int, limit: int = 5):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT COUNT(*) as total FROM pois WHERE owner_id = %s", (vendor_id,))
         result = cursor.fetchone()

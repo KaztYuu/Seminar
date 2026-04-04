@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
 from app.services.poi_services import getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, check_vendor_poi_limit
 from app.services.redis_services import get_cache, set_cache, invalidate_poi_cache
 from app.dependencies.auth import get_current_user, require_role
 from app.dependencies.subscription import verify_active_subscription
+from typing import Optional
 
 router = APIRouter(prefix="/pois", tags=["POIs"])
 
@@ -23,8 +24,11 @@ def api_activate_pois_bulk(user=Depends(require_role("admin"))):
     } 
 
 @router.get("/get-pois")
-def get_pois(lang: str = "vi", search: str = "", user=Depends(verify_active_subscription)):
+def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", user=Depends(verify_active_subscription)):
+    lang = x_language_code or "vi"
     cache_key = f"all_pois:{user['role']}:{lang}:{search}"
+    if user["role"] == "vendor":
+        cache_key += f":{user['id']}"
     
     cached_pois = get_cache(cache_key)
     
@@ -46,7 +50,8 @@ def get_pois(lang: str = "vi", search: str = "", user=Depends(verify_active_subs
     }
 
 @router.get("/get-poi-by-id/{poi_id}")
-def get_poi_by_id(poi_id: int, lang: str = "vi", user=Depends(verify_active_subscription)):
+def get_poi_by_id(poi_id: int, x_language_code: Optional[str] = Header(None), user=Depends(verify_active_subscription)):
+    lang = x_language_code or "vi"
 
     cache_key = f"poi_detail:{poi_id}:{lang}"
     cached_poi = get_cache(cache_key)
@@ -81,12 +86,12 @@ async def create_poi_admin(data: POICreateAdmin, user=Depends(require_role("admi
 @router.post("/vendor/create")
 async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
     
-    can_create = check_vendor_poi_limit(user["id"], limit=5)
+    can_create = check_vendor_poi_limit(user["id"], limit=3)
     
     if not can_create:
         raise HTTPException(
             status_code=400, 
-            detail="Bạn đã đạt giới hạn tối đa 5 địa điểm. Vui lòng xóa bớt hoặc nâng cấp gói!"
+            detail="Bạn đã đạt giới hạn tối đa 3 địa điểm. Vui lòng xóa bớt hoặc nâng cấp gói!"
         )
     
     success, message, poi_id = await createPOI(user, data)

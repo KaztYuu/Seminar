@@ -1,19 +1,18 @@
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
+const SUPPORTED_LANGUAGES = ['VI', 'EN', 'KR', 'FR'];
+
 const api = axios.create({
   baseURL: "http://localhost:8000",
   withCredentials: true, // Gửi cookie với mỗi request
 });
 
 api.interceptors.request.use((config) => {
-    const currentLang = localStorage.getItem('language') || 'vi';
-    
-    config.params = {
-        ...config.params,
-        lang: currentLang.toLowerCase() // vi, en, kr
-    };
-    
+    const rawLang = localStorage.getItem('language');
+    const validLang = SUPPORTED_LANGUAGES.includes(rawLang.toUpperCase()) ? rawLang.toLowerCase() : 'vi';
+  
+    config.headers['X-Language-Code'] = validLang;
     return config;
 });
 

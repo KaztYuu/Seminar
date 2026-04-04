@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -204,23 +204,39 @@ const TouristExplore = () => {
                         </div>
 
                         {/* Nội dung danh sách - Chỉ hiện đầy đủ khi mở rộng */}
+
                         <div className={`max-w-7xl mx-auto px-4 transition-opacity duration-300 ${isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                             <div className="flex gap-4 overflow-x-auto pb-6 no-scrollbar">
                                 {nearbyPois.map(poi => (
                                     <div 
                                         key={poi.id} 
-                                        className="flex-shrink-0 w-44 bg-white rounded-sm border border-gray-100 p-2 mt-2 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                                        className="relative flex-shrink-0 w-44 bg-white rounded-sm border border-gray-100 p-2 mt-2 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all cursor-pointer group/item"
                                         onClick={() => handleViewDetail(poi.id)}
                                     >
-                                        <div className="relative overflow-hidden rounded-xl w-full h-28">
+                                        <div className="absolute top-1 right-1 z-10 mt-1 opacity-80 group-hover/item:opacity-100 transition-opacity">
+                                            <Button 
+                                                variant="danger" 
+                                                size="sm" 
+                                                className="!p-1 !rounded-full w-6 h-6 shadow-sm" 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setNearbyPois(prev => prev.filter(item => item.id !== poi.id));
+                                                }}
+                                            >
+                                                <X size={12} strokeWidth={3} />
+                                            </Button>
+                                        </div>
+
+                                        <div className="relative overflow-hidden rounded-xl w-full h-28 mt-1">
                                             <img 
                                                 src={`${API_URL}${poi.thumbnail}`} 
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                                className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" 
                                                 alt={poi.name} 
                                             />
                                         </div>
+                                        
                                         <div className="flex flex-col gap-1">
-                                            <h4 className="font-bold text-gray-900 text-xs line-clamp-1 group-hover:text-blue-600 transition-colors">
+                                            <h4 className="font-bold text-gray-900 text-xs line-clamp-1 group-hover/item:text-blue-600 transition-colors">
                                                 {poi.name}
                                             </h4>
                                             <div className="flex justify-between items-center">
@@ -230,7 +246,7 @@ const TouristExplore = () => {
                                                 <Button 
                                                     variant="outline" 
                                                     size="sm" 
-                                                    className="!p-1.5 rounded-full border-blue-50 h-7 w-15"
+                                                    className="!p-1.5 !rounded-full border-gray-100 hover:border-blue-500 h-8 w-8"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         playAudio(poi.audio_url);
@@ -244,6 +260,7 @@ const TouristExplore = () => {
                                 ))}
                             </div>
                         </div>
+
                     </div>
                 )}
             {/* MODAL CHI TIẾT */}

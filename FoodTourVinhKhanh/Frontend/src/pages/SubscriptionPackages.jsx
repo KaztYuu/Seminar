@@ -62,8 +62,8 @@ const SubscriptionPackage = () => {
         package_id: pkg.id,
         payment_method: methodId
       });
-
-      window.location.href = res.data.payment_url;
+      console.log(res.data.payment_url);
+      //window.location.href = res.data.payment_url;
     } catch (error) {
       toast.error("Lỗi khởi tạo thanh toán");
     } finally {

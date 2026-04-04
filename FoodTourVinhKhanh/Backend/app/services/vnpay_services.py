@@ -42,6 +42,8 @@ def create_vnpay_url(payment):
         for k, v in sorted_params
     ])
 
+    #hash_data = "&".join([f"{k}={v}" for k, v in sorted_params.items()])
+
     # 3. Tính toán Secure Hash
     secure_hash = hmac.new(
         VNPAY_HASH_SECRET.encode(),

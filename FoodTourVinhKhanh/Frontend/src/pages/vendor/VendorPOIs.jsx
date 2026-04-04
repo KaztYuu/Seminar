@@ -1,0 +1,322 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit3, Trash2, MapPin, Eye, EyeOff, Camera } from 'lucide-react';
+import api from '../../utils/api';
+import toast from 'react-hot-toast';
+
+// Các common components của bạn
+import Button from '../../components/common/Button';
+import Input from '../../components/common/Input';
+import Modal from '../../components/common/Modal';
+import FullPageLoading from '../../components/common/FullPageLoading';
+import SearchBar from '../../components/common/SearchBar';
+import MapPicker from '../../components/common/MapPicker';
+
+
+const VendorPOIs = () => {
+    const [pois, setPois] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+    const initialForm = {
+        localized: { lang_code: "vi", name: "", description: "" },
+        position: { latitude: 10.762622, longitude: 106.660172 },
+        thumbnail: "",
+        banner: ""
+    };
+
+    const [formData, setFormData] = useState(initialForm);
+
+    useEffect(() => {
+        fetchPOIs();
+    }, []);
+
+    const fetchPOIs = async (searchTxt="") => {
+        try {
+            const res = await api.get(`/pois/get-pois?search=${searchTxt}`);
+            if (res.data.success) setPois(res.data.data);
+        } catch (err) {
+            toast.error("Không thể tải danh sách địa điểm");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = (value) => {
+        setSearchQuery(value);
+        fetchPOIs(value);
+    };
+
+    const handleOpenModal = (poi = null) => {
+        if (poi) {
+            setEditingId(poi.id);
+            setFormData({
+                localized: { name: poi.name, description: poi.description },
+                position: { 
+                    latitude: poi.latitude, 
+                    longitude: poi.longitude, 
+                },
+                thumbnail: poi.thumbnail,
+                banner: poi.banner
+            });
+        } else {
+            setEditingId(null);
+            setFormData(initialForm);
+        }
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setEditingId(null);
+        setFormData(initialForm);
+    };
+
+    const handleFileChange = (e, field) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setFormData(prev => ({ ...prev, [field]: reader.result }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const setMapPosition = (pos) => {
+        setFormData({ ...formData, position: { ...formData.position, ...pos } });
+    };
+
+    const getUserCurrentLocation = () => {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            setMapPosition({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            });
+            toast.success("Đã lấy vị trí hiện tại");
+        });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (loading) return;
+
+        if (!formData.thumbnail || !formData.banner) return toast.error("Vui lòng chọn ảnh!");
+        if (!formData.localized.name.trim()) return toast.error("Vui lòng điền tên địa điểm!");
+        if (!formData.localized.description.trim()) return toast.error("Vui lòng viết mô tả")
+
+        const payload = {
+            thumbnail: formData.thumbnail,
+            banner: formData.banner,
+            position: {
+                latitude: parseFloat(formData.position.latitude),
+                longitude: parseFloat(formData.position.longitude)
+            },
+            localized: {
+                lang_code: "vi",
+                name: formData.localized.name,
+                description: formData.localized.description
+            }
+        };
+
+        setLoading(true);
+        try {
+            let res;
+            if (editingId) {
+                res = await api.put(`/pois/vendor/update/${editingId}`, payload);
+            } else {
+                res = await api.post('/pois/vendor/create', payload);
+            }
+
+            if (res.data.success) {
+                toast.success("Thành công!");
+                handleCloseModal();
+                fetchPOIs();
+            }
+        } catch (err) {
+            console.log("Chi tiết lỗi 422:", err.response?.data?.detail);
+            const serverError = err.response?.data?.detail;
+            toast.error(typeof serverError === 'string' ? serverError : "Lỗi hệ thống!");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredPois = pois.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (loading && pois.length === 0) return <FullPageLoading />;
+
+    return (
+        <div className="h-full bg-white-200 relative">
+        {/* Hiện loading đè lên mọi thứ khi đang xử lý */}
+        {loading && <FullPageLoading message="Đang xử lý dữ liệu..." />}
+
+            <div className="min-h-full bg-white/70 p-6">
+                <div className="max-w-6xl mx-auto space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h1 className="text-lg font-black text-gray-900 uppercase">Quản lý <span className="text-blue-600">Địa điểm</span> Của bạn ({pois.length}/3)</h1>
+                        </div>
+                        <Button onClick={() => handleOpenModal()} className="shadow-lg">
+                            <Plus size={18} className="mr-2" /> Thêm địa điểm mới
+                        </Button>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="bg-white rounded-lg shadow-sm">
+                        <SearchBar 
+                            placeholder="Tìm kiếm tên địa điểm..." 
+                            onSearch={handleSearch}
+                            className="text-black"
+                        />
+                    </div>
+
+                    {/* Grid List */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredPois.map(poi => (
+                            <div 
+                                key={poi.id}
+                                className={`group bg-white rounded-3xl overflow-hidden border transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer ${
+                                    poi.is_Active ? "border-gray-100" : "border-red-100 opacity-80"
+                                }`}
+                                onClick={() => handleOpenModal(poi)}
+                            >
+                                <div className="relative h-44 overflow-hidden">
+                                    <img 
+                                        src={`${API_URL}${poi.thumbnail}`} 
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                        alt={poi.name} 
+                                    />
+                                    <div className="absolute top-4 right-4">
+                                        <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${
+                                            poi.is_Active ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                                        }`}>
+                                            {poi.is_Active ? "Đã được duyệt" : "Đang chờ duyệt"}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="p-5">
+                                    <h3 className="font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">{poi.name}</h3>
+                                    <div className="mt-4 pt-4 border-t border-gray-50 flex justify-end items-center">
+                                        <div className="flex space-x-2 items-center">
+                                            <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-blue-600">
+                                                <Edit3 size={14} />
+                                            </div>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Chỉnh sửa chi tiết</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Modal Edit/Create */}
+                    <Modal 
+                        isOpen={isModalOpen} 
+                        onClose={handleCloseModal}
+                        title={editingId ? "Cập nhật địa điểm" : "Thêm địa điểm mới"}
+                        showCloseButton={false}
+                        extraClasses='!max-w-3xl rounded-xl'
+                    >
+                        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                            {/* Banner Preview */}
+                            <div className="relative h-32 w-full bg-gray-100 rounded-2xl overflow-hidden border border-dashed border-gray-300">
+                                {formData.banner ? (
+                                    <img 
+                                        src={(typeof formData.banner === 'string' && formData.banner.startsWith('data:')) 
+                                            ? formData.banner 
+                                            : `${API_URL}${formData.banner}`} 
+                                        className="w-full h-full object-cover" 
+                                        alt="Banner"
+                                    />
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-400 text-sm italic">Chưa có banner</div>
+                                )}
+                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                    <label className="cursor-pointer bg-white/90 px-4 py-2 rounded-xl text-xs font-bold shadow-xl">
+                                        <Camera size={14} className="inline mr-1" /> {editingId ? "Đổi Banner" : "Chọn Banner"}
+                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-black text-gray-400 uppercase ml-1">Ảnh đại diện (Thumbnail)</label>
+                                    <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border">
+                                        {formData.thumbnail && (
+                                                <img 
+                                                    src={(typeof formData.thumbnail === 'string' && formData.thumbnail.startsWith('data:')) 
+                                                        ? formData.thumbnail 
+                                                        : `${API_URL}${formData.thumbnail}`} 
+                                                    className="w-full h-full object-cover" 
+                                                    alt="Thumb"
+                                                />
+                                            )}
+                                        </div>
+                                        <input type="file" onChange={(e) => handleFileChange(e, 'thumbnail')} className="text-xs flex-1" />
+                                    </div>
+                                </div>
+                                <Input 
+                                    label="Tên địa điểm"
+                                    placeholder="VD: Quán bún mắm 44 Vĩnh Khánh"
+                                    value={formData.localized.name}
+                                    onChange={(e) => setFormData({...formData, localized: {...formData.localized, name: e.target.value}})}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-bold text-gray-700 ml-1">Mô tả địa điểm</label>
+                                <textarea 
+                                    className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm min-h-[100px]"
+                                    placeholder="Mô tả ngắn gọn về quán ăn (dịch vụ, món ăn,...)"
+                                    value={formData.localized.description}
+                                    onChange={(e) => setFormData({...formData, localized: {...formData.localized, description: e.target.value}})}
+                                />
+                            </div>
+
+                            {/* Map Section */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
+                                    <MapPin size={16} className="text-red-500" /> Xác định vị trí trên bản đồ
+                                </label>
+                                <div className="h-64 w-full rounded-2xl overflow-hidden border-4 border-white shadow-lg z-0 relative">
+                                    <div className="absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-400 italic">
+                                        <MapPicker position={formData.position} setPosition={setMapPosition} />
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="p-3 bg-blue-50 rounded-xl text-center">
+                                        <p className="text-[10px] font-bold text-blue-400 uppercase">Vĩ độ</p>
+                                        <p className="text-sm font-mono font-bold text-blue-700">{formData.position.latitude.toFixed(6)}</p>
+                                    </div>
+                                    <div className="p-3 bg-blue-50 rounded-xl text-center">
+                                        <p className="text-[10px] font-bold text-blue-400 uppercase">Kinh độ</p>
+                                        <p className="text-sm font-mono font-bold text-blue-700">{formData.position.longitude.toFixed(6)}</p>
+                                    </div>
+                                    <Button type="button" variant="outline" className="h-full bg-white border-blue-100 text-blue-600" size="sm" onClick={getUserCurrentLocation}>
+                                        📍 Lấy vị trí hiện tại
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="pt-4">
+                                <Button className="w-full py-4 text-lg shadow-xl shadow-blue-100" type="submit" disabled={loading}>
+                                    {loading ? "Đang xử lý..." : editingId ? "Cập nhật dữ liệu" : "Thêm địa điểm"}
+                                </Button>
+                            </div>
+                        </form>
+                    </Modal>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default VendorPOIs;

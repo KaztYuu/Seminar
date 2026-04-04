@@ -171,7 +171,7 @@ def get_payment_history(user_id):
         SELECT p.*, sp.name AS package_name, sp.duration_hours AS duration_hours
         FROM payments p
         JOIN subscription_packages sp ON p.package_id = sp.id
-        WHERE p.user_id = %s
+        WHERE p.user_id = %s AND p.status="success"
         ORDER BY p.created_at DESC
     """, (user_id,))
 
