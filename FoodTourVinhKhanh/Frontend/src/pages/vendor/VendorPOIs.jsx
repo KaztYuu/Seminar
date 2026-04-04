@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, MapPin, Eye, EyeOff, Camera } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
-
-// Các common components của bạn
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
