@@ -54,13 +54,13 @@ npm run dev
 ## 🗄️ Database
 
 * Make sure MySQL is running
-* Import database (if provided)
+* Drop and Import database (if provided)
 
 ---
 
 ## ⚡ Redis
 
-* Redis is required for session management
+* Redis is required for session management and cache
 
 ### Install Redis (Windows):
 
@@ -85,14 +85,28 @@ redis-server
 * Backend runs at: `http://localhost:8000`
 * Frontend runs at: `http://localhost:5173`
 * Make sure Redis is running before login
+* If you want to experience the payment feature (VNPay for now only):
+    1. Register VNPay Sandbox account
+        - Visit: https://sandbox.vnpayment.vn/
+        - Create a merchant account and obtain:
+            + vnp_TmnCode
+            + vnp_HashSecret
+    2. Configure environment variables
+        - VNPAY_TMN_CODE=your_tmn_code
+        - VNPAY_HASH_SECRET=your_hash_secret
+        - VNPAY_RETURN_URL=https://your-ngrok-url/payments/vnpay-return
+        - VNPAY_IPN_URL=https://your-ngrok-url/payments/vnpay-ipn
+    3. Run ngrok to expose local server
+    4. Configure VNPay Sandbox dashboard
+        - Return URL: https://your-ngrok-url/payments/vnpay-return
+        - IPN URL: https://your-ngrok-url/payments/vnpay-ipn
+* If you do not use VNPay, you can simulate payment and subscription by updating the database manually
 
 ---
 
 ## 📌 Features
 
-* Authentication (Session + Redis)
-* Role-based access (Admin / Vendor / Tourist) (WIP)
 * Interactive food map (WIP)
-* Payment / transaction tracking (WIP)
+* Payment / transaction tracking (Removed if needed)
 
 ---
