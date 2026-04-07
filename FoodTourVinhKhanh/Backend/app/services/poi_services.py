@@ -166,7 +166,7 @@ async def createPOI(user, data):
         cursor.execute("""
             INSERT INTO poi_position (poi_id, latitude, longitude, range_meter)
             VALUES (%s, %s, %s, %s)
-        """, (poi_id, data.position.latitude, data.position.longitude, data.position.range_meter if user["role"]=="admin" else 20))
+        """, (poi_id, data.position.latitude, data.position.longitude, data.position.range_meter if user["role"]=="admin" else 30))
 
         # 5. Xử lý Audio và Localized Data
         for item in localized_items:
@@ -334,4 +334,34 @@ async def deletePOI(user, poi_id):
     finally:
         cursor.close()
         conn.close()
-            
+
+def getPOIData(poi_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        cursor.execute(
+            """
+                SELECT category, content
+                FROM poi_knowledge_base
+                WHERE poi_id = %s
+            """
+        , (poi_id,))
+
+        rows = cursor.fetchall()
+        
+        if not rows:
+            return True, "" # Trả về chuỗi rỗng nếu không có dữ liệu
+
+        # Hợp nhất kiến thức thành một đoạn văn bản có cấu trúc
+        # Ví dụ: "[menu]: Ốc hương... [history]: Quán có từ..."
+        context_string = " ".join([f"[{row['category']}]: {row['content']}" for row in rows])
+
+        return True, context_string
+    except Exception as e:
+        print(f"Lỗi khi lấy dữ liệu POI: {str(e)}")
+        return False, None
+    finally:
+        cursor.close()
+        conn.close()

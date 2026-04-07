@@ -33,7 +33,8 @@ CREATE TABLE poi_position (
     poi_id INT,
     latitude DOUBLE,
     longitude DOUBLE,
-    range_meter INT,
+    audio_range INT DEFAULT 30,
+    access_range INT DEFAULT 10,
     FOREIGN KEY (poi_id) REFERENCES pois(id)
 		ON DELETE CASCADE
         ON UPDATE CASCADE
@@ -105,3 +106,11 @@ CREATE TABLE vendor_subscriptions (
         ON DELETE SET NULL
         ON UPDATE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE poi_knowledge_base (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    poi_id INT,
+    category ENUM('menu', 'history', 'promotion', 'other'),
+    content TEXT,
+    FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE CASCADE
+) CHARSET=utf8mb4;

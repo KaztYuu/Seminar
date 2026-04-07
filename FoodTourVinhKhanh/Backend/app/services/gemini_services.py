@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import re
 import io
 import wave
 import hashlib
@@ -82,30 +83,56 @@ class GeminiService:
             print(f"Gemini TTS API Error: {e}")
             raise e
 
-    async def chat_with_guide(self, user_query: str, history: list = []):
-        """
-        Tính năng Chatbot tư vấn du lịch Vĩnh Khánh.
-        history: Danh sách các tin nhắn cũ để AI nhớ ngữ cảnh.
-        """
-        try:
-            # Cấu hình vai trò cho Chatbot
-            system_prompt = (
-                "Bạn là 'Vinh Khanh Guide' - chuyên gia về ẩm thực đường phố tại phố ẩm thực Vĩnh Khánh, Quận 4. "
-                "Bạn vui vẻ, nhiệt tình và am hiểu về các quán ốc, lẩu và món ăn vặt tại đây. "
-                "Hãy trả lời ngắn gọn, gợi ý các món ăn hấp dẫn và luôn chào đón du khách."
-            )
-
-            response = self.client.models.generate_content(
-                model=self.model_id,
-                contents=history + [types.Content(parts=[types.Part(text=user_query)])],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.7 # Độ sáng tạo
+    async def chat_with_rag(self, user_query: str, context: str):
+            
+            try:
+                # System prompt này giúp AI chỉ trả lời dựa trên dữ liệu bạn cung cấp
+                system_instruction = (
+                    f"Bạn là trợ lý ảo thông minh của Phố ẩm thực Vĩnh Khánh. "
+                    f"Dưới đây là thông tin thực tế về POI quán ăn được cung cấp: ### {context} ###. "
+                    f"Hãy dựa VÀO DUY NHẤT thông tin trên để trả lời khách hàng. "
+                    f"Nếu thông tin không có trong văn bản, hãy lịch sự từ chối. "
+                    f"Trả lời ngắn gọn, thân thiện."
                 )
-            )
-            return response.text
+
+                response = self.client.models.generate_content(
+                    model=self.model_id,
+                    contents=[types.Part(text=user_query)],
+                    config=types.GenerateContentConfig(
+                        safety_settings=[
+                            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                        ],
+                        system_instruction=system_instruction,
+                        temperature=0.4 # Giảm độ sáng tạo để AI không "chém gió" ngoài dữ liệu
+                    )
+                )
+                return response.text
+            except Exception as e:
+                print(f"RAG Error: {e}")
+                raise e
+            
+    async def generate_voice_audio(self, text: str):
+        try:
+
+            raw_audio_data = await self.text_to_speech(text=text)
+        
+            # TẠO HEADER WAV CHO DỮ LIỆU THÔ
+            with io.BytesIO() as wav_buffer:
+                with wave.open(wav_buffer, "wb") as wav_file:
+                    wav_file.setnchannels(1)
+                    wav_file.setsampwidth(2)
+                    wav_file.setframerate(24000)
+                    wav_file.writeframes(raw_audio_data)
+                
+                wav_bytes = wav_buffer.getvalue()
+                
+            return base64.b64encode(wav_bytes).decode('utf-8')
+                
         except Exception as e:
-            print(f"Chatbot Error: {e}")
+            print(f"Gemini TTS Error: {e}")
             raise e
 
 gemini_service = GeminiService()

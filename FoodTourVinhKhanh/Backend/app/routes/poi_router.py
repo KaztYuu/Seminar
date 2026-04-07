@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
-from app.services.poi_services import getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, check_vendor_poi_limit
+from app.services.poi_services import getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, check_vendor_poi_limit, getPOIData
 from app.services.redis_services import get_cache, set_cache, invalidate_poi_cache
-from app.dependencies.auth import get_current_user, require_role
+from app.services.gemini_services import gemini_service
+from app.dependencies.auth import require_role
 from app.dependencies.subscription import verify_active_subscription
 from typing import Optional
 
@@ -131,3 +132,32 @@ async def delete_poi(poi_id: int, user=Depends(require_role(["vendor", "admin"])
         raise HTTPException(status_code=status_code, detail=message)
     invalidate_poi_cache(poi_id)
     return {"success": True, "message": message}
+
+@router.get("/ai/chat")
+async def ask_poi(poi_id: int, question: str):
+
+    success, context_text = getPOIData(poi_id=poi_id)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Lỗi truy vấn dữ liệu quán")
+
+    answer = await gemini_service.chat_with_rag(user_query=question, context=context_text)
+    
+    return {
+        "success": True, 
+        "data": {
+            "answer": answer,
+            "poi_id": poi_id
+        }
+    }
+
+@router.get("/ai/tts")
+async def get_ai_voice(text: str):
+    try:
+        audio_data = await gemini_service.generate_voice_audio(text)
+        return {
+            "success": True,
+            "audio_base64": audio_data # Chuỗi base64 của file audio
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}

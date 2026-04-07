@@ -6,7 +6,8 @@ from typing import Optional
 class POIPositionAdmin(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    range_meter: int = Field(..., gt=0)
+    audio_range: int = Field(..., gt=0)
+    access_range: int = Field(..., gt=0)
 
 
 class POIPositionVendor(BaseModel):

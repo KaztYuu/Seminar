@@ -22,6 +22,7 @@ import VendorPOIs from "./pages/vendor/VendorPOIs.jsx"
 import VendorTransactions from "./pages/vendor/VendorTransactions.jsx"
 import ProtectedRoute from "./components/ProtectedRoute.jsx"
 import Unauthorized from "./pages/auth/Unauthorized.jsx"
+import TestRAG from "./pages/ChatBot.jsx"
 import profileImg from "./assets/ProfileImage.png";
 import { touristMenu, vendorMenu, adminMenu } from "./components/MenuConstants.jsx";
 
@@ -97,6 +98,8 @@ function App() {
         <Route path="/payment-result" element={<PaymentResult />} />
 
         <Route path="/unauthorized" element={<Unauthorized />} />
+
+        <Route path="/chatbot" element={<TestRAG />} />
 
       </Routes>
 
