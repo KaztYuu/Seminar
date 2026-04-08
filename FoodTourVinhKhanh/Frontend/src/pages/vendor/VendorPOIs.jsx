@@ -22,11 +22,32 @@ const VendorPOIs = () => {
     const initialForm = {
         localized: { lang_code: "vi", name: "", description: "" },
         position: { latitude: 10.762622, longitude: 106.660172 },
+        knowledge: [
+            { category: "menu", content: "" }
+            ],
         thumbnail: "",
         banner: ""
     };
 
     const [formData, setFormData] = useState(initialForm);
+
+    const addKnowledgeField = () => {
+        setFormData(prev => ({
+        ...prev,
+        knowledge: [...prev.knowledge, { category: "menu", content: "" }]
+        }));
+    };
+
+    const removeKnowledgeField = (index) => {
+        const newKnowledge = formData.knowledge.filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, knowledge: newKnowledge }));
+    };
+
+    const updateKnowledgeField = (index, field, value) => {
+        const newKnowledge = [...formData.knowledge];
+        newKnowledge[index][field] = value;
+        setFormData(prev => ({ ...prev, knowledge: newKnowledge }));
+    };
 
     useEffect(() => {
         fetchPOIs();
@@ -48,23 +69,41 @@ const VendorPOIs = () => {
         fetchPOIs(value);
     };
 
-    const handleOpenModal = (poi = null) => {
-        if (poi) {
-            setEditingId(poi.id);
-            setFormData({
-                localized: { name: poi.name, description: poi.description },
-                position: { 
-                    latitude: poi.latitude, 
-                    longitude: poi.longitude, 
-                },
-                thumbnail: poi.thumbnail,
-                banner: poi.banner
-            });
+    const handleOpenModal = async (poi_id = null) => {
+        if (poi_id) {
+            setLoading(true);
+            try {
+                const res = await api.get(`/pois/get-poi-by-id/${poi_id}`);
+                if (res.data.success) {
+                    const poi = res.data.data;
+                    setEditingId(poi_id);
+                    setFormData({
+                        localized: { 
+                            name: poi.name || "", 
+                            description: poi.description || "" 
+                        },
+                        position: { 
+                            latitude: poi.latitude, 
+                            longitude: poi.longitude, 
+                        },
+                        knowledge: poi.knowledge && poi.knowledge.length > 0 
+                            ? poi.knowledge 
+                            : [{ category: "menu", content: "" }],
+                        thumbnail: poi.thumbnail,
+                        banner: poi.banner
+                    });
+                    setIsModalOpen(true);
+                }
+            } catch (err) {
+                toast.error("Không thể lấy thông tin chi tiết!");
+            } finally {
+                setLoading(false);
+            }
         } else {
             setEditingId(null);
             setFormData(initialForm);
+            setIsModalOpen(true);
         }
-        setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
@@ -117,7 +156,8 @@ const VendorPOIs = () => {
                 lang_code: "vi",
                 name: formData.localized.name,
                 description: formData.localized.description
-            }
+            },
+            knowledge: formData.knowledge
         };
 
         setLoading(true);
@@ -180,7 +220,7 @@ const VendorPOIs = () => {
                                 className={`group bg-white rounded-3xl overflow-hidden border transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer ${
                                     poi.is_Active ? "border-gray-100" : "border-red-100 opacity-80"
                                 }`}
-                                onClick={() => handleOpenModal(poi)}
+                                onClick={() => handleOpenModal(poi.id)}
                             >
                                 <div className="relative h-44 overflow-hidden">
                                     <img 
@@ -275,6 +315,48 @@ const VendorPOIs = () => {
                                     value={formData.localized.description}
                                     onChange={(e) => setFormData({...formData, localized: {...formData.localized, description: e.target.value}})}
                                 />
+                            </div>
+
+                            <div className="space-y-2 border-t pt-4">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-black text-blue-600 uppercase ml-1">Thông tin bổ sung (Thông tin được cung cấp cho AI chatbot)</label>
+                                    <Button type="button" size="sm" variant="outline" onClick={addKnowledgeField}>
+                                    <Plus size={14} className="mr-1" /> Thêm
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {formData.knowledge.map((item, index) => (
+                                    <div key={index} className="flex gap-2 items-start bg-gray-50 p-2 rounded-xl border border-gray-100">
+                                        <select 
+                                        className="text-xs bg-white border rounded-lg p-2 outline-none"
+                                        value={item.category}
+                                        onChange={(e) => updateKnowledgeField(index, 'category', e.target.value)}
+                                        >
+                                        <option value="menu">Thực đơn</option>
+                                        <option value="history">Lịch sử</option>
+                                        <option value="promotion">Khuyến mãi</option>
+                                        <option value="other">Khác</option>
+                                        </select>
+                                        
+                                        <textarea 
+                                        placeholder="Ví dụ: Ốc hương xào tỏi - 50k"
+                                        className="flex-1 text-sm p-2 rounded-lg border outline-none focus:border-blue-400 min-h-[40px]"
+                                        value={item.content}
+                                        onChange={(e) => updateKnowledgeField(index, 'content', e.target.value)}
+                                        rows="1"
+                                        />
+
+                                        <button 
+                                        type="button"
+                                        onClick={() => removeKnowledgeField(index)}
+                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                        <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Map Section */}

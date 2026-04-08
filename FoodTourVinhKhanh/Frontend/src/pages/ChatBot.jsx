@@ -66,7 +66,7 @@ const TestRAG = () => {
                 const aiResponse = res.data.data.answer
                 
                 setAnswer(aiResponse);
-                await playGeminiVoice(aiResponse);
+                //await playGeminiVoice(aiResponse);
             }
         } catch (err) {
             console.error("Lỗi API AI:", err);

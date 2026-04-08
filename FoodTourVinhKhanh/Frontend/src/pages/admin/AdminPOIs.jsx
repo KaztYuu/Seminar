@@ -101,26 +101,42 @@ const POIAdminManager = () => {
   };
 
   // Mở modal để Sửa
-  const handleEdit = (row) => {
-    setEditingId(row.id);
-    setFormData({
-      thumbnail: row.thumbnail,
-      banner: row.banner,
-      is_active: Boolean(row.is_Active),
-      position: { 
-        latitude: row.latitude, 
-        longitude: row.longitude, 
-        audio_range: row.audio_range || 30,
-        access_range: row.access_range || 10 
-      },
-      localized: { 
-        lang_code: "vi", 
-        name: row.name, 
-        description: row.description 
-      },
-      knowledge: row.knowledge || [{ category: "menu", content: "" }]
-    });
-    setIsModalOpen(true);
+  const handleEdit = async (row) => {
+
+    setLoading(true);
+    try {
+      const res = await api.get(`/pois/get-poi-by-id/${row.id}`);
+      if (res.data.success) {
+        const fullData = res.data.data;
+        
+        setEditingId(fullData.id);
+        setFormData({
+          thumbnail: fullData.thumbnail,
+          banner: fullData.banner,
+          is_active: Boolean(fullData.is_Active),
+          position: { 
+            latitude: fullData.latitude, 
+            longitude: fullData.longitude, 
+            audio_range: fullData.audio_range, 
+            access_range: fullData.access_range 
+          },
+          localized: { 
+            lang_code: "vi", 
+            name: fullData.name, 
+            description: fullData.description 
+          },
+          knowledge: fullData.knowledge && fullData.knowledge.length > 0 
+                    ? fullData.knowledge 
+                    : [{ category: "menu", content: "" }]
+        });
+        setIsModalOpen(true);
+      }
+    } catch (err) {
+      toast.error("Không thể lấy thông tin chi tiết địa điểm");
+    } finally {
+      setLoading(false);
+    }
+
   };
 
   // Reset form khi đóng modal
@@ -187,15 +203,27 @@ const POIAdminManager = () => {
       return toast.error("Mô tả nên chi tiết một chút, ít nhất 10 ký tự!");
     }
 
+    const cleanedKnowledge = formData.knowledge.filter(item => item.content.trim() !== "");
+  
+    if (cleanedKnowledge.length === 0) {
+      return toast.error("Vui lòng thêm ít nhất một nội dung kiến thức (Menu, lịch sử...)!");
+    }
+
+    // Tạo object data cuối cùng để gửi đi
+    const finalData = {
+      ...formData,
+      knowledge: cleanedKnowledge // Gửi mảng đã lọc sạch dòng trống
+    };
+
     setLoading(true);
     try {
       let res;
       if (editingId) {
 
-        res = await api.put(`/pois/admin/update/${editingId}`, formData);
+        res = await api.put(`/pois/admin/update/${editingId}`, finalData);
       } else {
 
-        res = await api.post('/pois/admin/create', formData);
+        res = await api.post('/pois/admin/create', finalData);
       }
 
       if (res.data.success) {
@@ -396,7 +424,7 @@ const POIAdminManager = () => {
               <div className="flex justify-between items-center">
                 <label className="text-xs font-black text-blue-600 uppercase ml-1">Thông tin bổ sung (Thông tin được cung cấp cho AI chatbot)</label>
                 <Button type="button" size="sm" variant="outline" onClick={addKnowledgeField}>
-                  <Plus size={14} className="mr-1" /> Thêm dòng
+                  <Plus size={14} className="mr-1" /> Thêm
                 </Button>
               </div>
 

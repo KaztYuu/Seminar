@@ -56,7 +56,7 @@ def getPois(user, lang="vi", searchTxt=""):
         query = """
             SELECT DISTINCT 
                 p.*,
-                pos.latitude, pos.longitude, pos.range_meter,
+                pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
                 ld.name, ld.description, ld.audio_url
             FROM pois p
             LEFT JOIN poi_position pos ON p.id = pos.poi_id
@@ -110,7 +110,7 @@ def getPOIById(user, poi_id, lang="vi"):
         if user["role"] == 'tourist':
             # Dùng LEFT JOIN để an toàn nếu thiếu bản dịch
             cursor.execute("""
-                SELECT p.*, pos.latitude, pos.longitude, pos.range_meter,
+                SELECT p.*, pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
                        ld.name, ld.description, ld.audio_url, ld.lang_code
                 FROM pois p
                 LEFT JOIN poi_position pos ON p.id = pos.poi_id
@@ -120,7 +120,7 @@ def getPOIById(user, poi_id, lang="vi"):
         else:
             # Vendor/Admin sửa bài: Lấy bản 'vi' chuẩn
             cursor.execute("""
-                SELECT p.*, pos.latitude, pos.longitude, pos.range_meter,
+                SELECT p.*, pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
                        ld.name, ld.description
                 FROM pois p
                 LEFT JOIN poi_position pos ON p.id = pos.poi_id
@@ -129,6 +129,16 @@ def getPOIById(user, poi_id, lang="vi"):
             """, (poi_id,))
         
         poi = cursor.fetchone()
+
+        if poi and user["role"] != "tourist":
+            cursor.execute(
+                """
+                    SELECT id, category, content 
+                    FROM poi_knowledge_base 
+                    WHERE poi_id = %s
+                """
+            , (poi_id,))
+            poi['knowledge'] = cursor.fetchall()
 
     except Exception as e:
         print(f"Get POI Error: {e}")
@@ -142,6 +152,8 @@ def getPOIById(user, poi_id, lang="vi"):
 async def createPOI(user, data):
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    poi_id = None
 
     try:
         # 1. Lưu ảnh
@@ -163,12 +175,22 @@ async def createPOI(user, data):
         poi_id = cursor.lastrowid # <--- ĐÃ CÓ ID
 
         # 4. Insert Vị trí
+        audio_range = data.position.audio_range if user["role"] == "admin" else 30
+        access_range = data.position.access_range if user["role"] == "admin" else 10
         cursor.execute("""
-            INSERT INTO poi_position (poi_id, latitude, longitude, range_meter)
-            VALUES (%s, %s, %s, %s)
-        """, (poi_id, data.position.latitude, data.position.longitude, data.position.range_meter if user["role"]=="admin" else 30))
+            INSERT INTO poi_position (poi_id, latitude, longitude, audio_range, access_range)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (poi_id, data.position.latitude, data.position.longitude, audio_range, access_range))
 
-        # 5. Xử lý Audio và Localized Data
+        # 5. Insert knowledge của POI
+        knowledge_list = data.knowledge if isinstance(data.knowledge, list) else [data.knowledge]
+        for kn in knowledge_list:
+            cursor.execute("""
+                INSERT INTO poi_knowledge_base (poi_id, category, content)
+                VALUES (%s, %s, %s)
+            """, (poi_id, kn.category, kn.content))
+
+        # 6. Xử lý Audio và Localized Data
         for item in localized_items:
             # Gọi Gemini tạo file audio
             audio_bytes = await gemini_service.text_to_speech(item["description"])
@@ -189,7 +211,7 @@ async def createPOI(user, data):
         conn.rollback()
         image_service.delete_image(thumbnail_path)
         image_service.delete_image(banner_path)
-        audio_service.delete_poi_audios(poi_id=poi_id)
+        if poi_id : audio_service.delete_poi_audios(poi_id=poi_id)
         return False, str(e), None
     finally:
         cursor.close()
@@ -232,15 +254,24 @@ async def updatePOI(user, poi_id, data):
         if user["role"] == "admin":
             cursor.execute("""
                 UPDATE poi_position 
-                SET latitude = %s, longitude = %s, range_meter = %s 
+                SET latitude = %s, longitude = %s, audio_range = %s, access_range = %s
                 WHERE poi_id = %s
-            """, (data.position.latitude, data.position.longitude, data.position.range_meter, poi_id))
+            """, (data.position.latitude, data.position.longitude, data.position.audio_range, data.position.access_range, poi_id))
         else:
             cursor.execute("""
                 UPDATE poi_position 
                 SET latitude = %s, longitude = %s
                 WHERE poi_id = %s
             """, (data.position.latitude, data.position.longitude, poi_id))
+
+        if data.knowledge:
+            cursor.execute("DELETE FROM poi_knowledge_base WHERE poi_id = %s", (poi_id,))
+            knowledge_list = data.knowledge if isinstance(data.knowledge, list) else [data.knowledge]
+            for kn in knowledge_list:
+                cursor.execute("""
+                    INSERT INTO poi_knowledge_base (poi_id, category, content)
+                    VALUES (%s, %s, %s)
+                """, (poi_id, kn.category, kn.content))
 
         # Chỉ dịch lại và gọi API sinh audio mới nếu mô tả bị thay đổi
         if data.localized and data.localized.description != old_poi['old_desc']:
@@ -313,6 +344,7 @@ async def deletePOI(user, poi_id):
 
         cursor.execute("DELETE FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
         cursor.execute("DELETE FROM poi_position WHERE poi_id = %s", (poi_id,))
+        cursor.execute("DELETE FROM poi_knowledge_base WHERE poi_id = %s", (poi_id,))
         
         cursor.execute("UPDATE pois SET is_Deleted = TRUE WHERE id = %s", (poi_id,))
 
@@ -340,25 +372,47 @@ def getPOIData(poi_id):
     cursor = conn.cursor(dictionary=True)
 
     try:
-
+        # 1. Lấy Tên và Mô tả tổng quát của quán
         cursor.execute(
             """
-                SELECT category, content
-                FROM poi_knowledge_base
-                WHERE poi_id = %s
-            """
-        , (poi_id,))
-
-        rows = cursor.fetchall()
+            SELECT name, description 
+            FROM poi_localized_data 
+            WHERE poi_id = %s AND lang_code = 'vi'
+            """,
+            (poi_id,)
+        )
+        poi_info = cursor.fetchone()
         
-        if not rows:
-            return True, "" # Trả về chuỗi rỗng nếu không có dữ liệu
+        # 2. Lấy chi tiết kiến thức/thực đơn
+        cursor.execute(
+            """
+            SELECT category, content
+            FROM poi_knowledge_base
+            WHERE poi_id = %s
+            """,
+            (poi_id,)
+        )
+        knowledge_rows = cursor.fetchall()
 
-        # Hợp nhất kiến thức thành một đoạn văn bản có cấu trúc
-        # Ví dụ: "[menu]: Ốc hương... [history]: Quán có từ..."
-        context_string = " ".join([f"[{row['category']}]: {row['content']}" for row in rows])
+        if not poi_info and not knowledge_rows:
+            return True, ""
+
+        # 3. Xây dựng chuỗi Context hoàn chỉnh
+        context_parts = []
+        
+        if poi_info:
+            context_parts.append(f"Tên địa điểm: {poi_info['name']}.")
+            context_parts.append(f"Giới thiệu: {poi_info['description']}.")
+
+        if knowledge_rows:
+            knowledge_text = " ".join([f"[{row['category']}]: {row['content']}" for row in knowledge_rows])
+            context_parts.append(f"Thông tin chi tiết: {knowledge_text}")
+
+        # Gộp tất cả lại thành một đoạn văn bản
+        context_string = " ".join(context_parts)
 
         return True, context_string
+
     except Exception as e:
         print(f"Lỗi khi lấy dữ liệu POI: {str(e)}")
         return False, None

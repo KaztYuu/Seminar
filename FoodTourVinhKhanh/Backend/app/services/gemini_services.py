@@ -4,9 +4,9 @@ import base64
 import re
 import io
 import wave
-import hashlib
 from google import genai
 from google.genai import types
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,6 +20,7 @@ class GeminiService:
         self.client = genai.Client(api_key=api_key)
         self.model_id = 'models/gemini-2.5-flash'
         self.tts_model_id = 'models/gemini-2.5-flash-preview-tts'
+        self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         
         # Cấu hình thư mục lưu trữ âm thanh
         self.audio_storage = os.path.join("uploads", "audio", "tts")
@@ -46,8 +47,24 @@ class GeminiService:
             )
             return json.loads(response.text)
         except Exception as e:
-            print(f"Translation Error: {e}")
-            raise e
+            print(f"Gemini lỗi, đang dùng Groq dự phòng: {e}")
+            return self.translate_backup_groq(text)
+        
+    def translate_backup_groq(self, text: str):
+        """Dịch thuật dự phòng bằng Llama 3 trên Groq"""
+        try:
+            completion = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are a translator. Translate the text into English (en), Korean (kr), and French (fr). The translations must preserve proper nouns, street names, and brand names. Translate based on context to ensure natural and fluent results. Automatically correct any spelling or grammatical errors in the original text if necessary. Return ONLY JSON: {'en': '...', 'kr': '...', 'fr': '...'}"},
+                    {"role": "user", "content": text}
+                ],
+                response_format={"type": "json_object"}
+            )
+            return json.loads(completion.choices[0].message.content)
+        except Exception as groq_e:
+            print(f"Lỗi cả Groq: {groq_e}")
+            return {"en": text, "kr": text, "fr": text}
 
     async def text_to_speech(self, text: str) -> bytes:
         try:
@@ -84,35 +101,63 @@ class GeminiService:
             raise e
 
     async def chat_with_rag(self, user_query: str, context: str):
-            
-            try:
-                # System prompt này giúp AI chỉ trả lời dựa trên dữ liệu bạn cung cấp
-                system_instruction = (
-                    f"Bạn là trợ lý ảo thông minh của Phố ẩm thực Vĩnh Khánh. "
-                    f"Dưới đây là thông tin thực tế về POI quán ăn được cung cấp: ### {context} ###. "
-                    f"Hãy dựa VÀO DUY NHẤT thông tin trên để trả lời khách hàng. "
-                    f"Nếu thông tin không có trong văn bản, hãy lịch sự từ chối. "
-                    f"Trả lời ngắn gọn, thân thiện."
-                )
 
-                response = self.client.models.generate_content(
-                    model=self.model_id,
-                    contents=[types.Part(text=user_query)],
-                    config=types.GenerateContentConfig(
-                        safety_settings=[
-                            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
-                            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
-                            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-                            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
-                        ],
-                        system_instruction=system_instruction,
-                        temperature=0.4 # Giảm độ sáng tạo để AI không "chém gió" ngoài dữ liệu
-                    )
+        system_instruction = (
+                "Your name is Laura. "
+                "You are a virtual assistant for this POI.\n\n"
+
+                "RULES:\n"
+                "1. ONLY use information from the provided CONTEXT.\n"
+                "2. DO NOT make up or assume any information not present in the CONTEXT.\n"
+                "3. If the answer is not in the CONTEXT, reply exactly this sentence in user's language: "
+                "'Sorry, I don't have information about this.'\n"
+                "4. If the question is casual, respond politely and naturally.\n"
+                "5. Keep responses short, clear, and friendly.\n"
+                "6. When appropriate, describe food in an appealing and vivid way.\n"
+                "7. ALWAYS respond in the SAME language as the user's question."
+            )
+
+        try:
+
+            contents = [
+                types.Part(text=f"CONTEXT:\n{context}"),
+                types.Part(text=f"QUESTION:\n{user_query}")
+            ]
+
+            response = self.client.models.generate_content(
+                model=self.model_id,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    safety_settings=[
+                        types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                    ],
+                    system_instruction=system_instruction,
+                    temperature=0.3
+                ),
+            )
+
+            return response.text
+
+        except Exception as e:
+            print("Chat với Gemini lỗi, chuyển sang Groq...")
+            try:
+                # Sử dụng mô hình Llama 3 mã nguồn mở trên Groq
+                completion = self.groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": f"CONTEXT:\n{context}\n\nQUESTION:\n{user_query}"}
+                    ],
+                    temperature=0.3,
+                    max_tokens=500
                 )
-                return response.text
-            except Exception as e:
-                print(f"RAG Error: {e}")
-                raise e
+                return completion.choices[0].message.content
+            except Exception as groq_e:
+                print(f"Lỗi cả Groq: {groq_e}")
+                return "Xin lỗi, hệ thống AI đang quá tải. Bạn vui lòng thử lại sau giây lát nhé!"
             
     async def generate_voice_audio(self, text: str):
         try:
