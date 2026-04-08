@@ -1,4 +1,4 @@
-from app.services.user_services import update_profile, change_password, createUser, updateUser, getUserById, getUsers
+from app.services.user_services import update_profile, change_password, createUser, updateUser, getUserById, getUsers, deleteUser
 from app.schemas.user_schema import ChangePasswordRequest, UpdateProfileRequest, CreateUserRequest, UpdateUserRequest, UserResponse
 from fastapi import APIRouter, Request, Depends, HTTPException
 from app.dependencies.auth import get_current_user, require_role
@@ -85,6 +85,18 @@ def update_user(user_id: int, data: UpdateUserRequest, user=Depends(require_role
         status_code = 404 if "không tồn tại" in message else 400
         raise HTTPException(status_code=status_code, detail=message)
     
+    return {
+        "success": success,
+        "message": message
+    }
+
+@router.delete("/delete/{user_id}")
+def delete_user(user_id: int, user=Depends(require_role("admin"))):
+    success, message = deleteUser(user_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=message)
+
     return {
         "success": success,
         "message": message

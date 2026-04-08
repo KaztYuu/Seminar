@@ -95,17 +95,20 @@ def createUser(data):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        check_sql = "SELECT id FROM users WHERE email=%s"
-        cursor.execute(check_sql, (data.email,))
-        existed = cursor.fetchone() 
-        if existed:
-            return False, "Email đã tồn tại"
+        cursor.execute("SELECT id FROM users WHERE email = %s AND is_Deleted = FALSE", (data.email,))
+        if cursor.fetchone():
+            return False, "Email đã được sử dụng"
+
+        cursor.execute("SELECT id FROM users WHERE phoneNumber = %s AND is_Deleted = FALSE", (data.phoneNumber,))
+        if cursor.fetchone():
+            return False, "Số điện thoại đã được sử dụng"
+
         hashed_password = hash_password(data.password)
 
         cursor.execute("""
                         INSERT INTO users(name, email, password, phoneNumber, role)
                         VALUES(%s, %s, %s, %s, %s)
-                       """, (data.name, data.email, hashed_password. data.phoneNumber, data.role,))
+                       """, (data.name, data.email, hashed_password, data.phoneNumber, data.role,))
         conn.commit()
 
         return True, "Thêm người dùng thành công."
@@ -113,6 +116,24 @@ def createUser(data):
         conn.rollback()
         print(f'Create user error: {e}')
         return False, f'Thêm người dùng thất bại: {str(e)}'
+    finally:
+        cursor.close()
+        conn.close()
+
+def deleteUser(user_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id FROM users WHERE id = %s AND is_Deleted = FALSE", (user_id,))
+        if not cursor.fetchone():
+            return False, "Người dùng không tồn tại."
+        cursor.execute("UPDATE users SET is_Deleted = TRUE WHERE id = %s", (user_id,))
+        conn.commit()
+        return True, "Xóa người dùng thành công."
+    except Exception as e:
+        conn.rollback()
+        print(f"Delete user error: {e}")
+        return False, f"Lỗi hệ thống: {str(e)}"
     finally:
         cursor.close()
         conn.close()
@@ -129,6 +150,18 @@ def updateUser(user_id, data):
         update_data = data.dict(exclude_unset=True) # Chỉ lấy các trường user có gửi lên
         if not update_data:
             return False, "Không có dữ liệu nào để cập nhật."
+
+        # Kiểm tra trùng email (nếu đổi email)
+        if "email" in update_data:
+            cursor.execute("SELECT id FROM users WHERE email = %s AND id != %s AND is_Deleted = FALSE", (update_data["email"], user_id))
+            if cursor.fetchone():
+                return False, "Email đã được sử dụng bởi tài khoản khác"
+
+        # Kiểm tra trùng số điện thoại (nếu đổi SĐT)
+        if "phoneNumber" in update_data:
+            cursor.execute("SELECT id FROM users WHERE phoneNumber = %s AND id != %s AND is_Deleted = FALSE", (update_data["phoneNumber"], user_id))
+            if cursor.fetchone():
+                return False, "Số điện thoại đã được sử dụng bởi tài khoản khác"
 
         # Hash lại password khi đổi
         if "password" in update_data:
