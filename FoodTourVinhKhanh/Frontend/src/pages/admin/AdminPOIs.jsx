@@ -10,7 +10,7 @@ import Table from '../../components/common/Table';
 import FullPageLoading from '../../components/common/FullPageLoading';
 import SearchBar from '../../components/common/SearchBar';
 import MapPicker from '../../components/common/MapPicker';
-import { Camera } from 'lucide-react';
+import { Camera, Plus, Trash2 } from 'lucide-react';
 
 
 const POIAdminManager = () => {
@@ -40,11 +40,6 @@ const POIAdminManager = () => {
     }
   };
 
-  // useEffect(() => {
-  //   if (isModalOpen && !editingId) {
-  //       getUserCurrentLocation();
-  //   }
-  // }, [isModalOpen, editingId]);
 
   const setMapPosition = (coords) => {
     setFormData(prev => ({
@@ -57,11 +52,32 @@ const POIAdminManager = () => {
     thumbnail: "",
     banner: "",
     is_active: true,
-    position: { latitude: 10.7589, longitude: 106.7076, range_meter: 50 },
-    localized: { lang_code: "vi", name: "", description: "" }
+    position: { latitude: 10.7589, longitude: 106.7076, audio_range: 30, access_range: 10 },
+    localized: { lang_code: "vi", name: "", description: "" },
+    knowledge: [
+      { category: "menu", content: "" }
+    ]
   };
 
   const [formData, setFormData] = useState(initialForm);
+
+  const addKnowledgeField = () => {
+    setFormData(prev => ({
+      ...prev,
+      knowledge: [...prev.knowledge, { category: "menu", content: "" }]
+    }));
+  };
+
+  const removeKnowledgeField = (index) => {
+    const newKnowledge = formData.knowledge.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, knowledge: newKnowledge }));
+  };
+
+  const updateKnowledgeField = (index, field, value) => {
+    const newKnowledge = [...formData.knowledge];
+    newKnowledge[index][field] = value;
+    setFormData(prev => ({ ...prev, knowledge: newKnowledge }));
+  };
 
   useEffect(() => {
     fetchPois();
@@ -94,13 +110,15 @@ const POIAdminManager = () => {
       position: { 
         latitude: row.latitude, 
         longitude: row.longitude, 
-        range_meter: row.range_meter 
+        audio_range: row.audio_range || 30,
+        access_range: row.access_range || 10 
       },
       localized: { 
         lang_code: "vi", 
         name: row.name, 
         description: row.description 
-      }
+      },
+      knowledge: row.knowledge || [{ category: "menu", content: "" }]
     });
     setIsModalOpen(true);
   };
@@ -374,6 +392,48 @@ const POIAdminManager = () => {
                 />
             </div>
 
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-black text-blue-600 uppercase ml-1">Thông tin bổ sung (Thông tin được cung cấp cho AI chatbot)</label>
+                <Button type="button" size="sm" variant="outline" onClick={addKnowledgeField}>
+                  <Plus size={14} className="mr-1" /> Thêm dòng
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {formData.knowledge.map((item, index) => (
+                  <div key={index} className="flex gap-2 items-start bg-gray-50 p-2 rounded-xl border border-gray-100">
+                    <select 
+                      className="text-xs bg-white border rounded-lg p-2 outline-none"
+                      value={item.category}
+                      onChange={(e) => updateKnowledgeField(index, 'category', e.target.value)}
+                    >
+                      <option value="menu">Thực đơn</option>
+                      <option value="history">Lịch sử</option>
+                      <option value="promotion">Khuyến mãi</option>
+                      <option value="other">Khác</option>
+                    </select>
+                    
+                    <textarea 
+                      placeholder="Ví dụ: Ốc hương xào tỏi - 50k"
+                      className="flex-1 text-sm p-2 rounded-lg border outline-none focus:border-blue-400 min-h-[40px]"
+                      value={item.content}
+                      onChange={(e) => updateKnowledgeField(index, 'content', e.target.value)}
+                      rows="1"
+                    />
+
+                    <button 
+                      type="button"
+                      onClick={() => removeKnowledgeField(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Position Section */}
             <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Vị trí địa điểm (Click vào bản đồ để chọn)</label>
@@ -394,12 +454,18 @@ const POIAdminManager = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
                 <Input 
-                    label="Bán kính" 
+                    label="Bán kính audio" 
                     type="number"
-                    value={formData.position.range_meter}
-                    onChange={(e) => setFormData({...formData, position: {...formData.position, range_meter: parseInt(e.target.value)}})}
+                    value={formData.position.audio_range}
+                    onChange={(e) => setFormData({...formData, position: {...formData.position, audio_range: parseInt(e.target.value)}})}
+                />
+                <Input 
+                    label="Bán kính access" 
+                    type="number"
+                    value={formData.position.access_range}
+                    onChange={(e) => setFormData({...formData, position: {...formData.position, access_range: parseInt(e.target.value)}})}
                 />
                 <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-gray-700 ml-1">Trạng thái</label>

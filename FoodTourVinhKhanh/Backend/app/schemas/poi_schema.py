@@ -1,13 +1,21 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, Literal, List
 
+
+# ===== POIKNOWLEDGE =====
+class POIKnowledgeBase(BaseModel):
+    category: Literal["menu", "history", "promotion", "other"] = Field(
+        ..., 
+        description="Loại thông tin"
+    )
+    content: str = Field(..., min_length=1)
 
 # ===== POSITION =====
 class POIPositionAdmin(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    audio_range: int = Field(..., gt=0)
-    access_range: int = Field(..., gt=0)
+    audio_range: int = Field(default=30, gt=0)
+    access_range: int = Field(default=10, gt=0)
 
 
 class POIPositionVendor(BaseModel):
@@ -47,11 +55,13 @@ class POICreateAdmin(POIBase):
     is_active: bool = True
     position: POIPositionAdmin
     localized: POILocalized
+    knowledge: List[POIKnowledgeBase]
 
 
 class POICreateVendor(POIBase):
     position: POIPositionVendor
     localized: POILocalized
+    knowledge: List[POIKnowledgeBase]
 
 
 # ===== UPDATE =====
@@ -62,6 +72,7 @@ class POIUpdateAdmin(BaseModel):
 
     position: Optional[POIPositionAdmin] = None
     localized: Optional[POILocalized] = None
+    knowledge: Optional[List[POIKnowledgeBase]] = None
 
 
 class POIUpdateVendor(BaseModel):
@@ -70,6 +81,7 @@ class POIUpdateVendor(BaseModel):
 
     position: Optional[POIPositionVendor] = None
     localized: Optional[POILocalized] = None
+    knowledge: Optional[List[POIKnowledgeBase]] = None
 
 
 # ===== RESPONSE =====
@@ -83,7 +95,8 @@ class POIResponse(BaseModel):
 
     latitude: float
     longitude: float
-    range_meter: int | None
+    audio_range: int | None
+    access_range: int | None
 
     lang_code: str
     name: str
