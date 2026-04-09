@@ -29,6 +29,7 @@ const logout = async () => {
     
     if (res.status === 200) {
       setUser(null);
+      //localStorage.clear()
       return { success: true, message: "Đăng xuất thành công!" };
     } else {
       return { success: false, message: "Có lỗi xảy ra khi đăng xuất" };

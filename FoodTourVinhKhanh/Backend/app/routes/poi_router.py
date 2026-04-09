@@ -152,9 +152,10 @@ async def ask_poi(poi_id: int, question: str):
     }
 
 @router.get("/ai/tts")
-async def get_ai_voice(text: str):
+async def get_ai_voice(text: str, x_language_code: Optional[str] = Header(None)):
+    lang = x_language_code or "vi"
     try:
-        audio_data = await gemini_service.generate_voice_audio(text)
+        audio_data = await gemini_service.generate_voice_audio(text, lang=lang)
         return {
             "success": True,
             "audio_base64": audio_data # Chuỗi base64 của file audio

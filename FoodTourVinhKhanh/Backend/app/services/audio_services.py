@@ -6,16 +6,53 @@ class AudioService:
         self.audio_storage = os.path.join("uploads", "audio", "tts")
         os.makedirs(self.audio_storage, exist_ok=True)
 
+    # def save_audio(self, audio_bytes: bytes, poi_id: int, lang_code: str) -> str:
+    #     try:
+    #         file_name = f"poi_{poi_id}_{lang_code}.wav"
+    #         file_path = os.path.join(self.audio_storage, file_name)
+            
+    #         with wave.open(file_path, "wb") as wf:
+    #             wf.setnchannels(1) 
+    #             wf.setsampwidth(2)
+    #             wf.setframerate(24000)
+    #             wf.writeframes(audio_bytes)
+            
+    #         return f"/uploads/audio/tts/{file_name}"
+    #     except Exception as e:
+    #         print(f"Audio Save Error: {e}")
+    #         return None
+
     def save_audio(self, audio_bytes: bytes, poi_id: int, lang_code: str) -> str:
+
+        if not audio_bytes or len(audio_bytes) < 10:
+            print(f"LỖI: Dữ liệu audio cho {lang_code} bị rỗng hoặc quá ngắn. Không lưu file.")
+            return None
+
         try:
-            file_name = f"poi_{poi_id}_{lang_code}.wav"
+            is_mp3 = (
+                audio_bytes.startswith(b'ID3') or 
+                audio_bytes.startswith(b'\xff\xfb') or 
+                audio_bytes.startswith(b'\xff\xf3') or
+                audio_bytes.startswith(b'\xff\xf2')
+            )
+            
+            extension = "mp3" if is_mp3 else "wav"
+            file_name = f"poi_{poi_id}_{lang_code}.{extension}"
             file_path = os.path.join(self.audio_storage, file_name)
             
-            with wave.open(file_path, "wb") as wf:
-                wf.setnchannels(1) 
-                wf.setsampwidth(2)
-                wf.setframerate(24000)
-                wf.writeframes(audio_bytes)
+            if is_mp3:
+                # Nếu là MP3, chỉ cần ghi trực tiếp ra file
+                with open(file_path, "wb") as f:
+                    f.write(audio_bytes)
+                print(f"DEBUG: Saved as MP3 (Edge-TTS/Fallback)")
+            else:
+                # Nếu là Raw PCM từ Gemini, đóng gói vào WAV header
+                with wave.open(file_path, "wb") as wf:
+                    wf.setnchannels(1) 
+                    wf.setsampwidth(2)
+                    wf.setframerate(24000)
+                    wf.writeframes(audio_bytes)
+                print(f"DEBUG: Saved as WAV (Gemini TTS)")
             
             return f"/uploads/audio/tts/{file_name}"
         except Exception as e:

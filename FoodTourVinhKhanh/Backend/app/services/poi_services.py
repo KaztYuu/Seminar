@@ -193,7 +193,7 @@ async def createPOI(user, data):
         # 6. Xử lý Audio và Localized Data
         for item in localized_items:
             # Gọi Gemini tạo file audio
-            audio_bytes = await gemini_service.text_to_speech(item["description"])
+            audio_bytes = await gemini_service.text_to_speech(item["description"], lang=item["lang_code"])
             
             # Lưu file xuống server
             audio_url = audio_service.save_audio(audio_bytes, poi_id, item["lang_code"])
@@ -286,7 +286,7 @@ async def updatePOI(user, poi_id, data):
 
             for item in localized_items:
                 # Sinh Audio mới từ Gemini
-                audio_bytes = await gemini_service.text_to_speech(item["description"])
+                audio_bytes = await gemini_service.text_to_speech(item["description"], lang=item["lang_code"])
                 # Lưu file audio mới
                 audio_url = audio_service.save_audio(audio_bytes, poi_id, item["lang_code"])
                 
