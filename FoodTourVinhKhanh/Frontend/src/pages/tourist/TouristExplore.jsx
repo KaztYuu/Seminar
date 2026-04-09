@@ -34,21 +34,32 @@ const TouristExplore = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const audioRef = useRef(null);
+    const lastPlayedPoiId = useRef(null);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+    const getDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371e3; // Bán kính trái đất tính bằng mét
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
     // Theo dõi vị trí và tải dữ liệu ban đầu
     useEffect(() => {
-        const watchId = navigator.geolocation.watchPosition(
+
+        fetchPois();
+
+        navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const { latitude, longitude } = pos.coords;
                 setUserLoc({ lat: latitude, lng: longitude });
-            },
-            () => toast.error("Vui lòng bật định vị để trải nghiệm tốt nhất"),
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            }
         );
-
-        fetchPois();
 
         const handleLangChange = () => {
             fetchPois();
@@ -56,23 +67,97 @@ const TouristExplore = () => {
             setIsExpanded(false)
         };
 
+        const moveStep = 0.0001; // Độ nhạy di chuyển
+        const handleKeyDown = (e) => {
+            const key = e.key.toLowerCase();
+            setUserLoc(prev => {
+                if (!prev) return prev;
+                if (key === 'w') return { ...prev, lat: prev.lat + moveStep };
+                if (key === 's') return { ...prev, lat: prev.lat - moveStep };
+                if (key === 'a') return { ...prev, lng: prev.lng - moveStep };
+                if (key === 'd') return { ...prev, lng: prev.lng + moveStep };
+                return prev;
+            });
+        };
+
+        window.addEventListener('keydown', handleKeyDown)
         window.addEventListener('languageChange', handleLangChange);
 
         return () => {
-            navigator.geolocation.clearWatch(watchId);
+            window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('languageChange', handleLangChange);
         };
     }, []);
 
+    useEffect(() => {
+        if (!userLoc || pois.length === 0) return;
+
+        let closestPoi = null;
+        let minDistance = Infinity;
+
+        const poisInAccessRange = [];
+
+        pois.forEach(poi => {
+            const dist = getDistance(userLoc.lat, userLoc.lng, poi.latitude, poi.longitude);
+            const audioRange = poi.audio_range
+
+            if (dist <= audioRange) {
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestPoi = poi;
+                }
+            }
+
+            const accRange = poi.access_range
+            if (dist <= accRange) {
+                poisInAccessRange.push(poi);
+            }
+        });
+
+        // logic phát audio
+        if (closestPoi) {
+            // Chỉ phát nếu đây là POI mới (khác với POI vừa phát trước đó)
+            if (lastPlayedPoiId.current !== closestPoi.id) {
+                console.log(`Đang vào vùng phát audio của: ${closestPoi.name}`);
+                playAudio(closestPoi.audio_url);
+                lastPlayedPoiId.current = closestPoi.id; // Ghi nhớ lại
+                toast.success(`Đang nghe giới thiệu về ${closestPoi.name}`, {
+                    icon: '🎧',
+                    duration: 3000
+                });
+            }
+        } else {
+            lastPlayedPoiId.current = null; 
+        }
+
+        // logic thêm vào danh sách
+        if (poisInAccessRange.length > 0) {
+            setNearbyPois(prev => {
+                // Lọc ra các POI chưa có trong danh sách
+                const newOnes = poisInAccessRange.filter(
+                    p => !prev.some(existing => existing.id === p.id)
+                );
+
+                if (newOnes.length > 0) {
+                    // Thêm vào đầu danh sách và mở thanh bar lên
+                    setIsExpanded(true);
+                    return [...newOnes, ...prev];
+                }
+                return prev;
+            });
+        }
+
+    }, [userLoc, pois]);
+
     const fetchPois = async (searchTxt = "") => {
         setLoading(true)
         try {
-        const res = await api.get(`/pois/get-pois?search=${searchTxt}`);
+            const res = await api.get(`/pois/get-pois?search=${searchTxt}`);
         if (res.data.success) setPois(res.data.data);
         } catch (err) {
-        toast.error("Không thể tải danh sách địa điểm");
+            toast.error("Không thể tải danh sách địa điểm");
         } finally {
-        setLoading(false)
+            setLoading(false)
         }
     };
 
@@ -115,6 +200,9 @@ const TouristExplore = () => {
         if (audioRef.current && url) {
             audioRef.current.src = `${API_URL}${url}`;
             audioRef.current.play();
+            // audioRef.current.onended = () => {
+            //     lastPlayedPoiId.current = null;
+            // };
         }
     };
 
@@ -163,11 +251,28 @@ const TouristExplore = () => {
                         )}
 
                         {pois.map(poi => (
-                            <Marker 
-                                key={poi.id} 
-                                position={[poi.latitude, poi.longitude]}
-                                eventHandlers={{ click: () => addToNearby(poi) }}
-                            />
+                            <React.Fragment key={poi.id}>
+                                <Marker 
+                                    key={poi.id} 
+                                    position={[poi.latitude, poi.longitude]}
+                                    eventHandlers={{ click: () => addToNearby(poi) }}
+                                />
+                                <Circle 
+                                    center={[poi.latitude, poi.longitude]} // Tâm của vòng tròn trùng với Marker
+                                    radius={poi.audio_range}
+                                />
+                                <Circle 
+                                    center={[poi.latitude, poi.longitude]} 
+                                    radius={poi.access_range || 10}
+                                    pathOptions={{ 
+                                        color: '#3b82f6',       // Blue-500
+                                        fillColor: '#93c5fd',   // Blue-300
+                                        fillOpacity: 0.2,
+                                        dashArray: '5, 10'
+                                    }}
+                                />
+
+                            </React.Fragment>
                         ))}
                     </MapContainer>
                 </div>
@@ -232,7 +337,7 @@ const TouristExplore = () => {
                                             </h4>
                                             <div className="flex justify-between items-center">
                                                 <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                                                    <MapPin size={10} /> {poi.range_meter}m
+                                                    <MapPin size={10} /> {poi.audio_range}m
                                                 </p>
                                                 <Button 
                                                     variant="outline" 

@@ -208,21 +208,22 @@ class GeminiService:
     async def generate_voice_audio(self, text: str, lang: str = "vi"):
         try:
 
-            # raw_audio_data = await self.text_to_speech(text=text)
+            raw_audio_data = await self.text_to_speech(text=text)
         
-            # # TẠO HEADER WAV CHO DỮ LIỆU THÔ
-            # with io.BytesIO() as wav_buffer:
-            #     with wave.open(wav_buffer, "wb") as wav_file:
-            #         wav_file.setnchannels(1)
-            #         wav_file.setsampwidth(2)
-            #         wav_file.setframerate(24000)
-            #         wav_file.writeframes(raw_audio_data)
+            # TẠO HEADER WAV CHO DỮ LIỆU THÔ
+            with io.BytesIO() as wav_buffer:
+                with wave.open(wav_buffer, "wb") as wav_file:
+                    wav_file.setnchannels(1)
+                    wav_file.setsampwidth(2)
+                    wav_file.setframerate(24000)
+                    wav_file.writeframes(raw_audio_data)
                 
-            #     wav_bytes = wav_buffer.getvalue()
+                wav_bytes = wav_buffer.getvalue()
                 
-            # return base64.b64encode(wav_bytes).decode('utf-8')
-
-            
+            return base64.b64encode(wav_bytes).decode('utf-8')
+                
+        except Exception as e:
+            print(f"Gemini TTS Error, chuyển sang xài Edge-TTS: {e}")
             clean_text = text.replace("*", "")
             # Thay thế các dấu xuống dòng bằng dấu phẩy hoặc khoảng trắng để đọc mượt hơn
             clean_text = clean_text.replace("\n", ", ")
@@ -233,9 +234,5 @@ class GeminiService:
 
             # Encode base64 trực tiếp (KHÔNG cần wav nữa)
             return base64.b64encode(audio_bytes).decode("utf-8")
-                
-        except Exception as e:
-            print(f"Gemini TTS Error, chuyển sang xài Edge-TTS: {e}")
-            raise e
 
 gemini_service = GeminiService()
