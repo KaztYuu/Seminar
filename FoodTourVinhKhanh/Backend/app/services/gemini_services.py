@@ -75,8 +75,8 @@ class GeminiService:
 
     async def text_to_speech(self, text: str, lang: str = "vi") -> bytes:
 
-        clean_text = text.replace("*", "").replace("\n", ", ").strip()
-        clean_text = " ".join(clean_text.split())
+        clean_text = text # self.clean_text_for_tts(text)
+    
         if not clean_text:
             print(f"clean_text: {clean_text}")
             return b""
@@ -115,27 +115,40 @@ class GeminiService:
             return await self.backup_text_to_speech(clean_text, lang)
 
     async def backup_text_to_speech(self, text: str, lang: str = "vi") -> bytes:
+        print(text)
+        safe_text = f". {text}"
         """Dự phòng bằng Edge TTS (Miễn phí & Tự nhiên)"""
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 voice = self.edge_voices.get(lang, self.edge_voices["vi"])
                 # Đảm bảo text không có ký tự lạ và không quá dài
-                communicate = edge_tts.Communicate(text, voice)
+                communicate = edge_tts.Communicate(safe_text, voice, rate="-10%")
                 
-                chunks = []
+                # chunks = []
+                # async for chunk in communicate.stream():
+                #     if chunk["type"] == "audio":
+                #         chunks.append(chunk["data"])
+                
+                # if not chunks:
+                #     print("LỖI: Stream của Edge-TTS không trả về bất kỳ chunk audio nào.")
+                #     continue
+                    
+                # return b"".join(chunks)
+                
+                audio_data = b""
                 async for chunk in communicate.stream():
                     if chunk["type"] == "audio":
-                        chunks.append(chunk["data"])
+                        audio_data += chunk["data"]
                 
-                if not chunks:
-                    print("LỖI: Stream của Edge-TTS không trả về bất kỳ chunk audio nào.")
-                    continue
+                if not audio_data:
+                    print("Edge-TTS không trả về dữ liệu")
+                    return b""
                     
-                return b"".join(chunks)
+                return audio_data
 
             except Exception as e:
                 print(f"Lần thử {attempt+1} cho {lang} thất bại: {e}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(1.5)
         return b""
 
     async def chat_with_rag(self, user_query: str, context: str):
@@ -152,7 +165,9 @@ class GeminiService:
                 "4. If the question is casual, respond politely and naturally.\n"
                 "5. Keep responses short, clear, and friendly.\n"
                 "6. When appropriate, describe food in an appealing and vivid way.\n"
-                "7. ALWAYS respond in the SAME language as the user's question. Translate all menu items, prices, and descriptions from the CONTEXT into the target language naturally. "
+                "7. Try to make the response works fine with edge-tts and gemini-tts to create audio file.\n"
+                "8. ALWAYS respond in the SAME language as the user's question, regardless of the language used in the provided CONTEXT. Translate all menu items, prices, and descriptions from the CONTEXT into the target language naturally."
+                
             )
 
         try:
@@ -194,7 +209,7 @@ class GeminiService:
                     model="llama-3.3-70b-versatile",
                     messages=[
                         {"role": "system", "content": system_instruction},
-                        {"role": "user", "content": f"[IMPORTANT RULE: IDENTIFY THE LANGUAGE OF THE QUESTION BELOW AND ANSWER ONLY IN THAT LANGUAGE]\n\nCONTEXT:\n{context}\n\nQUESTION:\n{user_query}\n\nREMINDER: Answer strictly in the same language as the QUESTION above."}
+                        {"role": "user", "content": f"[IMPORTANT RULE: IDENTIFY THE LANGUAGE OF THE QUESTION BELOW AND ANSWER ONLY IN THAT LANGUAGE]\n\nCONTEXT:\n{context}\n\nQUESTION:\n{user_query}\n\nREMINDER: Answer strictly in the same language as the QUESTION above, regardless of the language used in the provided context."}
                     ],
                     temperature=0.2,
                     max_tokens=500
@@ -208,7 +223,7 @@ class GeminiService:
     async def generate_voice_audio(self, text: str, lang: str = "vi"):
         try:
 
-            raw_audio_data = await self.text_to_speech(text=text)
+            raw_audio_data = await self.text_to_speech(text=text, lang=lang)
         
             # TẠO HEADER WAV CHO DỮ LIỆU THÔ
             with io.BytesIO() as wav_buffer:
@@ -223,16 +238,21 @@ class GeminiService:
             return base64.b64encode(wav_bytes).decode('utf-8')
                 
         except Exception as e:
-            print(f"Gemini TTS Error, chuyển sang xài Edge-TTS: {e}")
-            clean_text = text.replace("*", "")
-            # Thay thế các dấu xuống dòng bằng dấu phẩy hoặc khoảng trắng để đọc mượt hơn
-            clean_text = clean_text.replace("\n", ", ")
-            # Loại bỏ các khoảng trắng thừa
-            clean_text = " ".join(clean_text.split())
-
-            audio_bytes = await self.backup_text_to_speech(text=clean_text, lang=lang)
-
-            # Encode base64 trực tiếp (KHÔNG cần wav nữa)
-            return base64.b64encode(audio_bytes).decode("utf-8")
+            print(f"Lỗi nghiêm trọng trong generate_voice_audio: {e}")
+            return None
+    
+    def clean_text_for_tts(self, text: str):
+        if not text: 
+            return ""
+        text = re.sub(r'<[^>]*>', '', text)
+        text = re.sub(r'(\d+)([a-zA-Z]+)', r'\1 \2', text)
+        text = re.sub(r'(?<!\d)[,.](?!\d)|[,.](?!\d)|(?<!\d)[,.]', r'\g<0> ', text)
+        text = text.replace('<', '').replace('>', '')
+        text = re.sub(r'(\d)\.(\d{3})', r'\1\2', text)
+        text = re.sub(r'[•●▪\-+*~/_|]', ', ', text)
+        text = re.sub(r'\s+', ' ', text)
+        text = ''.join(c for c in text if ord(c) < 0x2000 or 0x2060 <= ord(c) < 0x1F600)
+        
+        return text.strip()
 
 gemini_service = GeminiService()

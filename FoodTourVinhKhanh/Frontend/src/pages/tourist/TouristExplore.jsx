@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, CircleMarker } from 'react-leaflet';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, useMap, Circle } from 'react-leaflet';
 import { QRCodeCanvas } from "qrcode.react"
 import QRScanner from "../../components/QRScanner"
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, Download } from 'lucide-react';
+import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, Download, Bot, Send } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 import Button from '../../components/common/Button';
@@ -19,12 +19,19 @@ const RecenterAutomatically = ({ lat, lng }) => {
 
     useEffect(() => {
         if (lat && lng && !hasCentered.current) {
-            map.flyTo([lat, lng], 16, { animate: true });
+            map.panTo([lat, lng], 16, { animate: true });
             hasCentered.current = true;
         }
     }, [lat, lng]);
 
     return null;
+};
+
+const ACCEPT_LANG = {
+    "vi": 'vi-VN',
+    "en": 'en-US',
+    "kr": 'ko-KR', // Mã chuẩn của tiếng Hàn là ko-KR
+    "fr": 'fr-FR'
 };
 
 const TouristExplore = () => {
@@ -36,6 +43,12 @@ const TouristExplore = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+    const [question, setQuestion] = useState("");
+    const [aiResponse, setAiResponse] = useState("");
+    const [currentLang, setCurrentLang] = useState(localStorage.getItem('language').toLowerCase() || 'vi');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef(null)
     const audioRef = useRef(null);
     const lastPlayedPoiId = useRef(null);
 
@@ -63,6 +76,54 @@ const TouristExplore = () => {
         }
     };
 
+    const prepareAIVoice = async (text) => {
+        try {
+            const res = await api.get("/pois/ai/tts", { params: { text } });
+            if (res.data.success && res.data.audio_base64) {
+                const audioSrc = `data:audio/mp3;base64,${res.data.audio_base64}`;
+                const audio = new Audio(audioSrc);
+                
+                // Trả về một Promise hoàn thành khi audio đã tải xong dữ liệu
+                return new Promise((resolve) => {
+                    audio.oncanplaythrough = () => resolve(audio);
+                    audio.onerror = () => resolve(null);
+                });
+            }
+        } catch (error) {
+            console.error("Lỗi chuẩn bị TTS:", error);
+        }
+        return null;
+    };
+
+    const handleAskAI = useCallback(async (overrideQuestion = null) => {
+        const currentQuestion = overrideQuestion || question;
+    
+        if (!currentQuestion.trim()) return;
+        
+        setIsAiLoading(true);
+        setAiResponse(""); 
+
+        try {
+            const chatRes = await api.get("/pois/ai/chat", {
+                params: { poi_id: selectedPoi.id, question: currentQuestion }
+            });
+
+            if (chatRes.data.success) {
+                const answer = chatRes.data.data.answer;
+                const readyAudio = await prepareAIVoice(answer);
+                setAiResponse(answer); 
+                if (readyAudio) {
+                    readyAudio.play().catch(e => console.error(e));
+                }
+            }
+        } catch (err) {
+            setAiResponse("Trợ lý đang gặp chút sự cố, bạn thử lại nhé!");
+        } finally {
+            setIsAiLoading(false);
+            setQuestion(""); // Xóa input sau khi gửi
+        }
+    }, [question, selectedPoi, prepareAIVoice])
+
     // Theo dõi vị trí và tải dữ liệu ban đầu
     useEffect(() => {
 
@@ -76,6 +137,8 @@ const TouristExplore = () => {
         );
 
         const handleLangChange = () => {
+            const newLang = localStorage.getItem('language') || 'vi';
+            setCurrentLang(newLang);
             fetchPois();
             setNearbyPois([])
             setIsExpanded(false)
@@ -103,65 +166,97 @@ const TouristExplore = () => {
         };
     }, []);
 
-    useEffect(() => {
-        if (!userLoc || pois.length === 0) return;
-
-        let closestPoi = null;
-        let minDistance = Infinity;
-
-        const poisInAccessRange = [];
-
-        pois.forEach(poi => {
+    // Dùng useMemo để tính toán POI ở gần (giảm tải cho render)
+    const poisInAccessRange = useMemo(() => {
+        if (!userLoc || pois.length === 0) return [];
+        return pois.filter(poi => {
             const dist = getDistance(userLoc.lat, userLoc.lng, poi.latitude, poi.longitude);
-            const audioRange = poi.audio_range
-
-            if (dist <= audioRange) {
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    closestPoi = poi;
-                }
-            }
-
-            const accRange = poi.access_range
-            if (dist <= accRange) {
-                poisInAccessRange.push(poi);
-            }
+            return dist <= (poi.access_range || 10);
         });
+    }, [userLoc, pois]);
 
-        // logic phát audio
-        if (closestPoi) {
-            // Chỉ phát nếu đây là POI mới (khác với POI vừa phát trước đó)
-            if (lastPlayedPoiId.current !== closestPoi.id) {
-                console.log(`Đang vào vùng phát audio của: ${closestPoi.name}`);
-                playAudio(closestPoi.audio_url);
-                lastPlayedPoiId.current = closestPoi.id; // Ghi nhớ lại
-                toast.success(`Đang nghe giới thiệu về ${closestPoi.name}`, {
-                    icon: '🎧',
-                    duration: 3000
-                });
-            }
-        } else {
-            lastPlayedPoiId.current = null; 
-        }
-
-        // logic thêm vào danh sách
+    // Tách biệt logic cập nhật danh sách Nearby (chỉ chạy khi danh sách lọc được thay đổi)
+    useEffect(() => {
         if (poisInAccessRange.length > 0) {
             setNearbyPois(prev => {
-                // Lọc ra các POI chưa có trong danh sách
                 const newOnes = poisInAccessRange.filter(
                     p => !prev.some(existing => existing.id === p.id)
                 );
-
                 if (newOnes.length > 0) {
-                    // Thêm vào đầu danh sách và mở thanh bar lên
                     setIsExpanded(true);
                     return [...newOnes, ...prev];
                 }
                 return prev;
             });
         }
+    }, [poisInAccessRange]);
 
-    }, [userLoc, pois]);
+    // Tách biệt logic phát Audio tự động
+    useEffect(() => {
+        if (!userLoc || pois.length === 0) return;
+
+        let closestPoi = null;
+        let minDistance = Infinity;
+
+        pois.forEach(poi => {
+            const dist = getDistance(userLoc.lat, userLoc.lng, poi.latitude, poi.longitude);
+            if (dist <= poi.audio_range && dist < minDistance) {
+                minDistance = dist;
+                closestPoi = poi;
+            }
+        });
+
+        if (closestPoi && lastPlayedPoiId.current !== closestPoi.id) {
+            playAudio(closestPoi.audio_url);
+            lastPlayedPoiId.current = closestPoi.id;
+            toast.success(`Đang nghe giới thiệu về ${closestPoi.name}`, { icon: '🎧' });
+        } else if (!closestPoi) {
+            lastPlayedPoiId.current = null;
+        }
+    }, [userLoc]);
+
+    useEffect(() => {
+        // Kiểm tra trình duyệt có hỗ trợ không
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = ACCEPT_LANG[currentLang] || 'vi-VN';
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setIsListening(false);
+            setQuestion(transcript); 
+            handleAskAI(transcript); 
+        };
+
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+
+        recognitionRef.current = recognition;
+
+        // Cleanup khi component unmount
+        return () => {
+            if (recognitionRef.current) recognitionRef.current.stop();
+        };
+    }, [currentLang, handleAskAI]);
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) {
+            toast.error("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói");
+            return;
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop();
+        } else {
+            setQuestion(""); // Xóa câu cũ trước khi nói câu mới
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
 
     const fetchPois = async (searchTxt = "") => {
         setLoading(true)
@@ -181,19 +276,6 @@ const TouristExplore = () => {
         fetchPois(value);
     };
 
-    // const handleViewDetail = async (poiId) => {
-    //     setLoading(true);
-    //     try {
-    //         const res = await api.get(`/pois/get-poi-by-id/${poiId}`);
-    //         setSelectedPoi(res.data.data);
-    //         setIsModalOpen(true);
-    //     } catch (err) {
-    //         toast.error("Không thể tải thông tin");
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
     const handleViewDetail = async (poi) => {
         setSelectedPoi(poi); 
         setIsQRModalOpen(true);
@@ -210,6 +292,7 @@ const TouristExplore = () => {
             if (res.data.success) {
                 setSelectedPoi(res.data.data); // Cập nhật dữ liệu đầy đủ vào state
                 setIsQRModalOpen(false);       // Đóng QR
+                setQuestion("")
                 setIsModalOpen(true);         // Mở Modal chi tiết
             }
         } catch (err) {
@@ -235,13 +318,26 @@ const TouristExplore = () => {
         setIsExpanded(true);
     };
 
-    const playAudio = (url) => {
+    // const playAudio = (url) => {
+    //     if (audioRef.current && url) {
+    //         audioRef.current.src = `${API_URL}${url}`;
+    //         audioRef.current.play();
+    //         // audioRef.current.onended = () => {
+    //         //     lastPlayedPoiId.current = null;
+    //         // };
+    //     }
+    // };
+
+    const playAudio = async (url) => {
         if (audioRef.current && url) {
-            audioRef.current.src = `${API_URL}${url}`;
-            audioRef.current.play();
-            // audioRef.current.onended = () => {
-            //     lastPlayedPoiId.current = null;
-            // };
+            try {
+                audioRef.current.src = `${API_URL}${url}`;
+                // Play trả về một Promise, chúng ta nên await nó
+                await audioRef.current.play();
+            } catch (error) {
+                console.warn("Autoplay bị chặn bởi trình duyệt. Đang chờ người dùng tương tác...");
+                // Bạn có thể hiện một cái Toast hoặc Icon "Bấm để nghe" ở đây
+            }
         }
     };
 
@@ -469,44 +565,161 @@ const TouristExplore = () => {
                 )}
             </Modal>
 
-            {/* MODAL CHI TIẾT */}
             <Modal 
                 isOpen={isModalOpen}    
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {setIsModalOpen(false); setAiResponse("")}}
                 showCloseButton={false}
-                extraClasses="!max-w-4xl h-[95vh] !p-0 overflow-hidden !rounded-[10px]"
+                extraClasses="!max-w-6xl h-[90vh] !p-0 overflow-hidden !rounded-2xl"
             >
                 {selectedPoi && (
-                    <div className="flex flex-col bg-white">
-                        <div className="relative h-[280px] w-full group">
-                            <img src={`${API_URL}${selectedPoi.banner}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                            <div className="absolute bottom-6 left-8 right-8">
-                                <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-none">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 h-full bg-white">
+                        
+                        {/* CỘT TRÁI: THÔNG TIN CHI TIẾT (Cuộn độc lập) */}
+                        <div className="flex flex-col h-full border-r border-gray-100 overflow-y-auto">
+                            <div className="relative h-[240px] w-full shrink-0">
+                                <img src={`${API_URL}${selectedPoi.banner}`} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                                <h2 className="absolute bottom-6 left-8 text-2xl font-black text-white uppercase">
                                     {selectedPoi.name}
                                 </h2>
                             </div>
-                        </div>
-                        <div className="p-10 lg:p-12">
-                            <div className="flex items-center gap-2 mb-6 text-blue-600 font-bold text-sm tracking-wide">
-                                <div className="w-8 h-[2px] bg-blue-600" />
-                                GIỚI THIỆU CHI TIẾT
-                            </div>
                             
-                            <div className="prose prose-blue max-w-none">
-                                <p className="text-gray-700 leading-[1.8] text-xl font-medium text-justify first-letter:text-5xl first-letter:font-black first-letter:mr-3 first-letter:float-left first-letter:text-blue-600">
+                            <div className="p-8">
+                                <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold text-xs uppercase">
+                                    <div className="w-6 h-[2px] bg-blue-600" /> Giới thiệu
+                                </div>
+                                <p className="text-gray-600 leading-relaxed text-lg text-justify">
                                     {selectedPoi.description}
                                 </p>
                             </div>
+                        </div>
 
-                            {/* Bottom Decor */}
-                            <div className="mt-25 pt-5 border-t border-gray-100 flex items-center justify-between">
-                                <p className="text-xs text-gray-400 italic">© Khám phá ẩm thực Vĩnh Khánh</p>
+                        {/* CỘT PHẢI: TRỢ LÝ AI (Hỏi đáp) */}
+                        <div className="flex flex-col h-full bg-gray-50/50">
+                            {/* Header AI */}
+                            <div className="p-6 bg-white border-b border-gray-100 flex items-center gap-3">
+                                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">
+                                    <Bot size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900">Trợ lý ảo FoodTour</h4>
+                                    <p className="text-[10px] text-green-500 flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Đang trực tuyến
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Nội dung Chat */}
+                            <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
+                                {/* Câu chào mặc định */}
+                                <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 max-w-[85%]">
+                                    <p className="text-sm text-gray-800">
+                                        Xin chào! Mình là Laura, trợ lý ảo của <b>{selectedPoi.name}</b>. Bạn có thông tin nào muốn biết về quán, cứ hỏi mình nhé!
+                                    </p>
+                                </div>
+
+                                {/* Câu trả lời của AI */}
+                                {aiResponse && (
+                                    <div className="bg-orange-500 p-4 rounded-2xl rounded-tl-none shadow-md text-white max-w-[85%] self-start transition-all duration-2000 animate-in fade-in slide-in-from-left-1">
+                                        <p className="text-sm leading-relaxed">{aiResponse}</p>
+                                    </div>
+                                )}
+
+                                {isAiLoading && (
+                                    <div className="flex gap-2 p-2">
+                                        <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" />
+                                        <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                        <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce [animation-delay:0.4s]" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Ô nhập câu hỏi */}
+                            {/* <div className="p-6 bg-white border-t border-gray-100">
+                                <div className="relative flex items-center">
+                                    <input 
+                                        type="text"
+                                        value={question}
+                                        onChange={(e) => setQuestion(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+                                        placeholder="Hỏi về món ăn, giá cả..."
+                                        className="w-full pl-4 pr-12 py-3 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-orange-500 transition-all"
+                                    />
+                                    <button 
+                                        onClick={handleAskAI}
+                                        disabled={isAiLoading || !question.trim()}
+                                        className="absolute right-2 p-2 text-orange-500 hover:bg-orange-50 rounded-lg disabled:opacity-30 transition-colors"
+                                    >
+                                        <Send size={20} />
+                                    </button>
+                                </div>
+                                <p className="mt-2 font-bold text-sm text-blue-400 text-center">
+                                    Hạn chế sử dụng các kí tự đặc biệt *, -, %, @,...
+                                </p>
+                                <p className="mt-2 text-[10px] text-gray-400 text-center">
+                                    AI có thể trả lời sai, hãy xác thực lại thông tin với chủ quán.
+                                </p>
+                            </div> */}
+
+                            <div className="p-6 bg-white border-t border-gray-100">
+                                <div className="relative flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <input 
+                                            type="text"
+                                            value={question}
+                                            onChange={(e) => setQuestion(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+                                            placeholder={isListening ? "Đang lắng nghe..." : "Hỏi về món ăn, giá cả..."}
+                                            className={`w-full pl-4 pr-12 py-3 bg-gray-100 border-none rounded-xl text-sm transition-all ${
+                                                isListening ? "ring-2 ring-red-400 bg-red-50" : "focus:ring-2 focus:ring-orange-500"
+                                            }`}
+                                        />
+                                        
+                                        {/* NÚT MICRO */}
+                                        <button 
+                                            onClick={toggleListening}
+                                            disabled={isAiLoading}
+                                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+                                                isListening ? "text-red-500 animate-pulse bg-red-100" : "text-gray-400 hover:bg-gray-200"
+                                            }`}
+                                            title="Nói để đặt câu hỏi"
+                                        >
+                                            <div className="relative">
+                                                <Volume2 size={20} />
+                                                {isListening && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <button 
+                                        onClick={handleAskAI}
+                                        disabled={isAiLoading || !question.trim() || isListening}
+                                        className="p-3 bg-orange-500 text-white rounded-xl disabled:opacity-30 hover:bg-orange-600 transition-colors shadow-sm"
+                                    >
+                                        <Send size={20} />
+                                    </button>
+                                </div>
+                                
+                                {/* Hiển thị dòng text đang nghe (nếu có) để user check */}
+                                {isListening && (
+                                    <p className="mt-2 text-[10px] text-red-500 font-bold animate-pulse text-center">
+                                        Mời bạn nói, Laura đang nghe...
+                                    </p>
+                                )}
+                                
+                                <p className="mt-2 font-bold text-sm text-blue-400 text-center">
+                                    Hạn chế sử dụng các kí tự đặc biệt *, -, %, @,...
+                                </p>
+                                <p className="mt-2 text-[10px] text-gray-400 text-center">
+                                    AI có thể trả lời sai, hãy xác thực lại thông tin với chủ quán.
+                                </p>
                             </div>
                         </div>
+
                     </div>
                 )}
             </Modal>
+
         </div>
     );
 };

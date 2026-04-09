@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request
 from app.services.vnpay_services import verify_vnpay
 from app.dependencies.auth import get_current_user, require_role
 from app.services.payment_services import create_payment_service, handle_vnpay_ipn, get_payment_history
+from app.services.redis_services import invalidate_poi_cache
 from fastapi.responses import JSONResponse, RedirectResponse
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -33,6 +34,9 @@ def vnpay_ipn(request: Request):
     params = dict(request.query_params)
 
     result = handle_vnpay_ipn(params)
+
+    if result.get("RspCode") == "00":
+        invalidate_poi_cache()
 
     return JSONResponse(content=result)
 
