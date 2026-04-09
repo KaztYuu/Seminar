@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, CircleMarker } from 'react-leaflet';
+import { QRCodeCanvas } from "qrcode.react"
+import QRScanner from "../../components/QRScanner"
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, Download } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 import Button from '../../components/common/Button';
@@ -33,6 +35,7 @@ const TouristExplore = () => {
     const [selectedPoi, setSelectedPoi] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isQRModalOpen, setIsQRModalOpen] = useState(false);
     const audioRef = useRef(null);
     const lastPlayedPoiId = useRef(null);
 
@@ -47,6 +50,17 @@ const TouristExplore = () => {
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    };
+
+    const downloadQRCode = () => {
+        const canvas = document.getElementById("qr-gen");
+        if (canvas) {
+            // Tạo một link ảo để tải
+            const link = document.createElement('a');
+            link.download = `QR_${selectedPoi.name.replace(/\s+/g, '_')}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
     };
 
     // Theo dõi vị trí và tải dữ liệu ban đầu
@@ -167,14 +181,39 @@ const TouristExplore = () => {
         fetchPois(value);
     };
 
-    const handleViewDetail = async (poiId) => {
+    // const handleViewDetail = async (poiId) => {
+    //     setLoading(true);
+    //     try {
+    //         const res = await api.get(`/pois/get-poi-by-id/${poiId}`);
+    //         setSelectedPoi(res.data.data);
+    //         setIsModalOpen(true);
+    //     } catch (err) {
+    //         toast.error("Không thể tải thông tin");
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+    const handleViewDetail = async (poi) => {
+        setSelectedPoi(poi); 
+        setIsQRModalOpen(true);
+    };
+
+    const handleScanSuccess = async () => {
+        if (!selectedPoi) return;
+
         setLoading(true);
         try {
-            const res = await api.get(`/pois/get-poi-by-id/${poiId}`);
-            setSelectedPoi(res.data.data);
-            setIsModalOpen(true);
+            // Lúc này mới thực sự gọi API để lấy full description, banner, v.v.
+            const res = await api.get(`/pois/get-poi-by-id/${selectedPoi.id}`);
+            
+            if (res.data.success) {
+                setSelectedPoi(res.data.data); // Cập nhật dữ liệu đầy đủ vào state
+                setIsQRModalOpen(false);       // Đóng QR
+                setIsModalOpen(true);         // Mở Modal chi tiết
+            }
         } catch (err) {
-            toast.error("Không thể tải thông tin");
+            toast.error("Không thể xác thực thông tin địa điểm");
         } finally {
             setLoading(false);
         }
@@ -307,7 +346,7 @@ const TouristExplore = () => {
                                     <div 
                                         key={poi.id} 
                                         className="relative flex-shrink-0 w-44 bg-white rounded-sm border border-gray-100 p-2 mt-2 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all cursor-pointer group/item"
-                                        onClick={() => handleViewDetail(poi.id)}
+                                        onClick={() => handleViewDetail(poi)}
                                     >
                                         <div className="absolute top-1 right-1 z-10 mt-1 opacity-80 group-hover/item:opacity-100 transition-opacity">
                                             <Button 
@@ -359,6 +398,77 @@ const TouristExplore = () => {
 
                     </div>
                 )}
+
+            {/* MODAL QR */}
+            <Modal 
+                isOpen={isQRModalOpen} 
+                onClose={() => setIsQRModalOpen(false)}
+                extraClasses="!max-w-xl !p-8 text-center"
+                showCloseButton={false}
+            >
+                {selectedPoi && (
+                    <div className="flex flex-col items-center gap-6">
+                        <h3 className="text-2xl font-black text-gray-900 uppercase">
+                            Xác thực tại {selectedPoi.name}
+                        </h3>
+                        
+                        <div className="flex flex-col md:flex-row gap-6 items-center w-full">
+                            
+                            {/* CỘT TRÁI: CAMERA QUÉT THẬT (Html5Qrcode) */}
+                            <div className="flex-1 w-full border-4 border-blue-600 rounded-3xl overflow-hidden shadow-2xl bg-black">
+                                {isQRModalOpen && (
+                                        <QRScanner
+                                            key={selectedPoi.id}
+                                            expectedId={selectedPoi.id} 
+                                            onScanSuccess={handleScanSuccess} 
+                                        />
+                                    )}
+                            </div>
+
+                            {/* CỘT PHẢI: MÃ QR MẪU ĐỂ TEST (QRCodeSVG) */}
+                            <div className="w-full md:w-[220px] p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
+                                <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
+                                    {/* Dùng QRCodeCanvas và đặt ID để hàm download có thể tìm thấy */}
+                                    <QRCodeCanvas 
+                                        id="qr-gen"
+                                        value={String(selectedPoi.id)} 
+                                        size={512}
+                                        style={{ 
+                                            width: '160px', 
+                                            height: '160px',
+                                            padding: '10px',
+                                            backgroundColor: 'white' 
+                                        }} 
+                                        marginSize={4}
+                                        level="H"
+                                    />
+                                </div>
+                                
+                                <div className="text-center w-full">
+                                    {/* NÚT TẢI QR */}
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={downloadQRCode}
+                                        className="w-full mb-3 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
+                                    >
+                                        <Download size={12} /> Tải mã về máy
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Nút bấm dành cho demo */}
+                        <button 
+                            onClick={handleScanSuccess}
+                            className="text-xs text-blue-300 underline hover:text-blue-500 mt-2"
+                        >
+                            (Xác nhận ảo nếu camera lỗi)
+                        </button>
+                    </div>
+                )}
+            </Modal>
+
             {/* MODAL CHI TIẾT */}
             <Modal 
                 isOpen={isModalOpen}    
