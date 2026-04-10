@@ -64,3 +64,20 @@ Thumbs.db
 # ==============================
 
 .cache/
+
+
+# ==============================
+# BLOB uploaded
+# ==============================
+
+*.mp3
+*.wav
+*.m4a
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Quản lý thư mục uploads trong Backend
+Backend/uploads/*
+!Backend/uploads/.gitkeep
