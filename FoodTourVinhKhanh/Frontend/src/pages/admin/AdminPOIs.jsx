@@ -361,8 +361,8 @@ const POIAdminManager = () => {
       <div className="p-5 max-w-7xl mx-auto space-y-3">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900">Quản lý POIs</h1>
-            <p className="text-gray-500 mt-1">Cập nhật thông tin thực tế cho du khách</p>
+            <h1 className="text-3xl font-extrabold text-slate-400">Quản lý POIs</h1>
+            <p className="text-slate-400 mt-1">Cập nhật thông tin thực tế cho du khách</p>
           </div>
         </div>
 
