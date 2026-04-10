@@ -6,6 +6,7 @@ import io
 import wave
 import edge_tts
 import asyncio
+from gtts import gTTS
 from google import genai
 from google.genai import types
 from groq import Groq
@@ -112,17 +113,34 @@ class GeminiService:
                 
         except Exception as e:
             print(f"Gemini TTS API Error, chuyển sang Edge-TTS: {e}")
-            return await self.backup_text_to_speech(clean_text, lang)
+
+        try:
+            audio_data = await self.backup_text_to_speech(text, lang)
+            if audio_data: return audio_data
+        except Exception as e:
+            print(f"Edge-TTS lỗi, chuyển sang gTTS: {e}")
+
+        try:
+            return await self.gtts_fallback(text, lang)
+        except Exception as e:
+            print(f"Tất cả các dịch vụ TTS đều thất bại: {e}")
+            return b""
+
+    
+    async def gtts_fallback(self, text: str, lang: str = "vi") -> bytes:
+        tts = gTTS(text=text, lang=lang)
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        return fp.getvalue()
 
     async def backup_text_to_speech(self, text: str, lang: str = "vi") -> bytes:
         print(text)
-        safe_text = f". {text}"
         """Dự phòng bằng Edge TTS (Miễn phí & Tự nhiên)"""
         for attempt in range(3):
             try:
                 voice = self.edge_voices.get(lang, self.edge_voices["vi"])
                 # Đảm bảo text không có ký tự lạ và không quá dài
-                communicate = edge_tts.Communicate(safe_text, voice, rate="-10%")
+                communicate = edge_tts.Communicate(text, voice, rate="-15%")
                 
                 # chunks = []
                 # async for chunk in communicate.stream():
@@ -224,6 +242,11 @@ class GeminiService:
         try:
 
             raw_audio_data = await self.text_to_speech(text=text, lang=lang)
+            if not raw_audio_data:
+                return None
+            
+            if self.is_mp3_data(raw_audio_data):
+                return base64.b64encode(raw_audio_data).decode('utf-8')
         
             # TẠO HEADER WAV CHO DỮ LIỆU THÔ
             with io.BytesIO() as wav_buffer:
@@ -254,5 +277,17 @@ class GeminiService:
         text = ''.join(c for c in text if ord(c) < 0x2000 or 0x2060 <= ord(c) < 0x1F600)
         
         return text.strip()
+    
+    def is_mp3_data(self, data: bytes) -> bool:
+        if not data or len(data) < 4:
+            return False
+        
+        if data.startswith(b'ID3'):
+            return True
+            
+        if data[0] == 0xFF and (data[1] & 0xE0) == 0xE0:
+            return True
+            
+        return False
 
 gemini_service = GeminiService()

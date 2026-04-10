@@ -44,6 +44,7 @@ const TouristExplore = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
     const [question, setQuestion] = useState("");
+    const [displayQuestion, setDisplayQuestion] = useState("");
     const [aiResponse, setAiResponse] = useState("");
     const [currentLang, setCurrentLang] = useState(localStorage.getItem('language').toLowerCase() || 'vi');
     const [isAiLoading, setIsAiLoading] = useState(false);
@@ -99,7 +100,9 @@ const TouristExplore = () => {
         const currentQuestion = overrideQuestion || question;
     
         if (!currentQuestion.trim()) return;
-        
+
+        setDisplayQuestion(currentQuestion); 
+        setQuestion("");
         setIsAiLoading(true);
         setAiResponse(""); 
 
@@ -567,7 +570,7 @@ const TouristExplore = () => {
 
             <Modal 
                 isOpen={isModalOpen}    
-                onClose={() => {setIsModalOpen(false); setAiResponse("")}}
+                onClose={() => {setIsModalOpen(false); setAiResponse(""); setDisplayQuestion("")}}
                 showCloseButton={false}
                 extraClasses="!max-w-6xl h-[90vh] !p-0 overflow-hidden !rounded-2xl"
             >
@@ -618,7 +621,12 @@ const TouristExplore = () => {
                                     </p>
                                 </div>
 
-                                {/* Câu trả lời của AI */}
+                                {/* Hộp thoại */}
+                                {displayQuestion && (
+                                    <div className="bg-blue-500 p-4 rounded-2xl rounded-tr-none shadow-md text-white max-w-[85%] self-end transition-all duration-2000 animate-in fade-in slide-in-from-left-1">
+                                        <p className="text-sm leading-relaxed">{displayQuestion}</p>
+                                    </div>
+                                )}
                                 {aiResponse && (
                                     <div className="bg-orange-500 p-4 rounded-2xl rounded-tl-none shadow-md text-white max-w-[85%] self-start transition-all duration-2000 animate-in fade-in slide-in-from-left-1">
                                         <p className="text-sm leading-relaxed">{aiResponse}</p>
@@ -634,67 +642,39 @@ const TouristExplore = () => {
                                 )}
                             </div>
 
-                            {/* Ô nhập câu hỏi */}
-                            {/* <div className="p-6 bg-white border-t border-gray-100">
-                                <div className="relative flex items-center">
-                                    <input 
-                                        type="text"
-                                        value={question}
-                                        onChange={(e) => setQuestion(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
-                                        placeholder="Hỏi về món ăn, giá cả..."
-                                        className="w-full pl-4 pr-12 py-3 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-orange-500 transition-all"
-                                    />
-                                    <button 
-                                        onClick={handleAskAI}
-                                        disabled={isAiLoading || !question.trim()}
-                                        className="absolute right-2 p-2 text-orange-500 hover:bg-orange-50 rounded-lg disabled:opacity-30 transition-colors"
-                                    >
-                                        <Send size={20} />
-                                    </button>
-                                </div>
-                                <p className="mt-2 font-bold text-sm text-blue-400 text-center">
-                                    Hạn chế sử dụng các kí tự đặc biệt *, -, %, @,...
-                                </p>
-                                <p className="mt-2 text-[10px] text-gray-400 text-center">
-                                    AI có thể trả lời sai, hãy xác thực lại thông tin với chủ quán.
-                                </p>
-                            </div> */}
-
-                            <div className="p-6 bg-white border-t border-gray-100">
-                                <div className="relative flex items-center gap-2">
-                                    <div className="relative flex-1">
+                            <div className="p-4 bg-white border-t border-gray-100">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1">
                                         <input 
                                             type="text"
                                             value={question}
                                             onChange={(e) => setQuestion(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
                                             placeholder={isListening ? "Đang lắng nghe..." : "Hỏi về món ăn, giá cả..."}
-                                            className={`w-full pl-4 pr-12 py-3 bg-gray-100 border-none rounded-xl text-sm transition-all ${
+                                            className={`w-full pl-4 pr-4 py-3 bg-gray-100 border-none rounded-xl text-sm transition-all ${
                                                 isListening ? "ring-2 ring-red-400 bg-red-50" : "focus:ring-2 focus:ring-orange-500"
                                             }`}
                                         />
-                                        
-                                        {/* NÚT MICRO */}
-                                        <button 
-                                            onClick={toggleListening}
-                                            disabled={isAiLoading}
-                                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
-                                                isListening ? "text-red-500 animate-pulse bg-red-100" : "text-gray-400 hover:bg-gray-200"
-                                            }`}
-                                            title="Nói để đặt câu hỏi"
-                                        >
-                                            <div className="relative">
-                                                <Volume2 size={20} />
-                                                {isListening && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
-                                            </div>
-                                        </button>
                                     </div>
-
                                     <button 
-                                        onClick={handleAskAI}
+                                        onClick={toggleListening}
+                                        disabled={isAiLoading}
+                                        className={`p-3 rounded-lg transition-colors flex-shrink-0 ${
+                                            isListening ? "text-red-500 animate-pulse bg-red-100" : "text-gray-400 hover:bg-gray-200"
+                                        }`}
+                                        title="Nói để đặt câu hỏi"
+                                    >
+                                        <div className="relative">
+                                            <Volume2 size={20} />
+                                            {isListening && (
+                                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                            )}
+                                        </div>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleAskAI()}
                                         disabled={isAiLoading || !question.trim() || isListening}
-                                        className="p-3 bg-orange-500 text-white rounded-xl disabled:opacity-30 hover:bg-orange-600 transition-colors shadow-sm"
+                                        className="p-3 bg-orange-500 text-white rounded-xl disabled:opacity-30 hover:bg-orange-600 transition-all shadow-sm flex-shrink-0"
                                     >
                                         <Send size={20} />
                                     </button>
