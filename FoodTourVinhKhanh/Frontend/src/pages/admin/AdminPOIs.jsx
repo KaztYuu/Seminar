@@ -344,8 +344,8 @@ const POIAdminManager = () => {
                             center={[poi.latitude, poi.longitude]} 
                             radius={poi.access_range || 10}
                             pathOptions={{ 
-                                color: '#de2d2d',       // Blue-500
-                                fillColor: '#93c5fd',   // Blue-300
+                                color: '#de2d2d',
+                                fillColor: '#93c5fd',
                                 fillOpacity: 0.2,
                                 dashArray: '5, 15'
                             }}

@@ -274,6 +274,14 @@ class GeminiService:
             
         if data[0] == 0xFF and (data[1] & 0xE0) == 0xE0:
             return True
+        
+        is_mp3 = (
+                data.startswith(b'\xff\xfb') or 
+                data.startswith(b'\xff\xf3') or
+                data.startswith(b'\xff\xf2')
+            )
+        
+        if is_mp3: return True
             
         return False
 

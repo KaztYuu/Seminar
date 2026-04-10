@@ -6,22 +6,6 @@ class AudioService:
         self.audio_storage = os.path.join("uploads", "audio", "tts")
         os.makedirs(self.audio_storage, exist_ok=True)
 
-    # def save_audio(self, audio_bytes: bytes, poi_id: int, lang_code: str) -> str:
-    #     try:
-    #         file_name = f"poi_{poi_id}_{lang_code}.wav"
-    #         file_path = os.path.join(self.audio_storage, file_name)
-            
-    #         with wave.open(file_path, "wb") as wf:
-    #             wf.setnchannels(1) 
-    #             wf.setsampwidth(2)
-    #             wf.setframerate(24000)
-    #             wf.writeframes(audio_bytes)
-            
-    #         return f"/uploads/audio/tts/{file_name}"
-    #     except Exception as e:
-    #         print(f"Audio Save Error: {e}")
-    #         return None
-
     def save_audio(self, audio_bytes: bytes, poi_id: int, lang_code: str) -> str:
 
         if not audio_bytes or len(audio_bytes) < 10:
@@ -41,7 +25,7 @@ class AudioService:
             file_path = os.path.join(self.audio_storage, file_name)
             
             if is_mp3:
-                # Nếu là MP3, chỉ cần ghi trực tiếp ra file
+                # Nếu là MP3, ghi trực tiếp ra file
                 with open(file_path, "wb") as f:
                     f.write(audio_bytes)
                 print(f"DEBUG: Saved as MP3 (Edge-TTS/Fallback)")

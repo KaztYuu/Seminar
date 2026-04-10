@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, MapPin, Eye, EyeOff, Camera } from 'lucide-react';
+import { Plus, Edit3, Trash2, MapPin, Camera, Undo2 } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/common/Button';
@@ -8,11 +8,13 @@ import Modal from '../../components/common/Modal';
 import FullPageLoading from '../../components/common/FullPageLoading';
 import SearchBar from '../../components/common/SearchBar';
 import MapPicker from '../../components/common/MapPicker';
+import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 
 
 const VendorPOIs = () => {
     const [pois, setPois] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isMapShowing, setIsMapShowing] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
@@ -191,16 +193,72 @@ const VendorPOIs = () => {
         <div className="h-full bg-white-200 relative">
         {loading && <FullPageLoading message="Đang xử lý dữ liệu..." />}
 
+        {/* BẢN ĐỒ */}
+        {isMapShowing && (
+            <div className="fixed inset-0 md:ml-64 ml-0 pt-16 bg-white z-99 overflow-hidden flex flex-col">
+
+            <div className="absolute top-20 left-170 translate-x-1/2 z-[1000] w-full max-w-lg px-4">
+                <Button
+                className='hover:text-blue-600'
+                onClick={() => setIsMapShowing(false)
+                }>
+                <Undo2 size={24}/> <span className='ml-2'>Quay lại</span>
+                </Button>
+            </div>
+
+            <div className="flex-1 w-full h-full relative z-10">
+                <MapContainer 
+                    center={[10.7589, 106.7076]} 
+                    zoom={15}
+                    maxZoom={18}
+                    className="h-full w-full"
+                >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                    {pois.map(poi => (
+                        <React.Fragment key={poi.id}>
+                            <Marker 
+                                key={poi.id} 
+                                position={[poi.latitude, poi.longitude]}
+                                eventHandlers={{ click: () => handleOpenModal(poi.id) }}
+                            />
+                            <Circle 
+                                center={[poi.latitude, poi.longitude]} // Tâm của vòng tròn trùng với Marker
+                                radius={poi.audio_range}
+                            />
+                            <Circle 
+                                center={[poi.latitude, poi.longitude]} 
+                                radius={poi.access_range || 10}
+                                pathOptions={{ 
+                                    color: '#de2d2d',
+                                    fillColor: '#93c5fd',
+                                    fillOpacity: 0.2,
+                                    dashArray: '5, 15'
+                                }}
+                            />
+
+                        </React.Fragment>
+                    ))}
+                </MapContainer>
+            </div>
+            </div>
+        )}
+
             <div className="min-h-full bg-white/70 p-6">
                 <div className="max-w-6xl mx-auto space-y-6">
                     {/* Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h1 className="text-lg font-black text-gray-900 uppercase">Quản lý <span className="text-blue-600">Địa điểm</span> Của bạn ({pois.length}/3)</h1>
+                            <h1 className="!text-4xl font-black text-gray-900 uppercase">Quản lý <span className="text-blue-600">Địa điểm</span> Của bạn ({pois.length}/3)</h1>
                         </div>
-                        <Button onClick={() => handleOpenModal()} className="shadow-lg">
-                            <Plus size={18} className="mr-2" /> Thêm địa điểm mới
-                        </Button>
+                        <div className="space-x-5">
+                            <Button onClick={() => setIsMapShowing(true)} className="shadow-lg">
+                                Bản đồ
+                            </Button>
+                            <Button onClick={() => handleOpenModal()} className="shadow-lg">
+                                <Plus size={18} className="mr-2" /> Thêm địa điểm mới
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Search Bar */}

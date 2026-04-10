@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
 
+//Test AI chatbot
 const TestRAG = () => {
     const [question, setQuestion] = useState("");
     const [answer, setAnswer] = useState("");
@@ -34,7 +35,6 @@ const TestRAG = () => {
             if (res.data.success && res.data.audio_base64) {
                 const base64Audio = res.data.audio_base64;
                 
-                // THAY ĐỔI QUAN TRỌNG: 
                 // Ép kiểu audio/mp3 ngay tại chuỗi Data URI để trình duyệt không nhận diện nhầm
                 const audioSrc = `data:audio/mp3;base64,${base64Audio}`;
                 const audio = new Audio(audioSrc);

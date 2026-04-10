@@ -34,7 +34,6 @@ const QRScanner = ({ onScanSuccess, expectedId }) => {
 
         return () => {
             isLock.current = false;
-            // Cleanup cực mạnh khi unmount
             if (scannerRef.current) {
                 if (scannerRef.current.isScanning) {
                     scannerRef.current.stop().catch(() => {});
@@ -43,13 +42,11 @@ const QRScanner = ({ onScanSuccess, expectedId }) => {
         };
     }, [expectedId]);
 
-    // Hàm dừng cưỡng chế để không bị lỗi Transition
     const forceStopAndSuccess = async () => {
         if (scannerRef.current && scannerRef.current.isScanning) {
             try {
                 await scannerRef.current.stop();
             } catch (e) {
-                // Kệ nó nếu nó báo lỗi transition, ta chỉ cần nó dừng lại
             }
         }
         onScanSuccess();
@@ -59,7 +56,6 @@ const QRScanner = ({ onScanSuccess, expectedId }) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Tạo một instance RIÊNG BIỆT chỉ để quét file, không dùng chung với scannerRef
         const fileScanner = new Html5Qrcode("file-scanner-temp");
         
         try {
@@ -72,7 +68,7 @@ const QRScanner = ({ onScanSuccess, expectedId }) => {
         } catch (err) {
             alert("Không tìm thấy mã QR trong ảnh!");
         } finally {
-            fileScanner.clear(); // Dọn dẹp instance tạm
+            fileScanner.clear();
             e.target.value = "";
         }
     };
@@ -82,7 +78,7 @@ const QRScanner = ({ onScanSuccess, expectedId }) => {
             {/* Khung quét camera chính */}
             <div id="reader" className="w-full h-full"></div>
             
-            {/* Div ẩn để xử lý quét file, tránh xung đột với id="reader" */}
+            {/* Div ẩn để xử lý quét file */}
             <div id="file-scanner-temp" className="hidden"></div>
 
             <div className="absolute bottom-4 left-0 right-0 flex justify-center px-4">

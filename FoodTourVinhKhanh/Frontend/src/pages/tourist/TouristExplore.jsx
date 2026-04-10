@@ -239,7 +239,6 @@ const TouristExplore = () => {
 
         recognitionRef.current = recognition;
 
-        // Cleanup khi component unmount
         return () => {
             if (recognitionRef.current) recognitionRef.current.stop();
         };
@@ -316,7 +315,6 @@ const TouristExplore = () => {
             return updatedList;
         });
 
-        // Luôn mở rộng thanh danh sách khi người dùng tương tác
         setIsExpanded(true);
     };
 
@@ -345,7 +343,7 @@ const TouristExplore = () => {
             <div className="fixed inset-0 md:ml-64 ml-0 pt-16 bg-white z-10 overflow-hidden flex flex-col">
                 {loading && <FullPageLoading />}
                 <audio ref={audioRef} hidden />
-
+                
                 {/* THANH TÌM KIẾM NỔI */}
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-lg px-4">
                     <Card className="!p-0 border rounded-lg shadow-2xl"> 
@@ -400,8 +398,8 @@ const TouristExplore = () => {
                                     center={[poi.latitude, poi.longitude]} 
                                     radius={poi.access_range || 10}
                                     pathOptions={{ 
-                                        color: '#3b82f6',       // Blue-500
-                                        fillColor: '#93c5fd',   // Blue-300
+                                        color: '#3b82f6',
+                                        fillColor: '#93c5fd',
                                         fillOpacity: 0.2,
                                         dashArray: '5, 10'
                                     }}
@@ -510,7 +508,7 @@ const TouristExplore = () => {
                         
                         <div className="flex flex-col md:flex-row gap-6 items-center w-full">
                             
-                            {/* CỘT TRÁI: CAMERA QUÉT THẬT (Html5Qrcode) */}
+                            {/* CỘT TRÁI: CAMERA QUÉT THẬT */}
                             <div className="flex-1 w-full border-4 border-blue-600 rounded-3xl overflow-hidden shadow-2xl bg-black">
                                 {isQRModalOpen && (
                                         <QRScanner
@@ -521,7 +519,7 @@ const TouristExplore = () => {
                                     )}
                             </div>
 
-                            {/* CỘT PHẢI: MÃ QR MẪU ĐỂ TEST (QRCodeSVG) */}
+                            {/* CỘT PHẢI: MÃ QR MẪU ĐỂ TEST */}
                             <div className="w-full md:w-[220px] p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
                                 <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
                                     {/* Dùng QRCodeCanvas và đặt ID để hàm download có thể tìm thấy */}
@@ -554,7 +552,7 @@ const TouristExplore = () => {
                             </div>
                         </div>
 
-                        {/* Nút bấm dành cho demo */}
+                        {/* Nút bấm dành dự phòng để test */}
                         <button 
                             onClick={handleScanSuccess}
                             className="text-xs text-blue-300 underline hover:text-blue-500 mt-2"
@@ -574,7 +572,7 @@ const TouristExplore = () => {
                 {selectedPoi && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 h-full bg-white">
                         
-                        {/* CỘT TRÁI: THÔNG TIN CHI TIẾT (Cuộn độc lập) */}
+                        {/* THÔNG TIN CHI TIẾT */}
                         <div className="flex flex-col h-full border-r border-gray-100 overflow-y-auto">
                             <div className="relative h-[240px] w-full shrink-0">
                                 <img src={`${API_URL}${selectedPoi.banner}`} className="w-full h-full object-cover" />
@@ -594,7 +592,7 @@ const TouristExplore = () => {
                             </div>
                         </div>
 
-                        {/* CỘT PHẢI: TRỢ LÝ AI (Hỏi đáp) */}
+                        {/* TRỢ LÝ AI (Hỏi đáp) */}
                         <div className="flex flex-col h-full bg-gray-50/50">
                             {/* Header AI */}
                             <div className="p-6 bg-white border-b border-gray-100 flex items-center gap-3">
@@ -611,7 +609,6 @@ const TouristExplore = () => {
 
                             {/* Nội dung Chat */}
                             <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4">
-                                {/* Câu chào mặc định */}
                                 <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 max-w-[85%]">
                                     <p className="text-sm text-gray-800">
                                         Xin chào! Mình là Laura, trợ lý ảo của <b>{selectedPoi.name}</b>. Bạn có thông tin nào muốn biết về quán, cứ hỏi mình nhé!
@@ -676,8 +673,7 @@ const TouristExplore = () => {
                                         <Send size={20} />
                                     </button>
                                 </div>
-                                
-                                {/* Hiển thị dòng text đang nghe (nếu có) để user check */}
+
                                 {isListening && (
                                     <p className="mt-2 text-[10px] text-red-500 font-bold animate-pulse text-center">
                                         Mời bạn nói, Laura đang nghe...
