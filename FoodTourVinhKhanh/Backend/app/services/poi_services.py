@@ -57,7 +57,13 @@ def getPois(user, lang="vi", searchTxt=""):
             SELECT DISTINCT 
                 p.*,
                 pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
-                ld.name, ld.description, ld.audio_url
+                ld.name, ld.description, ld.audio_url,
+                CASE 
+                    WHEN u.role = 'admin' THEN FALSE
+                    WHEN u.role = 'vendor' AND (vs.end_time IS NULL OR vs.end_time < NOW()) THEN TRUE
+                    ELSE FALSE
+                END AS is_Expired,
+                vs.end_time as subscription_end
             FROM pois p
             LEFT JOIN poi_position pos ON p.id = pos.poi_id
             LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
@@ -95,6 +101,8 @@ def getPois(user, lang="vi", searchTxt=""):
 
         cursor.execute(query, params)
         pois = cursor.fetchall()
+        for poi in pois:
+            poi['is_Expired'] = bool(poi['is_Expired'])
         return pois
 
     finally:
@@ -372,7 +380,7 @@ def getPOIData(poi_id):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # 1. Lấy Tên và Mô tả tổng quát của quán
+        #  Lấy Tên và Mô tả tổng quát của quán
         cursor.execute(
             """
             SELECT name, description 
@@ -383,7 +391,7 @@ def getPOIData(poi_id):
         )
         poi_info = cursor.fetchone()
         
-        # 2. Lấy chi tiết kiến thức/thực đơn
+        #  Lấy chi tiết kiến thức
         cursor.execute(
             """
             SELECT category, content
@@ -397,7 +405,6 @@ def getPOIData(poi_id):
         if not poi_info and not knowledge_rows:
             return True, ""
 
-        # 3. Xây dựng chuỗi Context hoàn chỉnh
         context_parts = []
         
         if poi_info:
@@ -408,8 +415,8 @@ def getPOIData(poi_id):
             knowledge_text = " ".join([f"[{row['category']}]: {row['content']}" for row in knowledge_rows])
             context_parts.append(f"Thông tin chi tiết: {knowledge_text}")
 
-        # Gộp tất cả lại thành một đoạn văn bản
         context_string = " ".join(context_parts)
+        print(context_string)
 
         return True, context_string
 

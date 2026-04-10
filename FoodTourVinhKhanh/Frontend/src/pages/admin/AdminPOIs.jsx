@@ -9,13 +9,15 @@ import Modal from '../../components/common/Modal';
 import Table from '../../components/common/Table';
 import FullPageLoading from '../../components/common/FullPageLoading';
 import SearchBar from '../../components/common/SearchBar';
+import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import MapPicker from '../../components/common/MapPicker';
-import { Camera, Plus, Trash2 } from 'lucide-react';
+import { Camera, Plus, Trash2, Undo2 } from 'lucide-react';
 
 
 const POIAdminManager = () => {
   const [pois, setPois] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMapShowing, setIsMapShowing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -274,9 +276,13 @@ const POIAdminManager = () => {
       )
     },
     { header: "Tên địa điểm", accessor: "name" },
-    { 
-      header: "Tọa độ", 
-      render: (row) => <span className="font-mono text-xs text-gray-500">{row.latitude}, {row.longitude}</span> 
+    {
+      header: "Gói dịch vụ",
+      render: (row) => (
+        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_Expired ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+          {row.is_Expired ? "Hết hạn / Chưa mua" : "Đã thanh toán"}
+        </span>
+      )
     },
     {
       header: "Trạng thái",
@@ -300,6 +306,58 @@ const POIAdminManager = () => {
   return (
     <>
       {loading && <FullPageLoading message="Đang xử lý dữ liệu..." />}
+
+      {/* BẢN ĐỒ */}
+      {isMapShowing && (
+        <div className="fixed inset-0 md:ml-64 ml-0 pt-16 bg-white z-99 overflow-hidden flex flex-col">
+
+          <div className="absolute top-20 left-170 translate-x-1/2 z-[1000] w-full max-w-lg px-4">
+            <Button
+              className='hover:text-blue-600'
+              onClick={() => setIsMapShowing(false)
+            }>
+              <Undo2 size={24}/> <span className='ml-2'>Quay lại</span>
+            </Button>
+          </div>
+
+          <div className="flex-1 w-full h-full relative z-10">
+            <MapContainer 
+                center={[10.7589, 106.7076]} 
+                zoom={15}
+                maxZoom={18}
+                className="h-full w-full"
+            >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                {pois.map(poi => (
+                    <React.Fragment key={poi.id}>
+                        <Marker 
+                            key={poi.id} 
+                            position={[poi.latitude, poi.longitude]}
+                            eventHandlers={{ click: () => handleEdit(poi) }}
+                        />
+                        <Circle 
+                            center={[poi.latitude, poi.longitude]} // Tâm của vòng tròn trùng với Marker
+                            radius={poi.audio_range}
+                        />
+                        <Circle 
+                            center={[poi.latitude, poi.longitude]} 
+                            radius={poi.access_range || 10}
+                            pathOptions={{ 
+                                color: '#de2d2d',       // Blue-500
+                                fillColor: '#93c5fd',   // Blue-300
+                                fillOpacity: 0.2,
+                                dashArray: '5, 15'
+                            }}
+                        />
+
+                    </React.Fragment>
+                ))}
+            </MapContainer>
+          </div>
+        </div>
+      )}
+
       <div className="p-5 max-w-7xl mx-auto space-y-3">
         <div className="flex justify-between items-end">
           <div>
@@ -315,6 +373,7 @@ const POIAdminManager = () => {
             className="w-full md:w-1/3"
           />
           <div className="space-x-5">
+            <Button onClick={() => setIsMapShowing(true)}>Xem bản đồ</Button>
             <Button onClick={() => handleActivate()}>Duyệt toàn bộ</Button>
             <Button onClick={() => setIsModalOpen(true)} size="lg">+ Thêm địa điểm</Button>
           </div>

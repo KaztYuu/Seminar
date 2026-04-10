@@ -139,20 +139,7 @@ class GeminiService:
         for attempt in range(3):
             try:
                 voice = self.edge_voices.get(lang, self.edge_voices["vi"])
-                # Đảm bảo text không có ký tự lạ và không quá dài
                 communicate = edge_tts.Communicate(text, voice, rate="-15%")
-                
-                # chunks = []
-                # async for chunk in communicate.stream():
-                #     if chunk["type"] == "audio":
-                #         chunks.append(chunk["data"])
-                
-                # if not chunks:
-                #     print("LỖI: Stream của Edge-TTS không trả về bất kỳ chunk audio nào.")
-                #     continue
-                    
-                # return b"".join(chunks)
-                
                 audio_data = b""
                 async for chunk in communicate.stream():
                     if chunk["type"] == "audio":

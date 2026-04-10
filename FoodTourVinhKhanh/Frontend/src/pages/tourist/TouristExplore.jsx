@@ -30,7 +30,7 @@ const RecenterAutomatically = ({ lat, lng }) => {
 const ACCEPT_LANG = {
     "vi": 'vi-VN',
     "en": 'en-US',
-    "kr": 'ko-KR', // Mã chuẩn của tiếng Hàn là ko-KR
+    "kr": 'ko-KR',
     "fr": 'fr-FR'
 };
 
@@ -84,7 +84,6 @@ const TouristExplore = () => {
                 const audioSrc = `data:audio/mp3;base64,${res.data.audio_base64}`;
                 const audio = new Audio(audioSrc);
                 
-                // Trả về một Promise hoàn thành khi audio đã tải xong dữ liệu
                 return new Promise((resolve) => {
                     audio.oncanplaythrough = () => resolve(audio);
                     audio.onerror = () => resolve(null);
@@ -123,7 +122,7 @@ const TouristExplore = () => {
             setAiResponse("Trợ lý đang gặp chút sự cố, bạn thử lại nhé!");
         } finally {
             setIsAiLoading(false);
-            setQuestion(""); // Xóa input sau khi gửi
+            setQuestion("");
         }
     }, [question, selectedPoi, prepareAIVoice])
 
@@ -255,7 +254,7 @@ const TouristExplore = () => {
         if (isListening) {
             recognitionRef.current.stop();
         } else {
-            setQuestion(""); // Xóa câu cũ trước khi nói câu mới
+            setQuestion("");
             recognitionRef.current.start();
             setIsListening(true);
         }
@@ -289,14 +288,14 @@ const TouristExplore = () => {
 
         setLoading(true);
         try {
-            // Lúc này mới thực sự gọi API để lấy full description, banner, v.v.
+            
             const res = await api.get(`/pois/get-poi-by-id/${selectedPoi.id}`);
             
             if (res.data.success) {
-                setSelectedPoi(res.data.data); // Cập nhật dữ liệu đầy đủ vào state
-                setIsQRModalOpen(false);       // Đóng QR
-                setQuestion("")
-                setIsModalOpen(true);         // Mở Modal chi tiết
+                setSelectedPoi(res.data.data); 
+                setIsQRModalOpen(false);  
+                setQuestion("");
+                setIsModalOpen(true);
             }
         } catch (err) {
             toast.error("Không thể xác thực thông tin địa điểm");
@@ -335,11 +334,9 @@ const TouristExplore = () => {
         if (audioRef.current && url) {
             try {
                 audioRef.current.src = `${API_URL}${url}`;
-                // Play trả về một Promise, chúng ta nên await nó
                 await audioRef.current.play();
             } catch (error) {
                 console.warn("Autoplay bị chặn bởi trình duyệt. Đang chờ người dùng tương tác...");
-                // Bạn có thể hiện một cái Toast hoặc Icon "Bấm để nghe" ở đây
             }
         }
     };
