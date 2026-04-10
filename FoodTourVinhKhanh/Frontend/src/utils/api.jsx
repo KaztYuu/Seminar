@@ -9,8 +9,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-    const rawLang = localStorage.getItem('language') || "vi";
-    const validLang = SUPPORTED_LANGUAGES.includes(rawLang.toUpperCase()) ? rawLang.toLowerCase() : 'vi';
+    const rawLang = localStorage.getItem('language');
+    const validLang = rawLang && SUPPORTED_LANGUAGES.includes(rawLang.toUpperCase()) ? rawLang.toLowerCase() : 'vi';
   
     config.headers['X-Language-Code'] = validLang;
     return config;
