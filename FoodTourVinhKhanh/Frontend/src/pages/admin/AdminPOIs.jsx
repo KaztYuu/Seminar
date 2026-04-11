@@ -11,7 +11,7 @@ import FullPageLoading from '../../components/common/FullPageLoading';
 import SearchBar from '../../components/common/SearchBar';
 import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import MapPicker from '../../components/common/MapPicker';
-import { Camera, Plus, Trash2, Undo2 } from 'lucide-react';
+import { Camera, Plus, Trash2, Undo2, SquarePen } from 'lucide-react';
 
 
 const POIAdminManager = () => {
@@ -296,8 +296,8 @@ const POIAdminManager = () => {
       header: "Hành động",
       render: (row) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>Sửa</Button>
-          <Button size="sm" variant="danger" onClick={() => handleDelete(row.id)}>Xóa</Button>
+          <Button size="sm" variant="outline" onClick={() => handleEdit(row)}><SquarePen size={15} /></Button>
+          <Button size="sm" variant="danger" onClick={() => handleDelete(row.id)}><Trash2 size={15}/></Button>
         </div>
       )
     }
