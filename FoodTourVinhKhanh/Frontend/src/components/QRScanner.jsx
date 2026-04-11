@@ -16,7 +16,7 @@ const QRScanner = ({ onScanSuccess, expectedId }) => {
             try {
                 await html5QrCode.start(
                     { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
                     (decodedText) => {
                         if (decodedText.includes(String(expectedId))) {
                             forceStopAndSuccess();

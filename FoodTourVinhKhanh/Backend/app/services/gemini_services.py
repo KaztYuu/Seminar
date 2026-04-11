@@ -165,7 +165,7 @@ class GeminiService:
                 "RULES:\n"
                 "1. ONLY use information from the provided CONTEXT.\n"
                 "2. DO NOT make up or assume any information not present in the CONTEXT.\n"
-                "3. If the answer is not in the CONTEXT, reply exactly this sentence in user's language: "
+                "3. If the answer is not in the CONTEXT, reply this sentence in user's language: "
                 "'Sorry, I don't have information about this.'\n"
                 "4. If the question is casual, respond politely and naturally.\n"
                 "5. Keep responses short, clear, and friendly.\n"

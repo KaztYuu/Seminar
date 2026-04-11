@@ -324,7 +324,7 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Table from '../../components/common/Table';
 import SearchBar from '../../components/common/SearchBar';
-import { UserPlus, ShieldAlert, Trash2, Key } from "lucide-react";
+import { UserPlus, ShieldAlert, Trash2, Key, LockKeyhole, LockKeyholeOpen, SquarePen } from "lucide-react";
 
 const ROLE_LABEL = { admin: "Admin", vendor: "Chủ quán", tourist: "Du khách" };
 const ROLE_COLOR = {
@@ -461,16 +461,16 @@ const Users = () => {
       header: "Thao tác",
       render: (u) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Sửa</Button>
+          <Button size="sm" variant="outline" onClick={() => openEdit(u)}><SquarePen size={15} /></Button>
           <Button 
             size="sm" 
             variant={u.is_Blocked ? "primary" : "outline"} 
             className={!u.is_Blocked ? "text-amber-600 border-amber-200 hover:bg-amber-50" : ""}
             onClick={() => handleToggleBlock(u)}
           >
-            {u.is_Blocked ? "Mở khóa" : "Khóa"}
+            {u.is_Blocked ? <LockKeyholeOpen size={15} /> : <LockKeyhole size={15} />}
           </Button>
-          <Button size="sm" variant="danger" onClick={() => handleDelete(u)}><Trash2 size={14}/></Button>
+          <Button size="sm" variant="danger" onClick={() => handleDelete(u)}><Trash2 size={15}/></Button>
         </div>
       )
     }
@@ -484,9 +484,6 @@ const Users = () => {
           <h1 className="text-3xl font-black text-slate-400 tracking-tight">Quản lý <span className="text-blue-600">Người dùng</span></h1>
           <p className="text-slate-400 mt-1 text-sm">Điều hành và phân quyền tài khoản hệ thống</p>
         </div>
-        <Button onClick={openAdd} className="flex items-center gap-2 shadow-lg shadow-blue-200">
-          <UserPlus size={18} /> Thêm người dùng
-        </Button>
       </div>
 
       {/* Filter Section */}
@@ -496,6 +493,11 @@ const Users = () => {
           onSearch={(val) => { setSearch(val); fetchUsers(val); }} 
           className="w-full md:w-1/3"
         />
+
+        <Button onClick={openAdd} className="flex items-center gap-2 shadow-lg shadow-blue-200">
+          <UserPlus size={18} /> Thêm người dùng
+        </Button>
+
       </div>
 
       {/* Main Content Card */}

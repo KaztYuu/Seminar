@@ -277,7 +277,7 @@ const POIAdminManager = () => {
     },
     { header: "Tên địa điểm", accessor: "name" },
     {
-      header: "Gói dịch vụ",
+      header: "Tình trạng dịch vụ",
       render: (row) => (
         <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_Expired ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
           {row.is_Expired ? "Hết hạn / Chưa mua" : "Đã thanh toán"}
