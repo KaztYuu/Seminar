@@ -17,7 +17,7 @@ export default function Home() {
         </h1>
 
         <p className="text-lg md:text-xl text-gray-100 mb-10 leading-relaxed">
-          Khám phá thiên đường ẩm thực đường phố Quận 4 với bản đồ tương tác, 
+          Khám phá thiên đường ẩm thực đường phố Quận 4 với bản đồ tương tác,
           mô tả chi tiết các gian hàng và hướng dẫn dành cho khách du lịch.
         </p>
 

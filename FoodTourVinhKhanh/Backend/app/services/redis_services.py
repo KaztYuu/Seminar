@@ -43,7 +43,7 @@ def set_cache(key, data, expire=DEFAULT_CACHE_EXPIRE):
             return obj.isoformat()
 
         if isinstance(obj, Decimal):
-            return float(obj) 
+            return float(obj)
         
         try:
             return str(obj)

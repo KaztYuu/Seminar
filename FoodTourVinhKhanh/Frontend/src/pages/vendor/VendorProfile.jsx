@@ -74,8 +74,8 @@ const VendorProfile = () => {
       setTimeout(() => {
         setSaveStatus((prev) => ({ ...prev, profile: false }));
       }, 2000);
-    } catch (err) {
-      
+    } catch {
+      /* empty */
     } finally {
       setLoading((prev) => ({ ...prev, profile: false }));
     }
@@ -125,7 +125,6 @@ const VendorProfile = () => {
       }, 2000);
 
       fetchUser();
-
     } catch (err) {
       setError(err.response?.data?.detail || "Lỗi đổi mật khẩu");
     } finally {
@@ -142,7 +141,6 @@ const VendorProfile = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-4 pb-10 space-y-8 animate-in fade-in duration-500">
-      
       {/* Header */}
       <div className="text-center md:text-left pt-2">
         <h1 className="text-2xl font-bold text-white tracking-tight">
@@ -194,14 +192,13 @@ const VendorProfile = () => {
           <Button
             onClick={handleUpdateProfile}
             disabled={loading.profile}
-            className="bg-orange-500 hover:bg-orange-600"
-          >
+            className="bg-orange-500 hover:bg-orange-600">
             <Save size={18} className="mr-2" />
             {loading.profile
               ? "Đang lưu..."
               : saveStatus.profile
-              ? "Đã lưu!"
-              : "Lưu thay đổi"}
+                ? "Đã lưu!"
+                : "Lưu thay đổi"}
           </Button>
         </div>
       </Card>
@@ -232,8 +229,7 @@ const VendorProfile = () => {
               <button
                 type="button"
                 onClick={() => toggleShow(item.show)}
-                className="absolute right-0 top-6.5 text-gray-400 hover:text-orange-500 transition-colors"
-              >
+                className="absolute right-0 top-6.5 text-gray-400 hover:text-orange-500 transition-colors">
                 {showPass[item.show] ? <EyeOff /> : <Eye />}
               </button>
             </div>
@@ -246,12 +242,9 @@ const VendorProfile = () => {
           <Button
             onClick={handleChangePassword}
             disabled={loading.password}
-            className="bg-slate-800 text-white"
-          >
+            className="bg-slate-800 text-white">
             <ShieldCheck size={18} className="mr-2" />
-            {loading.password
-              ? "Đang xử lý..."
-              : "Cập nhật mật khẩu"}
+            {loading.password ? "Đang xử lý..." : "Cập nhật mật khẩu"}
           </Button>
 
           {saveStatus.password && (

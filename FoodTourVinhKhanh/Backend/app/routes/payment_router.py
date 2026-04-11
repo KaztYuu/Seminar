@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from app.services.vnpay_services import verify_vnpay
 from app.dependencies.auth import get_current_user, require_role
-from app.services.payment_services import create_payment_service, handle_vnpay_ipn, get_payment_history
+from app.services.payment_services import create_payment_service, handle_vnpay_ipn, get_payment_history, get_all_payments
 from app.services.redis_services import invalidate_poi_cache
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -52,6 +52,31 @@ def get_my_payments(user=Depends(require_role(["tourist", "vendor"]))):
             "payment_method": p["payment_method"],
             "duration": p["duration_hours"],
             "bought_at": p["created_at"].isoformat(),
+        }
+        for p in payments
+    ]
+
+    return {
+        "success": True,
+        "data": data
+    }
+
+@router.get("/all")
+def get_all_payments_admin(user=Depends(require_role("admin"))):
+    """Get all payments for admin dashboard"""
+    payments = get_all_payments()
+
+    data = [
+        {
+            "id": p["id"],
+            "user_name": p["user_name"],
+            "user_email": p["email"],
+            "package_name": p["package_name"],
+            "amount": float(p["amount"]),
+            "payment_method": p["payment_method"],
+            "duration": p["duration_hours"],
+            "status": p["status"],
+            "created_at": p["created_at"].isoformat(),
         }
         for p in payments
     ]

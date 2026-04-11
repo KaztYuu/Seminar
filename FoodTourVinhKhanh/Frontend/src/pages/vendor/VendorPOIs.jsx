@@ -18,7 +18,6 @@ const VendorPOIs = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
-
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     const initialForm = {
@@ -59,7 +58,7 @@ const VendorPOIs = () => {
         try {
             const res = await api.get(`/pois/get-pois?search=${searchTxt}`);
             if (res.data.success) setPois(res.data.data);
-        } catch (err) {
+        } catch {
             toast.error("Không thể tải danh sách địa điểm");
         } finally {
             setLoading(false);
@@ -96,7 +95,7 @@ const VendorPOIs = () => {
                     });
                     setIsModalOpen(true);
                 }
-            } catch (err) {
+            } catch {
                 toast.error("Không thể lấy thông tin chi tiết!");
             } finally {
                 setLoading(false);
@@ -197,11 +196,11 @@ const VendorPOIs = () => {
         {isMapShowing && (
             <div className="fixed inset-0 md:ml-64 ml-0 pt-16 bg-white z-99 overflow-hidden flex flex-col">
 
-            <div className="absolute top-20 left-170 translate-x-1/2 z-[1000] w-full max-w-lg px-4">
+            <div className="absolute top-20 left-4 z-[1000]">
                 <Button
                 className='hover:text-blue-600'
-                onClick={() => setIsMapShowing(false)
-                }>
+                onClick={() => setIsMapShowing(false)}
+                >
                 <Undo2 size={24}/> <span className='ml-2'>Quay lại</span>
                 </Button>
             </div>

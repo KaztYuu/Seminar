@@ -1,47 +1,57 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import api from "../utils/api";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const fetchPromiseRef = useRef(null); // Track pending fetch
 
-  
   const fetchUser = async () => {
-    
-    try {
-      const res = await api.get("/auth/me");
+    // If fetch is already in progress, return the same promise
+    if (fetchPromiseRef.current) {
+      return fetchPromiseRef.current;
+    }
 
-      setUser(res.data);
-      return res.data;
+    const promise = (async () => {
+      try {
+        const res = await api.get("/auth/me");
+        setUser(res.data);
+        return res.data;
+      } catch {
+        setUser(null);
+        return null;
+      } finally {
+        setLoading(false);
+        fetchPromiseRef.current = null; // Clear after done
+      }
+    })();
+
+    fetchPromiseRef.current = promise;
+    return promise;
+  };
+
+  const logout = async () => {
+    try {
+      const res = await api.post("/auth/logout");
+
+      if (res.status === 200) {
+        setUser(null);
+        fetchPromiseRef.current = null; // Reset để có thể fetch lại
+        //localStorage.clear()
+        return { success: true, message: "Đăng xuất thành công!" };
+      } else {
+        return { success: false, message: "Có lỗi xảy ra khi đăng xuất" };
+      }
     } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
+      console.error("Logout error:", err);
+      return { success: false, message: "Không thể kết nối đến server" };
     }
   };
 
-const logout = async () => {
-  try {
-    const res = await api.post("/auth/logout");
-    
-    if (res.status === 200) {
-      setUser(null);
-      //localStorage.clear()
-      return { success: true, message: "Đăng xuất thành công!" };
-    } else {
-      return { success: false, message: "Có lỗi xảy ra khi đăng xuất" };
-    }
-  } catch (err) {
-    console.error("Logout error:", err);
-    return { success: false, message: "Không thể kết nối đến server" };
-  }
-};
-
   useEffect(() => {
-    fetchUser()
+    fetchUser();
   }, []);
 
   return (

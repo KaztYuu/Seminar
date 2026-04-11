@@ -24,6 +24,16 @@ def get_my_package(user=Depends(require_role(["vendor", "tourist"]))):
         "data": myPackage
     }
 
+@router.get("/get-all")
+def get_all_packages(user=Depends(require_role("admin"))):
+    """Get all packages for admin management"""
+    packages = getPackages(user)
+    
+    return {
+        "success": True,
+        "data": packages
+    }
+
 @router.get("/get-packages")
 def get_packages(user=Depends(get_current_user)):
 
