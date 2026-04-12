@@ -363,7 +363,7 @@ const TouristExplore = () => {
                             className="!p-1 shadow-sm"
                             onClick={() => setIsQRModalOpen(true)}
                         >
-                            QRScan <span className='ml-2'><ScanLine size={28} /></span>
+                            QR Scan <span className='ml-2'><ScanLine size={28} /></span>
                         </Button>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api'; 
 import { toast } from 'react-hot-toast';
+import { QRCodeCanvas } from "qrcode.react"
 import Swal from 'sweetalert2'
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
@@ -11,7 +12,7 @@ import FullPageLoading from '../../components/common/FullPageLoading';
 import SearchBar from '../../components/common/SearchBar';
 import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import MapPicker from '../../components/common/MapPicker';
-import { Camera, Plus, Trash2, Undo2, SquarePen } from 'lucide-react';
+import { Camera, Plus, Trash2, Undo2, SquarePen, Download } from 'lucide-react';
 
 
 const POIAdminManager = () => {
@@ -42,6 +43,16 @@ const POIAdminManager = () => {
     }
   };
 
+  const downloadQRCode = (poi_id) => {
+        const canvas = document.getElementById("qr-gen");
+        if (canvas) {
+            // Tạo một link ảo để tải
+            const link = document.createElement('a');
+            link.download = `QR_poiId_${poi_id}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+    };
 
   const setMapPosition = (coords) => {
     setFormData(prev => ({
@@ -566,6 +577,38 @@ const POIAdminManager = () => {
                     </select>
                 </div>
             </div>
+
+            {editingId && (
+              <div className="w-full md:w-full p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
+                <label className="text-sm font-bold text-gray-700 ml-1">Mã QR của POI</label>
+                <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
+                    <QRCodeCanvas 
+                        id="qr-gen"
+                        value={String(editingId)} 
+                        size={512}
+                        style={{ 
+                            width: '220px', 
+                            height: '220px',
+                            padding: '10px',
+                            backgroundColor: 'white' 
+                        }} 
+                        marginSize={4}
+                        level="H"
+                    />
+                </div>
+                
+                <div className="text-center w-full">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => downloadQRCode(editingId)}
+                        className="w-1/3 mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
+                    >
+                        <Download size={20} /> Tải mã về máy
+                    </Button>
+                </div>
+              </div>
+            )}
 
             <div className="pt-2 flex gap-3">
                 <Button className="flex-[2]" type="submit" disabled={loading}>

@@ -121,9 +121,19 @@ def getPOIById(user, poi_id, lang="vi"):
                 SELECT p.*, pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
                        ld.name, ld.description, ld.audio_url, ld.lang_code
                 FROM pois p
+                JOIN users u ON p.owner_id = u.id
+                LEFT JOIN vendor_subscriptions vs ON u.id = vs.user_id
                 LEFT JOIN poi_position pos ON p.id = pos.poi_id
                 LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
-                WHERE p.id = %s AND p.is_Deleted = FALSE
+                WHERE p.id = %s 
+                  AND p.is_Deleted = FALSE 
+                  AND p.is_Active = TRUE
+                  AND (
+                      u.role = 'admin' 
+                      OR (u.role = 'vendor' AND vs.end_time > NOW())
+                  )
+                ORDER BY vs.end_time DESC
+                LIMIT 1
             """, (lang, poi_id))
         else:
             # Vendor/Admin sửa bài: Lấy bản 'vi' chuẩn

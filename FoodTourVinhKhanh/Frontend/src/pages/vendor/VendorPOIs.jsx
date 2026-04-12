@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, MapPin, Camera, Undo2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, MapPin, Camera, Undo2, Download } from 'lucide-react';
+import { QRCodeCanvas } from "qrcode.react"
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/common/Button';
@@ -63,6 +64,17 @@ const VendorPOIs = () => {
             toast.error("Không thể tải danh sách địa điểm");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const downloadQRCode = (poi_id) => {
+        const canvas = document.getElementById("qr-gen");
+        if (canvas) {
+            // Tạo một link ảo để tải
+            const link = document.createElement('a');
+            link.download = `QR_poiId_${poi_id}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
         }
     };
 
@@ -256,7 +268,7 @@ const VendorPOIs = () => {
                                 Bản đồ
                             </Button>
                             <Button onClick={() => handleOpenModal()} className="shadow-lg">
-                                <Plus size={18} className="mr-2" /> Thêm địa điểm mới
+                                <Plus size={12} className="mr-2" /> Thêm địa điểm mới
                             </Button>
                         </div>
                     </div>
@@ -443,6 +455,37 @@ const VendorPOIs = () => {
                                 </div>
                             </div>
 
+                            {editingId && (
+                                <div className="w-full md:w-full p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
+                                    <label className="text-sm font-bold text-gray-700 ml-1">Mã QR của bạn</label>
+                                    <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
+                                        <QRCodeCanvas 
+                                            id="qr-gen"
+                                            value={String(editingId)} 
+                                            size={512}
+                                            style={{ 
+                                                width: '220px', 
+                                                height: '220px',
+                                                padding: '10px',
+                                                backgroundColor: 'white' 
+                                            }} 
+                                            marginSize={4}
+                                            level="H"
+                                        />
+                                    </div>
+                                    
+                                    <div className="text-center w-full">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => downloadQRCode(editingId)}
+                                            className="w-1/3 mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
+                                        >
+                                            <Download size={20} /> Tải mã về máy
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                             <div className="pt-4">
                                 <Button className="w-full py-4 text-lg shadow-xl shadow-blue-100" type="submit" disabled={loading}>
                                     {loading ? "Đang xử lý..." : editingId ? "Cập nhật dữ liệu" : "Thêm địa điểm"}
