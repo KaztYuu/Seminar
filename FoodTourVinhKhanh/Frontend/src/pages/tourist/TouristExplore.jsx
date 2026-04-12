@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, Circle } from 'react-leaflet';
 import { QRCodeCanvas } from "qrcode.react"
-import QRScanner from "../../components/QRScanner"
+//import QRScanner from "../../components/QRScanner"
+import QRScannerZXing from '../../components/QRScannerZXing';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, Download, Bot, Send } from 'lucide-react';
+import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, ScanLine, Bot, Send, Download } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 import Button from '../../components/common/Button';
@@ -279,22 +280,25 @@ const TouristExplore = () => {
 
     const handleViewDetail = async (poi) => {
         setSelectedPoi(poi); 
-        setIsQRModalOpen(true);
+        setIsModalOpen(true);
     };
 
-    const handleScanSuccess = async () => {
-        if (!selectedPoi) return;
+    const handleScanSuccess = async (scannedData) => {
+        let poiId = scannedData;
 
         setLoading(true);
         try {
-            
-            const res = await api.get(`/pois/get-poi-by-id/${selectedPoi.id}`);
+            const res = await api.get(`/pois/get-poi-by-id/${poiId}`);
             
             if (res.data.success) {
                 setSelectedPoi(res.data.data); 
-                setIsQRModalOpen(false);  
+                setIsQRModalOpen(false);
                 setQuestion("");
+                setAiResponse("");
+                setDisplayQuestion("");
                 setIsModalOpen(true);
+            } else {
+                toast.error("Mã QR không hợp lệ");
             }
         } catch (err) {
             toast.error("Không thể xác thực thông tin địa điểm");
@@ -346,13 +350,22 @@ const TouristExplore = () => {
                 
                 {/* THANH TÌM KIẾM NỔI */}
                 <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-lg px-4">
-                    <Card className="!p-0 border rounded-lg shadow-2xl"> 
-                        <SearchBar 
-                            placeholder="Bạn muốn đi đâu hôm nay?" 
-                            onSearch={handleSearch}
-                            className="w-full text-black"
-                        />
-                    </Card>
+                    <div className='flex items-center w-full space-x-2'>
+                        <Card className="flex-1 !p-0 border rounded-lg shadow-2xl"> 
+                            <SearchBar 
+                                placeholder="Bạn muốn đi đâu hôm nay?" 
+                                onSearch={handleSearch}
+                                className="w-full text-black"
+                            />
+                        </Card>
+                        <Button
+                            variant="primary"
+                            className="!p-1 shadow-sm"
+                            onClick={() => setIsQRModalOpen(true)}
+                        >
+                            QRScan <span className='ml-2'><ScanLine size={28} /></span>
+                        </Button>
+                    </div>
                 </div>
 
                 {/* BẢN ĐỒ */}
@@ -497,83 +510,39 @@ const TouristExplore = () => {
             <Modal 
                 isOpen={isQRModalOpen} 
                 onClose={() => setIsQRModalOpen(false)}
-                extraClasses="!max-w-xl !p-8 text-center"
+                extraClasses="!max-w-xl h-[80vh] !p-8 text-center"
                 showCloseButton={false}
             >
-                {selectedPoi && (
-                    <div className="flex flex-col items-center gap-6">
-                        <h3 className="text-2xl font-black text-gray-900 uppercase">
-                            Xác thực tại {selectedPoi.name}
-                        </h3>
-                        
-                        <div className="flex flex-col md:flex-row gap-6 items-center w-full">
-                            
-                            {/* CỘT TRÁI: CAMERA QUÉT THẬT */}
-                            <div className="flex-1 w-full border-4 border-blue-600 rounded-3xl overflow-hidden shadow-2xl bg-black">
-                                {isQRModalOpen && (
-                                        <QRScanner
-                                            key={selectedPoi.id}
-                                            expectedId={selectedPoi.id} 
-                                            onScanSuccess={handleScanSuccess} 
-                                        />
-                                    )}
-                            </div>
-
-                            {/* CỘT PHẢI: MÃ QR MẪU ĐỂ TEST */}
-                            <div className="w-full md:w-[220px] p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
-                                <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
-                                    {/* Dùng QRCodeCanvas và đặt ID để hàm download có thể tìm thấy */}
-                                    <QRCodeCanvas 
-                                        id="qr-gen"
-                                        value={String(selectedPoi.id)} 
-                                        size={512}
-                                        style={{ 
-                                            width: '160px', 
-                                            height: '160px',
-                                            padding: '10px',
-                                            backgroundColor: 'white' 
-                                        }} 
-                                        marginSize={4}
-                                        level="H"
-                                    />
-                                </div>
-                                
-                                <div className="text-center w-full">
-                                    {/* NÚT TẢI QR */}
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={downloadQRCode}
-                                        className="w-full mb-3 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
-                                    >
-                                        <Download size={12} /> Tải mã về máy
-                                    </Button>
-                                </div>
-                            </div>
+                <div className="flex flex-col items-center gap-6">
+                    <h3 className="text-2xl font-black text-gray-900 uppercase">
+                        Quét mã QR địa điểm
+                    </h3>
+                    
+                    <div className="flex flex-col items-center w-full">
+                        <div className="w-full aspect-square max-w-[350px] border-4 border-blue-600 rounded-3xl shadow-2xl">
+                            {isQRModalOpen && (
+                                <QRScannerZXing
+                                    // onScanSuccess bây giờ sẽ nhận giá trị text từ QRScannerZXing trả về
+                                    onScanSuccess={(result) => handleScanSuccess(result)} 
+                                />
+                            )}
                         </div>
-
-                        {/* Nút bấm dành dự phòng để test */}
-                        <button 
-                            onClick={handleScanSuccess}
-                            className="text-xs text-blue-300 underline hover:text-blue-500 mt-2"
-                        >
-                            (Xác nhận ảo nếu camera lỗi)
-                        </button>
+                        <p className="mt-4 text-gray-500 text-sm">Vui lòng đưa camera vào mã QR tại cửa hàng</p>
                     </div>
-                )}
+                </div>
             </Modal>
 
             <Modal 
                 isOpen={isModalOpen}    
                 onClose={() => {setIsModalOpen(false); setAiResponse(""); setDisplayQuestion("")}}
                 showCloseButton={false}
-                extraClasses="!max-w-6xl h-[90vh] !p-0 overflow-hidden !rounded-2xl"
+                extraClasses="!max-w-6xl h-[90vh] !p-0 !overflow-hidden !rounded-2xl"
             >
                 {selectedPoi && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 h-full bg-white">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 h-full bg-white overflow-hidden">
                         
                         {/* THÔNG TIN CHI TIẾT */}
-                        <div className="flex flex-col h-full border-r border-gray-100 overflow-y-auto">
+                        <div className="flex flex-col h-[90vh] overflow-y-auto border-r border-gray-100 scrollbar-thin scrollbar-thumb-gray-200">
                             <div className="relative h-[240px] w-full shrink-0">
                                 <img src={`${API_URL}${selectedPoi.banner}`} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
@@ -586,10 +555,39 @@ const TouristExplore = () => {
                                 <div className="flex items-center gap-2 mb-4 text-blue-600 font-bold text-xs uppercase">
                                     <div className="w-6 h-[2px] bg-blue-600" /> Giới thiệu
                                 </div>
-                                <p className="text-gray-600 leading-relaxed text-lg text-justify">
+                                <p className="text-gray-600 mb-3 leading-relaxed text-lg text-justify">
                                     {selectedPoi.description}
                                 </p>
+                                <div className="w-full md:w-full p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
+                                    <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
+                                        <QRCodeCanvas 
+                                            id="qr-gen"
+                                            value={String(selectedPoi.id)} 
+                                            size={512}
+                                            style={{ 
+                                                width: '220px', 
+                                                height: '220px',
+                                                padding: '10px',
+                                                backgroundColor: 'white' 
+                                            }} 
+                                            marginSize={4}
+                                            level="H"
+                                        />
+                                    </div>
+                                    
+                                    <div className="text-center w-full">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={downloadQRCode}
+                                            className="w-full mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
+                                        >
+                                            <Download size={20} /> Tải mã về máy
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
+
                         </div>
 
                         {/* TRỢ LÝ AI (Hỏi đáp) */}
