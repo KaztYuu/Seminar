@@ -559,6 +559,7 @@ const TouristExplore = () => {
                                     {selectedPoi.description}
                                 </p>
                                 <div className="w-full md:w-full p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
+                                    <label className="text-sm font-bold text-gray-700 ml-1">Mã QR</label>
                                     <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
                                         <QRCodeCanvas 
                                             id="qr-gen"
@@ -580,7 +581,7 @@ const TouristExplore = () => {
                                             variant="outline" 
                                             size="sm" 
                                             onClick={downloadQRCode}
-                                            className="w-full mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
+                                            className="w-1/3 mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
                                         >
                                             <Download size={20} /> Tải mã về máy
                                         </Button>
