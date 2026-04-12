@@ -11,6 +11,7 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("tourist");
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -20,35 +21,42 @@ function Signup() {
       return;
     }
 
+    setLoading(true);
     try {
-      const res = await api.post("/auth/register", { 
-        name, 
-        email, 
-        phoneNumber: phone, 
-        password, 
-        role 
+      const res = await api.post("/auth/register", {
+        name,
+        email,
+        phoneNumber: phone,
+        password,
+        role,
       });
-      
+
       toast.success(res.data.message);
       setTimeout(() => {
         window.location.href = "/login";
       }, 1000);
     } catch (error) {
       toast.error(error.response?.data?.message || "Đăng ký thất bại");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen w-screen flex items-center justify-center bg-cover bg-center p-4"
-      style={{ backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${banner}')` }}
-    >
+      style={{
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${banner}')`,
+      }}>
       <form
         onSubmit={handleSignup}
-        className="backdrop-blur-xl bg-white/10 p-8 rounded-3xl border border-white/20 shadow-2xl w-full max-w-md"
-      >
-        <h2 className="text-3xl font-bold mb-2 text-center text-white italic">Phố ẩm thực Vĩnh Khánh</h2>
-        <p className="text-gray-300 text-center mb-6 text-sm">Tạo tài khoản để khám phá ẩm thực</p>
+        className="backdrop-blur-xl bg-white/10 p-8 rounded-3xl border border-white/20 shadow-2xl w-full max-w-md">
+        <h2 className="text-3xl font-bold mb-2 text-center text-white italic">
+          Phố ẩm thực Vĩnh Khánh
+        </h2>
+        <p className="text-gray-300 text-center mb-6 text-sm">
+          Tạo tài khoản để khám phá ẩm thực
+        </p>
 
         <div className="space-y-4">
           <input
@@ -77,14 +85,19 @@ function Signup() {
           />
 
           <div className="relative">
-            <label className="text-base text-gray-400 ml-2 mb-1 mr-2 flex">Bạn là:</label>
+            <label className="text-base text-gray-400 ml-2 mb-1 mr-2 flex">
+              Bạn là:
+            </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-gray-800/50 border border-white/20 p-3 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none cursor-pointer"
-            >
-              <option value="tourist" className="bg-gray-800">Du khách</option>
-              <option value="vendor" className="bg-gray-800">Chủ gian hàng</option>
+              className="w-full bg-gray-800/50 border border-white/20 p-3 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none cursor-pointer">
+              <option value="tourist" className="bg-gray-800">
+                Du khách
+              </option>
+              <option value="vendor" className="bg-gray-800">
+                Chủ gian hàng
+              </option>
             </select>
             <div className="absolute right-4 bottom-4 pointer-events-none text-white/50">
               ▼
@@ -104,8 +117,8 @@ function Signup() {
             placeholder="Nhập lại mật khẩu"
             required
             className={`w-full bg-white/5 border p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
-              confirmPassword && password !== confirmPassword 
-                ? "border-red-500 focus:ring-red-500" 
+              confirmPassword && password !== confirmPassword
+                ? "border-red-500 focus:ring-red-500"
                 : "border-white/20 focus:ring-green-400"
             }`}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -114,14 +127,20 @@ function Signup() {
 
         <button
           type="submit"
-          className="w-full bg-green-500 !text-white font-bold py-3 rounded-xl mt-8 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all active:scale-95"
-        >
-          Đăng ký ngay
+          disabled={loading}
+          className={`w-full !text-white font-bold py-3 rounded-xl mt-8 shadow-lg transition-all active:scale-95 ${
+            loading
+              ? "bg-green-400 shadow-green-400/30 cursor-not-allowed"
+              : "bg-green-500 hover:bg-green-600 shadow-green-500/30 active:scale-95"
+          }`}>
+          {loading ? "Đang đăng ký..." : "Đăng ký ngay"}
         </button>
 
         <p className="mt-6 text-sm text-center text-gray-300">
           Đã có tài khoản?
-          <Link to="/login" className="!text-blue-400 font-semibold ml-2 hover:underline">
+          <Link
+            to="/login"
+            className="!text-blue-400 font-semibold ml-2 hover:underline">
             Đăng nhập
           </Link>
         </p>

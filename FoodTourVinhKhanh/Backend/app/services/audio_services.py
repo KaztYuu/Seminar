@@ -14,8 +14,8 @@ class AudioService:
 
         try:
             is_mp3 = (
-                audio_bytes.startswith(b'ID3') or 
-                audio_bytes.startswith(b'\xff\xfb') or 
+                audio_bytes.startswith(b'ID3') or
+                audio_bytes.startswith(b'\xff\xfb') or
                 audio_bytes.startswith(b'\xff\xf3') or
                 audio_bytes.startswith(b'\xff\xf2')
             )

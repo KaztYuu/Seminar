@@ -187,3 +187,23 @@ def get_payment_history(user_id):
     conn.close()
 
     return payments
+
+def get_all_payments():
+    """Get all payments for admin view"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT p.*, sp.name AS package_name, sp.duration_hours, u.name AS user_name, u.email
+        FROM payments p
+        JOIN subscription_packages sp ON p.package_id = sp.id
+        JOIN users u ON p.user_id = u.id
+        ORDER BY p.created_at DESC
+    """)
+
+    payments = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return payments

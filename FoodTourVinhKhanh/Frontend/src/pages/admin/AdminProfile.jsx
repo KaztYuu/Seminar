@@ -74,9 +74,7 @@ const AdminProfile = () => {
       setTimeout(() => {
         setSaveStatus((prev) => ({ ...prev, profile: false }));
       }, 2000);
-    } catch (err) {
-      
-    } finally {
+    } catch { /* empty */ } finally {
       setLoading((prev) => ({ ...prev, profile: false }));
     }
   };

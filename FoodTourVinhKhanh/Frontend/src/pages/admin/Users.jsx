@@ -333,7 +333,13 @@ const ROLE_COLOR = {
   tourist: "bg-blue-100 text-blue-700",
 };
 
-const emptyForm = { name: "", email: "", password: "", phoneNumber: "", role: "tourist" };
+const emptyForm = {
+  name: "",
+  email: "",
+  password: "",
+  phoneNumber: "",
+  role: "tourist",
+};
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -355,7 +361,9 @@ const Users = () => {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const openAdd = () => {
     setEditing(null);
@@ -391,7 +399,9 @@ const Users = () => {
       fetchUsers(search);
     } catch (err) {
       const detail = err.response?.data?.detail;
-      const message = Array.isArray(detail) ? detail.map((e) => e.msg).join(", ") : detail;
+      const message = Array.isArray(detail)
+        ? detail.map((e) => e.msg).join(", ")
+        : detail;
       Swal.fire("Lỗi", message || "Có lỗi xảy ra", "error");
     }
   };
@@ -435,27 +445,33 @@ const Users = () => {
           <span className="font-bold text-slate-700">{u.name}</span>
           <span className="text-xs text-slate-400">{u.email}</span>
         </div>
-      )
+      ),
     },
     { header: "Số điện thoại", accessor: "phoneNumber" },
     {
       header: "Vai trò",
       render: (u) => (
-        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${ROLE_COLOR[u.role]}`}>
+        <span
+          className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${ROLE_COLOR[u.role]}`}>
           {ROLE_LABEL[u.role]}
         </span>
-      )
+      ),
     },
     {
       header: "Trạng thái",
       render: (u) => (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-          u.is_Blocked ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${u.is_Blocked ? "bg-red-500" : "bg-emerald-500"}`} />
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+            u.is_Blocked
+              ? "bg-red-50 text-red-600"
+              : "bg-emerald-50 text-emerald-600"
+          }`}>
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${u.is_Blocked ? "bg-red-500" : "bg-emerald-500"}`}
+          />
           {u.is_Blocked ? "Đã khóa" : "Hoạt động"}
         </span>
-      )
+      ),
     },
     {
       header: "Thao tác",
@@ -472,8 +488,8 @@ const Users = () => {
           </Button>
           <Button size="sm" variant="danger" onClick={() => handleDelete(u)}><Trash2 size={15}/></Button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -481,16 +497,23 @@ const Users = () => {
       {/* Header Section */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-black text-slate-400 tracking-tight">Quản lý <span className="text-blue-600">Người dùng</span></h1>
-          <p className="text-slate-400 mt-1 text-sm">Điều hành và phân quyền tài khoản hệ thống</p>
+          <h1 className="text-3xl font-black text-slate-400 tracking-tight">
+            Quản lý <span className="text-blue-600">Người dùng</span>
+          </h1>
+          <p className="text-slate-400 mt-1 text-sm">
+            Điều hành và phân quyền tài khoản hệ thống
+          </p>
         </div>
       </div>
 
       {/* Filter Section */}
       <div className="flex justify-between items-center gap-4">
-        <SearchBar 
-          placeholder="Tìm theo tên, email..." 
-          onSearch={(val) => { setSearch(val); fetchUsers(val); }} 
+        <SearchBar
+          placeholder="Tìm theo tên, email..."
+          onSearch={(val) => {
+            setSearch(val);
+            fetchUsers(val);
+          }}
           className="w-full md:w-1/3"
         />
 
@@ -502,44 +525,58 @@ const Users = () => {
 
       {/* Main Content Card */}
       <Card className="p-0 overflow-hidden shadow-sm border-slate-100">
-        <Table 
-          columns={columns} 
-          data={users} 
-          loading={loading} 
-        />
+        <Table columns={columns} data={users} loading={loading} />
         {!loading && users.length === 0 && (
-          <div className="p-20 text-center text-slate-400 italic">Không tìm thấy người dùng nào.</div>
+          <div className="p-20 text-center text-slate-400 italic">
+            Không tìm thấy người dùng nào.
+          </div>
         )}
       </Card>
 
       {/* Modal Form */}
-      <Modal 
-        isOpen={showModal} 
+      <Modal
+        isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editing ? "Cập nhật thông tin" : "Tạo tài khoản mới"}
         extraClasses="!w-xl rounded-2xl"
-        showCloseButton={false}
-      >
+        showCloseButton={false}>
         <div className="space-y-4 pt-4">
-          <Input label="Họ và tên" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} placeholder="Nguyễn Văn A" />
-          <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="email@example.com" />
+          <Input
+            label="Họ và tên"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Nguyễn Văn A"
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            placeholder="email@example.com"
+          />
           <div className="space-y-1">
-            <Input 
-              label={editing ? "Mật khẩu (để trống nếu không đổi)" : "Mật khẩu"} 
-              type="password" 
-              value={form.password} 
-              onChange={(e) => setForm({...form, password: e.target.value})} 
+            <Input
+              label={editing ? "Mật khẩu (để trống nếu không đổi)" : "Mật khẩu"}
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
           </div>
-          <Input label="Số điện thoại" value={form.phoneNumber} onChange={(e) => setForm({...form, phoneNumber: e.target.value})} placeholder="09xxxxxxxx" />
-          
+          <Input
+            label="Số điện thoại"
+            value={form.phoneNumber}
+            onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+            placeholder="09xxxxxxxx"
+          />
+
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-bold text-slate-700 ml-1">Vai trò</label>
-            <select 
+            <label className="text-sm font-bold text-slate-700 ml-1">
+              Vai trò
+            </label>
+            <select
               className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
-              value={form.role} 
-              onChange={(e) => setForm({...form, role: e.target.value})}
-            >
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}>
               <option value="tourist">Du khách (Tourist)</option>
               <option value="vendor">Chủ quán (Vendor)</option>
               <option value="admin">Quản trị viên (Admin)</option>
@@ -547,16 +584,25 @@ const Users = () => {
           </div>
 
           {editing && (
-            <div className={`p-4 rounded-xl border flex items-center justify-between ${form.is_Blocked ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+            <div
+              className={`p-4 rounded-xl border flex items-center justify-between ${form.is_Blocked ? "bg-red-50 border-red-100" : "bg-slate-50 border-slate-100"}`}>
               <div>
-                <p className="text-sm font-bold text-slate-700">Trạng thái tài khoản</p>
-                <p className="text-xs text-slate-400">{form.is_Blocked ? "Tài khoản này đang bị khóa" : "Tài khoản đang hoạt động bình thường"}</p>
+                <p className="text-sm font-bold text-slate-700">
+                  Trạng thái tài khoản
+                </p>
+                <p className="text-xs text-slate-400">
+                  {form.is_Blocked
+                    ? "Tài khoản này đang bị khóa"
+                    : "Tài khoản đang hoạt động bình thường"}
+                </p>
               </div>
-              <input 
-                type="checkbox" 
-                className="w-5 h-5 accent-red-500" 
-                checked={form.is_Blocked || false} 
-                onChange={(e) => setForm({...form, is_Blocked: e.target.checked})}
+              <input
+                type="checkbox"
+                className="w-5 h-5 accent-red-500"
+                checked={form.is_Blocked || false}
+                onChange={(e) =>
+                  setForm({ ...form, is_Blocked: e.target.checked })
+                }
               />
             </div>
           )}
