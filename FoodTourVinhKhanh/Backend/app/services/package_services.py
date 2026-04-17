@@ -53,9 +53,10 @@ def getPackages(user):
 
     return packages
 
-def createPackage(data: dict):
+def createPackage(data):
     conn = get_db_connection()
     try:
+        data = data.model_dump()  
         cursor = conn.cursor()
         query = """
             INSERT INTO subscription_packages 
@@ -63,11 +64,11 @@ def createPackage(data: dict):
             VALUES (%s, %s, %s, %s, %s)
         """
         params = (
-            data['name'], 
-            data['price'], 
-            data['duration_hours'], 
-            data['target_role'], 
-            data.get('is_Active', True)
+            data['name'],
+            data['price'],
+            data['duration_hours'],
+            data['target_role'],
+            data.get('is_Active', True),
         )
         cursor.execute(query, params)
         conn.commit()
