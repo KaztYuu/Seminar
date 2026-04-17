@@ -2,17 +2,147 @@ from app.database import get_db_connection
 from app.services.gemini_services import gemini_service
 from app.services.image_services import image_service
 from app.services.audio_services import audio_service
+from datetime import datetime, date
+from math import radians, sin, cos, sqrt, atan2
 
-def check_vendor_poi_limit(vendor_id: int, limit: int = 5):
+def get_vendor_subscription_limit(vendor_id: int):
+    """
+    Get the daily POI limit from vendor's active subscription.
+    Returns the daily_poi_limit from subscription_packages.
+    
+    Args:
+        vendor_id: The vendor user ID
+        
+    Returns:
+        int: The daily POI limit (default 1 for FREE tier)
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT COUNT(*) as total FROM pois WHERE owner_id = %s", (vendor_id,))
+        sql = """
+            SELECT sp.daily_poi_limit
+            FROM vendor_subscriptions vs
+            LEFT JOIN payments p ON vs.payment_id = p.id
+            LEFT JOIN subscription_packages sp ON p.package_id = sp.id
+            WHERE vs.user_id = %s 
+              AND vs.end_time > NOW()
+            ORDER BY vs.end_time DESC
+            LIMIT 1
+        """
+        cursor.execute(sql, (vendor_id,))
         result = cursor.fetchone()
-        return result['total'] < limit
+        
+        # Default to 1 if no active subscription (FREE tier)
+        return result['daily_poi_limit'] if result else 1
+    except Exception as e:
+        print(f"Error fetching vendor subscription limit: {e}")
+        return 1  # Default to FREE tier limit
     finally:
         cursor.close()
         conn.close()
+
+def check_vendor_poi_limit(vendor_id: int):
+    """
+    Check if vendor can create another POI today.
+    
+    Fetches the daily limit from vendor's active subscription and counts
+    POIs created TODAY only (not total POIs).
+    
+    Args:
+        vendor_id: The vendor user ID
+        
+    Returns:
+        bool: True if vendor can create another POI today, False otherwise
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Get the daily limit from vendor's subscription
+        daily_limit = get_vendor_subscription_limit(vendor_id)
+        
+        # Count POIs created TODAY only
+        cursor.execute("""
+            SELECT COUNT(*) as today_count 
+            FROM pois 
+            WHERE owner_id = %s AND DATE(created_at) = CURDATE()
+        """, (vendor_id,))
+        
+        result = cursor.fetchone()
+        today_count = result['today_count'] if result else 0
+        
+        # Can create if today's count is less than daily limit
+        return today_count < daily_limit
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_remaining_poi_quota(vendor_id: int):
+    """
+    Get remaining POI creation quota for today.
+    
+    Args:
+        vendor_id: The vendor user ID
+        
+    Returns:
+        dict: {
+            'daily_limit': int,
+            'today_created': int,
+            'remaining': int
+        }
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Get daily limit from subscription
+        daily_limit = get_vendor_subscription_limit(vendor_id)
+        
+        # Count today's POIs
+        cursor.execute("""
+            SELECT COUNT(*) as today_count
+            FROM pois
+            WHERE owner_id = %s AND DATE(created_at) = CURDATE()
+        """, (vendor_id,))
+        
+        result = cursor.fetchone()
+        today_created = result['today_count'] if result else 0
+        
+        remaining = max(0, daily_limit - today_created)
+        
+        return {
+            'daily_limit': daily_limit,
+            'today_created': today_created,
+            'remaining': remaining
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate distance between two coordinates using Haversine formula.
+    
+    Args:
+        lat1, lon1: User location (degrees)
+        lat2, lon2: POI location (degrees)
+        
+    Returns:
+        float: Distance in kilometers
+    """
+    R = 6371  # Earth's radius in kilometers
+    
+    lat1_rad = radians(lat1)
+    lon1_rad = radians(lon1)
+    lat2_rad = radians(lat2)
+    lon2_rad = radians(lon2)
+    
+    delta_lat = lat2_rad - lat1_rad
+    delta_lon = lon2_rad - lon1_rad
+    
+    a = sin(delta_lat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(delta_lon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    
+    distance = R * c
+    return distance
 
 def activate_pois():
     conn = get_db_connection()
@@ -121,9 +251,19 @@ def getPOIById(user, poi_id, lang="vi"):
                 SELECT p.*, pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
                        ld.name, ld.description, ld.audio_url, ld.lang_code
                 FROM pois p
+                JOIN users u ON p.owner_id = u.id
+                LEFT JOIN vendor_subscriptions vs ON u.id = vs.user_id
                 LEFT JOIN poi_position pos ON p.id = pos.poi_id
                 LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
-                WHERE p.id = %s AND p.is_Deleted = FALSE
+                WHERE p.id = %s 
+                  AND p.is_Deleted = FALSE 
+                  AND p.is_Active = TRUE
+                  AND (
+                      u.role = 'admin' 
+                      OR (u.role = 'vendor' AND vs.end_time > NOW())
+                  )
+                ORDER BY vs.end_time DESC
+                LIMIT 1
             """, (lang, poi_id))
         else:
             # Vendor/Admin sửa bài: Lấy bản 'vi' chuẩn
@@ -423,6 +563,90 @@ def getPOIData(poi_id):
     except Exception as e:
         print(f"Lỗi khi lấy dữ liệu POI: {str(e)}")
         return False, None
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_nearby_pois(user, latitude: float, longitude: float, radius: float = 5.0, lang: str = "vi"):
+    """
+    Get POIs within a specified radius from a location (Map Explore feature).
+    
+    Uses Haversine formula to calculate distances and filters POIs based on:
+    - User's subscription (only see active POIs from subscribed vendors)
+    - Role-based visibility
+    - Language preference
+    
+    Args:
+        user: Current user object
+        latitude: User's latitude
+        longitude: User's longitude
+        radius: Search radius in kilometers (default 5)
+        lang: Language code (default 'vi')
+        
+    Returns:
+        list: POI objects with calculated distance
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get all POIs with positions
+        query = """
+            SELECT p.id, p.owner_id, p.name, p.thumbnail, p.banner, 
+                   p.is_Active, p.is_Deleted, p.created_at,
+                   pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
+                   ld.name as poi_name, ld.description, ld.audio_url,
+                   u.role as owner_role,
+                   vs.end_time as subscription_end
+            FROM pois p
+            LEFT JOIN poi_position pos ON p.id = pos.poi_id
+            LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
+            JOIN users u ON p.owner_id = u.id
+            LEFT JOIN vendor_subscriptions vs ON u.id = vs.user_id
+            WHERE p.is_Deleted = FALSE AND pos.latitude IS NOT NULL AND pos.longitude IS NOT NULL
+        """
+        
+        params = [lang]
+        
+        # Role-based filtering
+        if user["role"] == "tourist":
+            # Tourists see only active POIs from vendors with active subscriptions
+            query += """
+                AND p.is_Active = TRUE 
+                AND (u.role = 'admin' OR (u.role = 'vendor' AND vs.end_time > NOW()))
+            """
+        elif user["role"] == "vendor":
+            # Vendors see their own POIs and active POIs from other vendors
+            query += """
+                AND (p.owner_id = %s OR (p.is_Active = TRUE AND u.role = 'admin') 
+                     OR (p.is_Active = TRUE AND u.role = 'vendor' AND vs.end_time > NOW()))
+            """
+            params.append(user["id"])
+        # Admin sees all non-deleted POIs
+        
+        cursor.execute(query, params)
+        all_pois = cursor.fetchall()
+        
+        # Filter by distance
+        nearby_pois = []
+        for poi in all_pois:
+            if poi['latitude'] and poi['longitude']:
+                distance = calculate_distance(
+                    latitude, 
+                    longitude, 
+                    poi['latitude'], 
+                    poi['longitude']
+                )
+                
+                if distance <= radius:
+                    poi['distance_km'] = round(distance, 2)
+                    nearby_pois.append(poi)
+        
+        # Sort by distance
+        nearby_pois.sort(key=lambda x: x['distance_km'])
+        
+        return nearby_pois
+        
     finally:
         cursor.close()
         conn.close()

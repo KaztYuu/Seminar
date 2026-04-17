@@ -134,12 +134,67 @@ def createUser(user):
         role
     ))
 
-    conn.commit()
+    user_id = cursor.lastrowid
+    
+    # Automatically create FREE subscription for vendors and tourists
+    if role in ["vendor", "tourist"]:
+        _create_free_subscription(cursor, user_id, role)
 
+    conn.commit()
     cursor.close()
     conn.close()
 
     return True
+
+def _create_free_subscription(cursor, user_id: int, role: str):
+    """
+    Create a FREE subscription for a new user.
+    
+    Args:
+        cursor: Database cursor
+        user_id: The newly created user ID
+        role: User role ('vendor' or 'tourist')
+    """
+    try:
+        # Get or create FREE subscription package for this role
+        cursor.execute("""
+            SELECT id FROM subscription_packages
+            WHERE target_role = %s AND price = 0 AND daily_poi_limit = 1
+            LIMIT 1
+        """, (role,))
+        
+        free_pkg = cursor.fetchone()
+        
+        if not free_pkg:
+            # Create FREE package if it doesn't exist
+            cursor.execute("""
+                INSERT INTO subscription_packages 
+                (name, target_role, price, duration_hours, daily_poi_limit, is_Active)
+                VALUES (%s, %s, 0, 999999, 1, TRUE)
+            """, (f"FREE - {role.capitalize()}", role))
+            free_pkg_id = cursor.lastrowid
+        else:
+            free_pkg_id = free_pkg['id']
+        
+        # Create a payment record for FREE subscription (for linking)
+        cursor.execute("""
+            INSERT INTO payments 
+            (user_id, package_id, amount, transaction_ref, payment_method, status, created_at)
+            VALUES (%s, %s, 0, %s, 'FREE', 'success', NOW())
+        """, (user_id, free_pkg_id, f"FREE-{user_id}-{datetime.now().timestamp()}"))
+        
+        payment_id = cursor.lastrowid
+        
+        # Create subscription record (perpetual for FREE tier)
+        table_name = "vendor_subscriptions" if role == "vendor" else "tourist_subscriptions"
+        
+        cursor.execute(f"""
+            INSERT INTO {table_name} (user_id, start_time, end_time, payment_id)
+            VALUES (%s, NOW(), DATE_ADD(NOW(), INTERVAL 999 YEAR), %s)
+        """, (user_id, payment_id))
+        
+    except Exception as e:
+        print(f"Error creating FREE subscription: {e}")
 
 #logout
 def userLogout(session_id: str, user_id: int):
