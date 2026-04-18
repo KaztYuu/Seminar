@@ -26,13 +26,13 @@ def vnpay_return(request: Request):
 
     # ❗ verify chữ ký
     if not verify_vnpay(params):
-        return RedirectResponse("http://localhost:5173/payment-result?status=invalid")
+        return RedirectResponse("https://seminar-sooty.vercel.app/payment-result?status=invalid")
 
     # ❗ check kết quả
     if params.get("vnp_ResponseCode") == "00":
-        return RedirectResponse("http://localhost:5173/payment-result?status=success")
+        return RedirectResponse("https://seminar-sooty.vercel.app/payment-result?status=success")
     else:
-        return RedirectResponse("http://localhost:5173/payment-result?status=failed")
+        return RedirectResponse("https://seminar-sooty.vercel.app/payment-result?status=failed")
     
 @router.get("/vnpay-ipn")
 def vnpay_ipn(request: Request):
