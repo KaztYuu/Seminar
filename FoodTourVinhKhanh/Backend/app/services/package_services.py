@@ -82,9 +82,10 @@ def getPackages(user):
 
     return packages
 
-def createPackage(data: dict):
+def createPackage(data):
     conn = get_db_connection()
     try:
+        data = data.model_dump()  
         cursor = conn.cursor()
         query = """
             INSERT INTO subscription_packages 
@@ -92,12 +93,11 @@ def createPackage(data: dict):
             VALUES (%s, %s, %s, %s, %s, %s)
         """
         params = (
-            data['name'], 
-            data['price'], 
-            data['duration_hours'], 
-            data['target_role'], 
-            data.get('daily_poi_limit', 0),
-            data.get('is_Active', True)
+            data['name'],
+            data['price'],
+            data['duration_hours'],
+            data['target_role'],
+            data.get('is_Active', True),
         )
         cursor.execute(query, params)
         conn.commit()
@@ -142,8 +142,7 @@ def deletePackage(package_id: int):
         return cursor.rowcount > 0
     except Exception as e:
         conn.rollback()
-
-        raise HTTPException(status_code=400, detail="Không thể xóa gói này vì đang có dữ liệu liên quan!")
+        raise HTTPException(status_code=500, detail=f"Lỗi xóa gói: {str(e)}")
     finally:
         cursor.close()
         conn.close()

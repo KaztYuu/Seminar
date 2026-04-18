@@ -1,6 +1,7 @@
 const touristMenu = [
   { label: 'Tổng quan', icon: '🏠', path: '/tourist' },
   { label: 'Khám phá', icon: '🗺️', path: '/tourist/explore' },
+  { label: 'Tour', icon: '🧳', path: '/tourist/tours' },
   { label: 'Hồ sơ', icon: '👤', path: '/tourist/profile' },
   { label: 'Lịch sử giao dịch', icon: '💸', path: '/tourist/transactions' }
 ]
@@ -16,6 +17,7 @@ const adminMenu = [
   { label: 'Tổng quan', icon: '📈', path: '/admin' },
   { label: 'Quản lý người dùng', icon: '👥', path: '/admin/users' },
   { label: 'Quản lý POIs', icon: '🍱', path: '/admin/pois' },
+  { label: 'Quản lý Tour', icon: '🧭', path: '/admin/tours' },
   { label: 'Quản lý gói dịch vụ', icon: '📦', path: '/admin/packages' },
   { label: 'Hồ sơ', icon: '👤', path: '/admin/profile' },
   { label: 'Quản lý giao dịch', icon: '💸', path: '/admin/transactions' }

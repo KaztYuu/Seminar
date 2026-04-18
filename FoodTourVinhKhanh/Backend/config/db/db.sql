@@ -96,7 +96,7 @@ CREATE TABLE vendor_subscriptions (
 CREATE TABLE poi_knowledge_base (
     id INT AUTO_INCREMENT PRIMARY KEY,
     poi_id INT,
-    category ENUM('menu', 'history', 'promotion', 'other'),
+    category ENUM('menu', 'history', 'promotion', 'other'), -- Loại nội dung dùng cho chatbot RAG
     content TEXT,
     FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE CASCADE
 ) CHARSET = utf8mb4;

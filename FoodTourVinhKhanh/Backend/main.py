@@ -8,6 +8,7 @@ from app.routes.package_router import router as package_router
 from app.routes.payment_router import router as payment_router
 from app.routes.user_router import router as user_router
 from app.routes.poi_router import router as poi_router
+from app.routes.tour_router import router as tour_router
 from fastapi.staticfiles import StaticFiles
 
 # Setup logging
@@ -56,7 +57,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -70,6 +71,7 @@ app.include_router(package_router)
 app.include_router(payment_router)
 app.include_router(user_router)
 app.include_router(poi_router)
+app.include_router(tour_router)
 
 
 @app.get("/")
