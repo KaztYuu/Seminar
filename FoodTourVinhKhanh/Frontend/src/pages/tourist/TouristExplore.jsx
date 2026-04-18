@@ -54,7 +54,7 @@ const TouristExplore = () => {
     const audioRef = useRef(null);
     const lastPlayedPoiId = useRef(null);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'https://ilse-unmasticated-toney.ngrok-free.dev';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     const getDistance = (lat1, lon1, lat2, lon2) => {
         const R = 6371e3; // Bán kính trái đất tính bằng mét

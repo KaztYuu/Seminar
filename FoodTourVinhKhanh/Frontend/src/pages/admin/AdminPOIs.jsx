@@ -23,7 +23,7 @@ const POIAdminManager = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const API_URL = import.meta.env.VITE_API_URL || "https://ilse-unmasticated-toney.ngrok-free.dev";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
   const getUserCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -293,7 +293,7 @@ const POIAdminManager = () => {
       header: "Hình ảnh",
       render: (row) => (
         <img
-          src={`https://ilse-unmasticated-toney.ngrok-free.dev${row.thumbnail}`}
+          src={`http://localhost:8000${row.thumbnail}`}
           alt="thumb"
           className="w-12 h-12 rounded-xl object-cover border border-gray-100"
         />

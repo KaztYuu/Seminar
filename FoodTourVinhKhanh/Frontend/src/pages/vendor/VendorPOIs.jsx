@@ -19,7 +19,7 @@ const VendorPOIs = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const API_URL = import.meta.env.VITE_API_URL || 'https://ilse-unmasticated-toney.ngrok-free.dev';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     const initialForm = {
         localized: { lang_code: "vi", name: "", description: "" },
