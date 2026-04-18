@@ -54,7 +54,7 @@ def get_packages(user=Depends(get_current_user)):
     return {
         "success": True,
         "data": packages,
-        "source" : "cache"
+        "source" : "database"
     }
 
 @router.post("/create")

@@ -1,5 +1,4 @@
 from app.database import get_db_connection
-from app.database import get_db_connection
 from app.services.auth_services import verify_password, hash_password
 from app.services.redis_services import count_active_sessions
 
