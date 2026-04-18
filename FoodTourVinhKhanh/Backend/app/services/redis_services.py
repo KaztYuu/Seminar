@@ -1,7 +1,10 @@
 import redis
 import json
+import logging
 from datetime import datetime
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 redis_client = redis.Redis(
     host="localhost",
@@ -80,3 +83,25 @@ def invalidate_poi_cache(poi_id=None):
     
     if poi_id:
         delete_cache_by_pattern(f"poi_detail:{poi_id}:*")
+
+def count_active_sessions():
+
+    try:
+        keys = redis_client.keys("session:*")
+        active_user_ids = set()
+
+        for key in keys:
+            data = redis_client.get(key)
+            if not data:
+                continue
+
+            session_data = json.loads(data)
+            user_id = session_data.get("id")
+
+            if user_id is not None:
+                active_user_ids.add(user_id)
+
+        return len(active_user_ids)
+    except Exception as e:
+        logger.error(f"Error counting active sessions: {str(e)}")
+        return None

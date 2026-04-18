@@ -1,4 +1,4 @@
-from app.services.user_services import update_profile, change_password, createUser, updateUser, getUserById, getUsers, deleteUser
+from app.services.user_services import update_profile, change_password, createUser, updateUser, getUserById, getUsers, deleteUser, getAdminDashboardStats
 from app.schemas.user_schema import ChangePasswordRequest, UpdateProfileRequest, CreateUserRequest, UpdateUserRequest, UserResponse
 from fastapi import APIRouter, Request, Depends, HTTPException
 from app.dependencies.auth import get_current_user, require_role
@@ -100,4 +100,13 @@ def delete_user(user_id: int, user=Depends(require_role("admin"))):
     return {
         "success": success,
         "message": message
+    }
+
+@router.get("/dashboard-stats")
+def get_dashboard_stats(user=Depends(require_role("admin"))):
+    stats = getAdminDashboardStats()
+
+    return {
+        "success": True,
+        "data": stats
     }
