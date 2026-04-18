@@ -20,44 +20,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Add startup event
-@app.on_event("startup")
-async def startup_event():
-    """Check dependencies on startup"""
-    logger.info("="*50)
-    logger.info("🚀 Application starting...")
-    logger.info("="*50)
-    
-    # Check Redis
-    try:
-        from app.services.redis_services import get_redis_status
-        redis_status = get_redis_status()
-        if redis_status["available"]:
-            logger.info(f"✅ Redis: Connected ({redis_status['host']}:{redis_status['port']})")
-        else:
-            logger.warning("⚠️  Redis: Unavailable (using database fallback)")
-    except Exception as e:
-        logger.warning(f"⚠️  Redis check failed: {str(e)}")
-    
-    # Check Database
-    try:
-        from app.database import get_db_connection
-        conn = get_db_connection()
-        if conn.is_connected():
-            logger.info("✅ Database: Connected")
-            conn.close()
-        else:
-            logger.error("❌ Database: Connection failed")
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {str(e)}")
-    
-    logger.info("="*50)
-    logger.info("Backend API is ready!")
-    logger.info("="*50)
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://seminar-murex.vercel.app", # Domain frontend ngrok
+    "*" # Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

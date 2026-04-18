@@ -110,3 +110,12 @@ def delete_user(user_id: int, user=Depends(require_role("admin"))):
         "success": success,
         "message": message
     }
+
+@router.get("/dashboard-stats")
+def get_dashboard_stats(user=Depends(require_role("admin"))):
+    stats = getAdminDashboardStats()
+
+    return {
+        "success": True,
+        "data": stats
+    }
