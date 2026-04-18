@@ -4,6 +4,9 @@ from app.dependencies.auth import get_current_user, require_role
 from app.services.payment_services import create_payment_service, handle_vnpay_ipn, get_payment_history, get_all_payments
 from app.services.redis_services import invalidate_poi_cache
 from fastapi.responses import JSONResponse, RedirectResponse
+import os
+
+FRONTEND_URL = os.getenv("ENV_FRONTEND_URL") or 'http://localhost:5173'
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -26,13 +29,13 @@ def vnpay_return(request: Request):
 
     # ❗ verify chữ ký
     if not verify_vnpay(params):
-        return RedirectResponse("https://seminar-sooty.vercel.app/payment-result?status=invalid")
+        return RedirectResponse(f'{FRONTEND_URL}/payment-result?status=invalid')
 
     # ❗ check kết quả
     if params.get("vnp_ResponseCode") == "00":
-        return RedirectResponse("https://seminar-sooty.vercel.app/payment-result?status=success")
+        return RedirectResponse(f'{FRONTEND_URL}/payment-result?status=success')
     else:
-        return RedirectResponse("https://seminar-sooty.vercel.app/payment-result?status=failed")
+        return RedirectResponse(f'{FRONTEND_URL}/payment-result?status=failed')
     
 @router.get("/vnpay-ipn")
 def vnpay_ipn(request: Request):

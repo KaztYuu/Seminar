@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.middlewares.session_middleware import session_middleware
 import logging
-
+import os
 from app.routes.auth_router import router as auth_router
 from app.routes.package_router import router as package_router
 from app.routes.payment_router import router as payment_router
@@ -20,10 +20,12 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+FRONTEND_URL = os.getenv("ENV_FRONTEND_URL") or "http://localhost:5173"
+
 origins = [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://seminar-sooty.vercel.app/", # Domain frontend vercel
+    FRONTEND_URL, # Domain frontend vercel
     "*" # Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
 ]
 
