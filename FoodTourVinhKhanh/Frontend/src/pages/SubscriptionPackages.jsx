@@ -112,7 +112,7 @@ const SubscriptionPackage = () => {
           </p>
         </div>
 
-        {!isTourist && (
+        {isTourist && (
           <Card className="mb-8 border-blue-100 bg-blue-50/60">
             <h2 className="text-2xl font-black text-gray-900">
               Tài khoản du khách đang dùng gói Free
@@ -124,7 +124,7 @@ const SubscriptionPackage = () => {
           </Card>
         )}
 
-        {isTourist && (
+        {!isTourist && (
         <div className="relative px-12">
           <button
             onClick={prevSlide}
