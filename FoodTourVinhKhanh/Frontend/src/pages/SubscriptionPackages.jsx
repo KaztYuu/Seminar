@@ -69,9 +69,18 @@ const SubscriptionPackage = () => {
         payment_method: methodId,
       });
 
-      window.location.href = res.data.payment_url; // Chuyển hướng đến trang thanh toán
-    } catch {
-      toast.error("Lỗi khởi tạo thanh toán");
+      // Nếu gói FREE, res.data.is_free sẽ là true
+      if (res.data.is_free) {
+        toast.success("Kích hoạt gói miễn phí thành công!");
+        setIsModalOpen(false);
+        // Refresh page hoặc redirect
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        // Chuyển hướng đến trang thanh toán VNPay
+        window.location.href = res.data.payment_url;
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Lỗi khởi tạo thanh toán");
     } finally {
       setIsProcessing(false);
     }
@@ -125,57 +134,57 @@ const SubscriptionPackage = () => {
         )}
 
         {!isTourist && (
-        <div className="relative px-12">
-          <button
-            onClick={prevSlide}
-            disabled={currentIndex === 0}
-            className="absolute top-1/2 -left-4 -translate-y-1/2 z-10 p-4 bg-white rounded-full shadow-lg disabled:opacity-30">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+          <div className="relative px-12">
+            <button
+              onClick={prevSlide}
+              disabled={currentIndex === 0}
+              className="absolute top-1/2 -left-4 -translate-y-1/2 z-10 p-4 bg-white rounded-full shadow-lg disabled:opacity-30">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
 
-          <button
-            onClick={nextSlide}
-            disabled={currentIndex + itemsPerPage >= packages.length}
-            className="absolute top-1/2 -right-4 -translate-y-1/2 z-10 p-4 bg-white rounded-full shadow-lg disabled:opacity-30">
-            <ChevronRight className="w-6 h-6" />
-          </button>
+            <button
+              onClick={nextSlide}
+              disabled={currentIndex + itemsPerPage >= packages.length}
+              className="absolute top-1/2 -right-4 -translate-y-1/2 z-10 p-4 bg-white rounded-full shadow-lg disabled:opacity-30">
+              <ChevronRight className="w-6 h-6" />
+            </button>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {packages
-              .slice(currentIndex, currentIndex + itemsPerPage)
-              .map((pkg) => (
-                <Card
-                  key={pkg.id}
-                  className="group flex flex-col items-center p-8 hover:-translate-y-2 transition-all duration-500">
-                  <img
-                    src={pkg.image}
-                    alt=""
-                    className="w-24 h-24 mb-6 object-contain"
-                  />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    {pkg.name}
-                  </h3>
-                  <div className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full mb-6">
-                    {pkg.name} · tối đa {pkg.daily_poi_limit} POI
-                  </div>
-                  <div className="mt-auto w-full text-center border-t pt-6">
-                    <div className="mb-6">
-                      <span className="text-3xl font-black text-gray-900">
-                        {pkg.price.toLocaleString()}
-                      </span>
-                      <span className="text-gray-400 text-sm ml-1">VNĐ</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {packages
+                .slice(currentIndex, currentIndex + itemsPerPage)
+                .map((pkg) => (
+                  <Card
+                    key={pkg.id}
+                    className="group flex flex-col items-center p-8 hover:-translate-y-2 transition-all duration-500">
+                    <img
+                      src={pkg.image}
+                      alt=""
+                      className="w-24 h-24 mb-6 object-contain"
+                    />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {pkg.name}
+                    </h3>
+                    <div className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full mb-6">
+                      {pkg.name} · tối đa {pkg.daily_poi_limit} POI
                     </div>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => handleOpenPayment(pkg)}>
-                      Đăng Ký Ngay
-                    </Button>
-                  </div>
-                </Card>
-            ))}
+                    <div className="mt-auto w-full text-center border-t pt-6">
+                      <div className="mb-6">
+                        <span className="text-3xl font-black text-gray-900">
+                          {pkg.price.toLocaleString()}
+                        </span>
+                        <span className="text-gray-400 text-sm ml-1">VNĐ</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => handleOpenPayment(pkg)}>
+                        Đăng Ký Ngay
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+            </div>
           </div>
-        </div>
         )}
 
         {!isTourist && packages.length === 0 && (
@@ -184,8 +193,8 @@ const SubscriptionPackage = () => {
               Chưa có gói nâng cấp khả dụng
             </h3>
             <p className="mt-2 text-gray-500">
-              Vendor hiện đang dùng gói Free mặc định. Khi admin mở gói Basic hoặc
-              VIP, chúng sẽ xuất hiện tại đây.
+              Vendor hiện đang dùng gói Free mặc định. Khi admin mở gói Basic
+              hoặc VIP, chúng sẽ xuất hiện tại đây.
             </p>
           </Card>
         )}

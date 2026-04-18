@@ -342,7 +342,7 @@ const AdminPackages = () => {
           />
 
           <Input
-            label="Giới hạn tổng POI"
+            label="Giới hạn POI"
             type="number"
             value={formData.daily_poi_limit}
             onChange={(e) =>

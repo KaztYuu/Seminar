@@ -25,7 +25,7 @@ def create_payment_service(user_id, package_id, payment_method):
         WHERE id = %s
           AND is_Active = TRUE
           AND target_role = %s
-          AND price > 0
+          AND price >= 0
     """, (package_id, current_user["role"]))
     pkg = cursor.fetchone()
 
