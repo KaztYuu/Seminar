@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 const SUPPORTED_LANGUAGES = ["VI", "EN", "KR", "FR"];
 
 const api = axios.create({
-  baseURL: "https://ilse-unmasticated-toney.ngrok-free.dev",
+  baseURL: import.meta.env.VITE_API_URL || 'https://ilse-unmasticated-toney.ngrok-free.dev',
   withCredentials: true, // Gửi cookie với mỗi request
 });
 

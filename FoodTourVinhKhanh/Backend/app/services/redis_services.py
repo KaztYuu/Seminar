@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-redis_client = redis.Redis(
-    host="localhost",
-    port=6379,
-    decode_responses=True
-)
+# redis_client = redis.Redis(
+#     host="localhost",
+#     port=6379,
+#     decode_responses=True
+# )
 
 logger = logging.getLogger(__name__)
 

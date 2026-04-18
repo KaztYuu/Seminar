@@ -28,7 +28,7 @@ const TouristDashboard = () => {
         if (res.data.success) {
           setMyPackage(res.data.data);
         }
-      } catch {
+      } catch (err) {
         if (err.response?.status !== 404) {
           toast.error("Không thể lấy thông tin gói dịch vụ");
         }

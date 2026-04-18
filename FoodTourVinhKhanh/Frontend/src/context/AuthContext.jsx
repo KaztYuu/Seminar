@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         return { success: false, message: "Có lỗi xảy ra khi đăng xuất" };
       }
-    } catch {
+    } catch (err) {
       console.error("Logout error:", err);
       return { success: false, message: "Không thể kết nối đến server" };
     }

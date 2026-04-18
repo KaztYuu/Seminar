@@ -23,7 +23,7 @@ app = FastAPI()
 origins = [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://seminar-murex.vercel.app", # Domain frontend ngrok
+    "https://seminar-sooty.vercel.app/", # Domain frontend vercel
     "*" # Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
 ]
 

@@ -37,8 +37,8 @@ def login(user: UserLogin, response: Response):
         value=result["session_id"],
         httponly=True,
         max_age=3600,  # 1 tiếng
-        samesite="Lax",
-        secure=False
+        samesite="none",
+        secure=True
     )
 
     return {"message": "Login success"}
@@ -53,10 +53,10 @@ def logout(request: Request, response: Response, user=Depends(get_current_user))
     session_id = request.cookies.get("session_id")
     
     if not session_id:
-        response.delete_cookie(key="session_id", httponly=True, samesite="Lax", secure=False)
+        response.delete_cookie(key="session_id", httponly=True, samesite="none", secure=True)
         return {"message": "No active session"}
     
     userLogout(session_id, user["id"])
     
-    response.delete_cookie(key="session_id", httponly=True, samesite="Lax", secure=False)
+    response.delete_cookie(key="session_id", httponly=True, samesite="None", secure=True)
     return {"message": "Logged out successfully"}
