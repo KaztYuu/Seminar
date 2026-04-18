@@ -7,17 +7,32 @@ def create_payment_service(user_id, package_id, payment_method):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
+    cursor.execute("""
+        SELECT role
+        FROM users
+        WHERE id = %s AND is_Deleted = FALSE
+    """, (user_id,))
+    current_user = cursor.fetchone()
+
+    if not current_user:
+        cursor.close()
+        conn.close()
+        return {"message": "User not found"}
+
     # Lấy package
     cursor.execute("""
         SELECT * FROM subscription_packages 
-        WHERE id = %s AND is_Active = TRUE
-    """, (package_id,))
+        WHERE id = %s
+          AND is_Active = TRUE
+          AND target_role = %s
+          AND price > 0
+    """, (package_id, current_user["role"]))
     pkg = cursor.fetchone()
 
     if not pkg:
         cursor.close()
         conn.close()
-        return {"message": "Package not found"}
+        return {"message": "Package not found or not available for this user"}
 
     txn_ref = str(uuid.uuid4())
 

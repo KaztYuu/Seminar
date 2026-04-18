@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from app.services.vnpay_services import verify_vnpay
 from app.dependencies.auth import get_current_user, require_role
 from app.services.payment_services import create_payment_service, handle_vnpay_ipn, get_payment_history, get_all_payments
@@ -9,11 +9,16 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 
 @router.post("/create")
 def create_payment(data: dict, user=Depends(get_current_user)):
-    return create_payment_service(
+    result = create_payment_service(
         user["id"],
         data["package_id"],
         data["payment_method"]
     )
+
+    if not result.get("payment_url"):
+        raise HTTPException(status_code=400, detail=result.get("message", "Không thể tạo thanh toán"))
+
+    return result
 
 @router.get("/vnpay-return")
 def vnpay_return(request: Request):

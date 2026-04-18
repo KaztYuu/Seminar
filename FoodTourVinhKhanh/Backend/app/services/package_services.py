@@ -1,6 +1,26 @@
 from app.database import get_db_connection
 from fastapi import HTTPException
 
+def normalize_package_limits(package_row):
+    if not package_row:
+        return package_row
+
+    normalized = dict(package_row)
+    name = (normalized.get("name") or "").upper()
+    role = normalized.get("target_role")
+
+    if role == "vendor":
+        if name in ["FREE", "FREE_VENDOR"]:
+            normalized["daily_poi_limit"] = 1
+        elif name == "BASIC":
+            normalized["daily_poi_limit"] = 3
+        elif name == "VIP":
+            normalized["daily_poi_limit"] = 10
+    elif role == "tourist":
+        normalized["daily_poi_limit"] = 0
+
+    return normalized
+
 def getMyPackage(user_id: int, role: str):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -21,7 +41,7 @@ def getMyPackage(user_id: int, role: str):
         
         cursor.execute(query, (user_id,))
         result = cursor.fetchone()
-        return result
+        return normalize_package_limits(result)
         
     except Exception as e:
         print(f"Lỗi lấy gói của tôi: {e}")
@@ -39,14 +59,23 @@ def getPackages(user):
             SELECT * 
             FROM subscription_packages
                        """)
-    else:
+    elif user["role"] == "vendor":
         cursor.execute("""
             SELECT * 
             FROM subscription_packages
-            WHERE is_Active = TRUE AND target_role = %s
-                       """, (user["role"],))
+            WHERE is_Active = TRUE
+              AND target_role = 'vendor'
+              AND price > 0
+            ORDER BY price ASC
+                       """)
+    else:
+        packages = []
+        cursor.close()
+        conn.close()
+        return packages
 
     packages = cursor.fetchall()
+    packages = [normalize_package_limits(pkg) for pkg in packages]
 
     cursor.close()
     conn.close()
@@ -59,14 +88,15 @@ def createPackage(data: dict):
         cursor = conn.cursor()
         query = """
             INSERT INTO subscription_packages 
-            (name, price, duration_hours, target_role, is_Active)
-            VALUES (%s, %s, %s, %s, %s)
+            (name, price, duration_hours, target_role, daily_poi_limit, is_Active)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
         params = (
             data['name'], 
             data['price'], 
             data['duration_hours'], 
             data['target_role'], 
+            data.get('daily_poi_limit', 0),
             data.get('is_Active', True)
         )
         cursor.execute(query, params)
