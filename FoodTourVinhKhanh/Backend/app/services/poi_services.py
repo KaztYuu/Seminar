@@ -144,6 +144,42 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     distance = R * c
     return distance
 
+def activate_poi_single(poi_id: int):
+    """
+    Duyệt một POI riêng lẻ.
+    
+    Args:
+        poi_id: ID của POI cần duyệt
+        
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Kiểm tra POI tồn tại và đang chờ duyệt
+        cursor.execute("SELECT id, is_Active FROM pois WHERE id = %s AND is_Deleted = FALSE", (poi_id,))
+        poi = cursor.fetchone()
+        
+        if not poi:
+            return False, "Không tìm thấy POI"
+        
+        if poi["is_Active"]:
+            return False, "POI này đã được duyệt rồi"
+        
+        # Cập nhật trạng thái
+        cursor.execute("UPDATE pois SET is_Active = TRUE WHERE id = %s", (poi_id,))
+        conn.commit()
+        
+        return True, "Đã duyệt POI thành công"
+    except Exception as e:
+        conn.rollback()
+        print(f"Lỗi duyệt POI: {str(e)}")
+        return False, "Có lỗi xảy ra khi duyệt POI"
+    finally:
+        cursor.close()
+        conn.close()
+
 def activate_pois():
     conn = get_db_connection()
     cursor = conn.cursor()

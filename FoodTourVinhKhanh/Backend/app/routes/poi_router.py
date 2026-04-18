@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
 from app.services.poi_services import (
-    getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, 
+    getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, activate_poi_single,
     check_vendor_poi_limit, getPOIData, get_remaining_poi_quota,
     get_vendor_subscription_limit, get_nearby_pois
 )
@@ -10,6 +10,9 @@ from app.services.gemini_services import gemini_service
 from app.dependencies.auth import require_role
 from app.dependencies.subscription import verify_active_subscription
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/pois", tags=["POIs"])
 
@@ -28,6 +31,24 @@ def api_activate_pois_bulk(user=Depends(require_role("admin"))):
         "message": message
     } 
 
+@router.put("/admin/approve/{poi_id}")
+def approve_single_poi(poi_id: int, user=Depends(require_role("admin"))):
+    """Duyệt một POI riêng lẻ"""
+    success, message = activate_poi_single(poi_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=400 if "đã được duyệt" in message else 404,
+            detail=message
+        )
+    
+    invalidate_poi_cache()
+    return {
+        "success": True,
+        "message": message,
+        "poi_id": poi_id
+    }
+
 @router.get("/get-pois")
 def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", user=Depends(verify_active_subscription)):
     lang = x_language_code or "vi"
@@ -38,12 +59,14 @@ def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", us
     cached_pois = get_cache(cache_key)
     
     if cached_pois:
+        logger.info(f"📦 Cache HIT: {cache_key} (User: {user['id']}, Role: {user['role']})")
         return {
             "success": True,
             "data": cached_pois,
             "source": "cache"
         }
 
+    logger.info(f"🗄️  Cache MISS: {cache_key} (User: {user['id']}, Role: {user['role']}) - querying database")
     pois = getPois(user=user, lang=lang, searchTxt=search)
 
     set_cache(cache_key, pois)
