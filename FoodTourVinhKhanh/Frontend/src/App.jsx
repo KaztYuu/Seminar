@@ -12,12 +12,14 @@ import TouristDashboard from "./pages/tourist/TouristDashboard.jsx";
 import TouristProfile from "./pages/tourist/TouristProfile.jsx";
 import TourisTransactions from "./pages/tourist/TouristTransactions.jsx";
 import TouristExplore from "./pages/tourist/TouristExplore.jsx";
+import TouristTours from "./pages/tourist/TouristTours.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
 import POIAdminManager from "./pages/admin/AdminPOIs.jsx";
 import AdminPackages from "./pages/admin/AdminPackages.jsx";
 import AdminTransactions from "./pages/admin/AdminTransactions.jsx";
 import Users from "./pages/admin/Users.jsx";
+import AdminTours from "./pages/admin/AdminTours.jsx";
 import VendorDashboard from "./pages/vendor/VendorDashboard.jsx";
 import VendorProfile from "./pages/vendor/VendorProfile.jsx";
 import VendorPOIs from "./pages/vendor/VendorPOIs.jsx";
@@ -56,6 +58,7 @@ function App() {
           <Route path="profile" element={<AdminProfile />} />
           <Route path="pois" element={<POIAdminManager />} />{" "}
           <Route path="packages" element={<AdminPackages />} />
+          <Route path="tours" element={<AdminTours />} />
           <Route path="transactions" element={<AdminTransactions />} />{" "}
         </Route>
 
@@ -74,6 +77,7 @@ function App() {
           <Route path="profile" element={<TouristProfile />} />
           <Route path="transactions" element={<TourisTransactions />} />
           <Route path="explore" element={<TouristExplore />} />
+          <Route path="tours" element={<TouristTours />} />
         </Route>
 
         <Route

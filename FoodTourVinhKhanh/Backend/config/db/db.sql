@@ -96,7 +96,7 @@ CREATE TABLE vendor_subscriptions (
 CREATE TABLE poi_knowledge_base (
     id INT AUTO_INCREMENT PRIMARY KEY,
     poi_id INT,
-    category ENUM('menu', 'history', 'promotion', 'other'),
+    category ENUM('menu', 'history', 'promotion', 'other'), -- Loại nội dung dùng cho chatbot RAG
     content TEXT,
     FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE CASCADE
 ) CHARSET = utf8mb4;
@@ -205,3 +205,24 @@ WHERE NOT EXISTS (
         WHERE email = 'admin@test.com'
             AND role = 'admin'
     );
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE tours (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    is_Active BOOLEAN DEFAULT TRUE,           -- TRUE: hiển thị cho Tourist
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE tour_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tour_id INT NOT NULL,
+    poi_id INT NOT NULL,
+    point_order INT NOT NULL,                 -- Thứ tự điểm dừng trong Tour
+    FOREIGN KEY (tour_id) REFERENCES tours(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (poi_id) REFERENCES pois(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
