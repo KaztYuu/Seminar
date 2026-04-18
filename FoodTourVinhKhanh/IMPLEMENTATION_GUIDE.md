@@ -90,7 +90,7 @@ FLUSHDB  # Clear all cached data
 
 ```bash
 # 1. Register a new vendor
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST https://ilse-unmasticated-toney.ngrok-free.dev/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Vendor",
@@ -101,7 +101,7 @@ curl -X POST http://localhost:8000/auth/register \
   }'
 
 # 2. Login and verify subscription
-curl -X GET http://localhost:8000/packages/get-my-package \
+curl -X GET https://ilse-unmasticated-toney.ngrok-free.dev/packages/get-my-package \
   -H "Cookie: session_id=<session_from_login>"
 ```
 
@@ -120,7 +120,7 @@ curl -X GET http://localhost:8000/packages/get-my-package \
 
 ```bash
 # 1. Login as vendor
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST https://ilse-unmasticated-toney.ngrok-free.dev/auth/login \
   -H "Content-Type: application/json" \
   -c cookies.txt \
   -d '{
@@ -129,7 +129,7 @@ curl -X POST http://localhost:8000/auth/login \
   }'
 
 # 2. Create first POI (should succeed)
-curl -X POST http://localhost:8000/pois/vendor/create \
+curl -X POST https://ilse-unmasticated-toney.ngrok-free.dev/pois/vendor/create \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -166,7 +166,7 @@ curl -X POST http://localhost:8000/pois/vendor/create \
 
 ```bash
 # Try to create second POI on same day
-curl -X POST http://localhost:8000/pois/vendor/create \
+curl -X POST https://ilse-unmasticated-toney.ngrok-free.dev/pois/vendor/create \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -216,7 +216,7 @@ WHERE owner_id = 1 AND DATE(created_at) = CURDATE();
 
 ```bash
 # Search for POIs within 5km
-curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&radius=5" \
+curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.76&longitude=106.66&radius=5" \
   -H "X-Language-Code: vi" \
   -b cookies.txt
 ```
@@ -263,15 +263,15 @@ curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&r
 
 ```bash
 # Test invalid latitude (> 90)
-curl -X GET "http://localhost:8000/pois/nearby?latitude=100&longitude=106.66&radius=5" \
+curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=100&longitude=106.66&radius=5" \
   -b cookies.txt
 
 # Test invalid longitude (> 180)
-curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=190&radius=5" \
+curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.76&longitude=190&radius=5" \
   -b cookies.txt
 
 # Test invalid radius
-curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&radius=100" \
+curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.76&longitude=106.66&radius=100" \
   -b cookies.txt
 ```
 
@@ -290,13 +290,13 @@ curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&r
 
 ```bash
 # Login as tourist
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST https://ilse-unmasticated-toney.ngrok-free.dev/auth/login \
   -H "Content-Type: application/json" \
   -c tourist_cookies.txt \
   -d '{"email": "tourist@test.com", "password": "123456"}'
 
 # Search nearby
-curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&radius=10" \
+curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.76&longitude=106.66&radius=10" \
   -b tourist_cookies.txt
 ```
 
@@ -324,7 +324,7 @@ VALUES ('PREMIUM - Vendor', 'vendor', 150000, 720, 5, TRUE);
 # (Use admin panel or manual SQL for testing)
 
 # 3. Check new limit
-curl -X GET http://localhost:8000/packages/get-my-package \
+curl -X GET https://ilse-unmasticated-toney.ngrok-free.dev/packages/get-my-package \
   -b cookies.txt
 
 # 4. Verify can now create 5 POIs/day
@@ -345,15 +345,15 @@ curl -X GET http://localhost:8000/packages/get-my-package \
 
 ```bash
 # First request (cache miss)
-time curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&radius=5" \
+time curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.76&longitude=106.66&radius=5" \
   -b cookies.txt
 
 # Second request (cache hit, should be faster)
-time curl -X GET "http://localhost:8000/pois/nearby?latitude=10.76&longitude=106.66&radius=5" \
+time curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.76&longitude=106.66&radius=5" \
   -b cookies.txt
 
 # Different location (should be cache miss)
-curl -X GET "http://localhost:8000/pois/nearby?latitude=10.80&longitude=106.70&radius=5" \
+curl -X GET "https://ilse-unmasticated-toney.ngrok-free.dev/pois/nearby?latitude=10.80&longitude=106.70&radius=5" \
   -b cookies.txt
 ```
 

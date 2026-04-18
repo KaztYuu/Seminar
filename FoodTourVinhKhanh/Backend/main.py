@@ -12,9 +12,16 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://seminar-murex.vercel.app", # Domain frontend ngrok
+    "*" # Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

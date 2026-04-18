@@ -8,7 +8,7 @@ import Card from "../../components/common/Card";
 import FullPageLoading from "../../components/common/FullPageLoading";
 import { MapPin, Navigation, Clock, Ruler } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "https://ilse-unmasticated-toney.ngrok-free.dev";
 
 // Fit map vào tour — chỉ chạy khi đổi tour (dùng tourId làm key)
 const FitBounds = ({ points, tourId }) => {

@@ -82,7 +82,7 @@ redis-server
 
 ## 📝 Notes
 
-* Backend runs at: `http://localhost:8000`
+* Backend runs at: `https://ilse-unmasticated-toney.ngrok-free.dev`
 * Frontend runs at: `http://localhost:5173`
 * Make sure Redis is running before login
 * If you want to experience the payment feature (VNPay for now only):
