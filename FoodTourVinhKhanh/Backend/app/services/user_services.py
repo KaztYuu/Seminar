@@ -1,6 +1,7 @@
 from app.database import get_db_connection
 from app.database import get_db_connection
 from app.services.auth_services import verify_password, hash_password
+from app.services.redis_services import count_active_sessions
 
 def update_profile(user_id: int, name: str, phoneNumber: str):
     conn = get_db_connection()
@@ -87,6 +88,69 @@ def getUserById(user_id: int):
         if not user:
             return None
         return user
+    finally:
+        cursor.close()
+        conn.close()
+
+def getAdminDashboardStats():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS total_users,
+                SUM(CASE WHEN role = 'tourist' THEN 1 ELSE 0 END) AS tourist_count,
+                SUM(CASE WHEN role = 'vendor' THEN 1 ELSE 0 END) AS vendor_count,
+                SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admin_count
+            FROM users
+            WHERE is_Deleted = FALSE
+        """)
+        user_stats = cursor.fetchone() or {}
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0) AS total_revenue
+            FROM payments
+            WHERE status = 'success'
+        """)
+        payment_stats = cursor.fetchone() or {}
+
+        active_sessions = count_active_sessions()
+
+        if active_sessions is None:
+            cursor.execute("""
+                SELECT COUNT(*) AS online_users
+                FROM users
+                WHERE is_Deleted = FALSE
+                  AND last_login IS NOT NULL
+                  AND last_login >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+            """)
+            online_row = cursor.fetchone() or {}
+            online_users = online_row.get("online_users", 0) or 0
+        else:
+            online_users = active_sessions
+
+        cursor.execute("""
+            SELECT id, name, email, role, is_Blocked, last_login
+            FROM users
+            WHERE is_Deleted = FALSE
+            ORDER BY
+                CASE WHEN last_login IS NULL THEN 1 ELSE 0 END,
+                last_login DESC,
+                id DESC
+            LIMIT 5
+        """)
+        recent_users = cursor.fetchall() or []
+
+        return {
+            "total_users": user_stats.get("total_users", 0) or 0,
+            "tourist_count": user_stats.get("tourist_count", 0) or 0,
+            "vendor_count": user_stats.get("vendor_count", 0) or 0,
+            "admin_count": user_stats.get("admin_count", 0) or 0,
+            "total_revenue": float(payment_stats.get("total_revenue", 0) or 0),
+            "online_users": online_users,
+            "recent_users": recent_users,
+        }
     finally:
         cursor.close()
         conn.close()

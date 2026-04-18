@@ -1,19 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../utils/api'; 
-import { toast } from 'react-hot-toast';
-import { QRCodeCanvas } from "qrcode.react"
-import Swal from 'sweetalert2'
-import Button from '../../components/common/Button';
-import Card from '../../components/common/Card';
-import Input from '../../components/common/Input';
-import Modal from '../../components/common/Modal';
-import Table from '../../components/common/Table';
-import FullPageLoading from '../../components/common/FullPageLoading';
-import SearchBar from '../../components/common/SearchBar';
-import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
-import MapPicker from '../../components/common/MapPicker';
-import { Camera, Plus, Trash2, Undo2, SquarePen, Download } from 'lucide-react';
-
+import React, { useState, useEffect } from "react";
+import api from "../../utils/api";
+import { toast } from "react-hot-toast";
+import { QRCodeCanvas } from "qrcode.react";
+import Swal from "sweetalert2";
+import Button from "../../components/common/Button";
+import Card from "../../components/common/Card";
+import Input from "../../components/common/Input";
+import Modal from "../../components/common/Modal";
+import Table from "../../components/common/Table";
+import FullPageLoading from "../../components/common/FullPageLoading";
+import SearchBar from "../../components/common/SearchBar";
+import { MapContainer, TileLayer, Marker, Circle } from "react-leaflet";
+import MapPicker from "../../components/common/MapPicker";
+import {
+  Camera,
+  Plus,
+  Trash2,
+  Undo2,
+  SquarePen,
+  Download,
+  CheckCircle,
+} from "lucide-react";
 
 const POIAdminManager = () => {
   const [pois, setPois] = useState([]);
@@ -46,15 +53,15 @@ const POIAdminManager = () => {
   };
 
   const downloadQRCode = (poi_id) => {
-        const canvas = document.getElementById("qr-gen");
-        if (canvas) {
-            // Tạo một link ảo để tải
-            const link = document.createElement('a');
-            link.download = `QR_poiId_${poi_id}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        }
-    };
+    const canvas = document.getElementById("qr-gen");
+    if (canvas) {
+      // Tạo một link ảo để tải
+      const link = document.createElement("a");
+      link.download = `QR_poiId_${poi_id}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+  };
 
   const setMapPosition = (coords) => {
     setFormData((prev) => ({
@@ -288,6 +295,23 @@ const POIAdminManager = () => {
     }
   };
 
+  const handleApprovePOI = async (poi_id) => {
+    setLoading(true);
+    try {
+      const res = await api.put(`/pois/admin/approve/${poi_id}`);
+      if (res.data.success) {
+        toast.success("Duyệt POI thành công");
+        fetchPois(searchQuery);
+      }
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.detail || "Không thể duyệt POI này!";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const columns = [
     {
       header: "Hình ảnh",
@@ -322,8 +346,23 @@ const POIAdminManager = () => {
       header: "Hành động",
       render: (row) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => handleEdit(row)}><SquarePen size={15} /></Button>
-          <Button size="sm" variant="danger" onClick={() => handleDelete(row.id)}><Trash2 size={15}/></Button>
+          <Button
+            size="sm"
+            variant={row.is_Active ? "disabled" : "success"}
+            disabled={row.is_Active}
+            title={row.is_Active ? "POI đã được duyệt" : "Duyệt POI"}
+            onClick={() => handleApprovePOI(row.id)}>
+            <CheckCircle size={15} />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
+            <SquarePen size={15} />
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => handleDelete(row.id)}>
+            <Trash2 size={15} />
+          </Button>
         </div>
       ),
     },
@@ -336,7 +375,7 @@ const POIAdminManager = () => {
       {/* BẢN ĐỒ */}
       {isMapShowing && (
         <div className="fixed inset-0 md:ml-64 ml-0 pt-16 bg-white z-99 overflow-hidden flex flex-col">
-          <div className="absolute top-20 left-4 z-[1000]">
+          <div className="absolute top-20 right-4 z-[1000]">
             <Button
               className="hover:text-blue-600"
               onClick={() => setIsMapShowing(false)}>
@@ -672,32 +711,33 @@ const POIAdminManager = () => {
 
             {editingId && (
               <div className="w-full md:w-full p-6 bg-white border-2 border-dashed border-gray-200 rounded-3xl shadow-inner flex flex-col items-center gap-4">
-                <label className="text-sm font-bold text-gray-700 ml-1">Mã QR của POI</label>
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  Mã QR của POI
+                </label>
                 <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
-                    <QRCodeCanvas 
-                        id="qr-gen"
-                        value={String(editingId)} 
-                        size={512}
-                        style={{ 
-                            width: '220px', 
-                            height: '220px',
-                            padding: '10px',
-                            backgroundColor: 'white' 
-                        }} 
-                        marginSize={4}
-                        level="H"
-                    />
+                  <QRCodeCanvas
+                    id="qr-gen"
+                    value={String(editingId)}
+                    size={512}
+                    style={{
+                      width: "220px",
+                      height: "220px",
+                      padding: "10px",
+                      backgroundColor: "white",
+                    }}
+                    marginSize={4}
+                    level="H"
+                  />
                 </div>
-                
+
                 <div className="text-center w-full">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => downloadQRCode(editingId)}
-                        className="w-1/3 mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5"
-                    >
-                        <Download size={20} /> Tải mã về máy
-                    </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadQRCode(editingId)}
+                    className="w-1/3 mb-2 flex items-center justify-center gap-2 !text-[10px] !py-1.5">
+                    <Download size={20} /> Tải mã về máy
+                  </Button>
                 </div>
               </div>
             )}
