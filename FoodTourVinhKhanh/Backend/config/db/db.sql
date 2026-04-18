@@ -52,8 +52,8 @@ CREATE TABLE subscription_packages (
     price DECIMAL(10, 2),
     duration_hours INT,
     -- Thời hạn của gói tính bằng giờ
-    daily_poi_limit INT DEFAULT 1,
-    -- Maximum POIs a vendor can create per day
+    daily_poi_limit INT DEFAULT 0,
+    -- Maximum total POIs a vendor can own at one time
     is_Active BOOLEAN DEFAULT TRUE,
     description TEXT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -103,7 +103,7 @@ CREATE TABLE poi_knowledge_base (
 -- ============================================================================
 -- PERFORMANCE INDEXES
 -- ============================================================================
--- Index for daily POI count queries (critical for daily limit checks)
+-- Index for vendor POI ownership lookups
 CREATE INDEX idx_pois_owner_created ON pois(owner_id, created_at);
 -- Indexes for subscription lookups
 CREATE INDEX idx_vendor_subscriptions_user ON vendor_subscriptions(user_id, end_time);
@@ -131,7 +131,7 @@ SELECT 'FREE',
     999999,
     1,
     TRUE,
-    'Free tier subscription - 1 POI per day'
+    'Free tier subscription - maximum 1 POI'
 WHERE NOT EXISTS (
         SELECT 1
         FROM subscription_packages
@@ -145,7 +145,7 @@ SELECT 'BASIC',
     720,
     3,
     TRUE,
-    'Basic subscription - 3 POIs per day'
+    'Basic subscription - maximum 3 POIs'
 WHERE NOT EXISTS (
         SELECT 1
         FROM subscription_packages
@@ -157,9 +157,9 @@ SELECT 'VIP',
     'vendor',
     199000,
     720,
-    5,
+    10,
     TRUE,
-    'Premium subscription - 5 POIs per day'
+    'Premium subscription - maximum 10 POIs'
 WHERE NOT EXISTS (
         SELECT 1
         FROM subscription_packages
@@ -171,7 +171,7 @@ SELECT 'FREE_TOURIST',
     'tourist',
     0,
     999999,
-    999,
+    0,
     TRUE,
     'Free tier for tourists'
 WHERE NOT EXISTS (
@@ -180,49 +180,3 @@ WHERE NOT EXISTS (
         WHERE name = 'FREE_TOURIST'
             AND target_role = 'tourist'
     );
--- Insert default admin account (safe - prevents duplicates)
--- Password hash: bcrypt hash of 'admin123'
--- To update password, use: UPDATE users SET password = '$2b$12$NEW_HASH' WHERE email = 'admin@test.com';
-INSERT INTO users (
-        name,
-        email,
-        password,
-        phoneNumber,
-        role,
-        is_Blocked,
-        is_Deleted
-    )
-SELECT 'System Admin',
-    'admin@test.com',
-    '$2b$12$/wq4UkFfOWPpkFzhr/j.PO.kod0FwRanReLx59ZcDNELZM4EqXB/a',
-    '0900000001',
-    'admin',
-    FALSE,
-    FALSE
-WHERE NOT EXISTS (
-        SELECT 1
-        FROM users
-        WHERE email = 'admin@test.com'
-            AND role = 'admin'
-    );
-) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE tours (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    is_Active BOOLEAN DEFAULT TRUE,           -- TRUE: hiển thị cho Tourist
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE tour_points (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tour_id INT NOT NULL,
-    poi_id INT NOT NULL,
-    point_order INT NOT NULL,                 -- Thứ tự điểm dừng trong Tour
-    FOREIGN KEY (tour_id) REFERENCES tours(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
-    FOREIGN KEY (poi_id) REFERENCES pois(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE
-) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

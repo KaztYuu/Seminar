@@ -156,12 +156,15 @@ def _create_free_subscription(cursor, user_id: int, role: str):
         role: User role ('vendor' or 'tourist')
     """
     try:
+        free_package_name = "FREE_VENDOR" if role == "vendor" else "FREE_TOURIST"
+        free_poi_limit = 1 if role == "vendor" else 0
+
         # Get or create FREE subscription package for this role
         cursor.execute("""
             SELECT id FROM subscription_packages
-            WHERE target_role = %s AND price = 0 AND daily_poi_limit = 1
+            WHERE target_role = %s AND name = %s AND price = 0
             LIMIT 1
-        """, (role,))
+        """, (role, free_package_name))
         
         free_pkg = cursor.fetchone()
         
@@ -170,8 +173,8 @@ def _create_free_subscription(cursor, user_id: int, role: str):
             cursor.execute("""
                 INSERT INTO subscription_packages 
                 (name, target_role, price, duration_hours, daily_poi_limit, is_Active)
-                VALUES (%s, %s, 0, 999999, 1, TRUE)
-            """, (f"FREE - {role.capitalize()}", role))
+                VALUES (%s, %s, 0, 999999, %s, TRUE)
+            """, (free_package_name, role, free_poi_limit))
             free_pkg_id = cursor.lastrowid
         else:
             free_pkg_id = free_pkg['id']

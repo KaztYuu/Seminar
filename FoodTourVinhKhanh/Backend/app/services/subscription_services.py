@@ -60,6 +60,16 @@ def get_vendor_active_subscription(vendor_id: int):
         """
         cursor.execute(sql, (vendor_id,))
         subscription = cursor.fetchone()
+
+        if subscription:
+            package_name = (subscription.get("package_name") or "").upper()
+            if package_name in ["FREE", "FREE_VENDOR"]:
+                subscription["daily_poi_limit"] = 1
+            elif package_name == "BASIC":
+                subscription["daily_poi_limit"] = 3
+            elif package_name == "VIP":
+                subscription["daily_poi_limit"] = 10
+
         return subscription
     finally:
         cursor.close()

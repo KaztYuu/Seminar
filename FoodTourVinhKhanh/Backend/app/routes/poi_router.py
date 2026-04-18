@@ -114,19 +114,18 @@ async def create_poi_admin(data: POICreateAdmin, user=Depends(require_role("admi
 @router.post("/vendor/create")
 async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
     """
-    Create a new POI with daily limit enforcement based on subscription tier.
+    Create a new POI with total POI limit enforcement based on subscription tier.
     """
     
-    # Check if vendor can create another POI today
+    # Check if vendor can create another POI
     can_create = check_vendor_poi_limit(user["id"])
     
     if not can_create:
-        # Get quota details for error response
         quota = get_remaining_poi_quota(user["id"])
         raise HTTPException(
             status_code=429, 
             detail={
-                "message": "Bạn đã đạt giới hạn tối đa POI trong hôm nay",
+                "message": "Bạn đã đạt giới hạn tối đa số POI của gói hiện tại",
                 "daily_limit": quota['daily_limit'],
                 "today_created": quota['today_created'],
                 "remaining": 0
@@ -138,7 +137,6 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
         raise HTTPException(status_code=400, detail=message)
     invalidate_poi_cache()
     
-    # Return remaining quota in success response
     quota = get_remaining_poi_quota(user["id"])
     
     return {
@@ -146,6 +144,17 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
         "message": message, 
         "poi_id": poi_id,
         "quota": quota
+    }
+
+@router.get("/vendor/quota")
+def get_vendor_quota(user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
+    quota = get_remaining_poi_quota(user["id"])
+    quota["current_total"] = quota["today_created"]
+    quota["max_pois"] = quota["daily_limit"]
+
+    return {
+        "success": True,
+        "data": quota
     }
 
 @router.put("/admin/update/{poi_id}")

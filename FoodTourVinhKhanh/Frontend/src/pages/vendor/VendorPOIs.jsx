@@ -14,6 +14,7 @@ import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 
 const VendorPOIs = () => {
     const [pois, setPois] = useState([]);
+    const [quota, setQuota] = useState({ current_total: 0, max_pois: 1, remaining: 1 });
     const [loading, setLoading] = useState(true);
     const [isMapShowing, setIsMapShowing] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,6 +54,7 @@ const VendorPOIs = () => {
 
     useEffect(() => {
         fetchPOIs();
+        fetchQuota();
     }, []);
 
     const fetchPOIs = async (searchTxt="") => {
@@ -63,6 +65,17 @@ const VendorPOIs = () => {
             toast.error("Không thể tải danh sách địa điểm");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchQuota = async () => {
+        try {
+            const res = await api.get("/pois/vendor/quota");
+            if (res.data.success) {
+                setQuota(res.data.data);
+            }
+        } catch {
+            setQuota({ current_total: 0, max_pois: 1, remaining: 1 });
         }
     };
 
@@ -186,11 +199,12 @@ const VendorPOIs = () => {
                 toast.success("Thành công!");
                 handleCloseModal();
                 fetchPOIs();
+                fetchQuota();
             }
         } catch (err) {
             console.log("Chi tiết lỗi 422:", err.response?.data?.detail);
             const serverError = err.response?.data?.detail;
-            toast.error(typeof serverError === 'string' ? serverError : "Lỗi hệ thống!");
+            toast.error(typeof serverError === 'string' ? serverError : serverError?.message || "Lỗi hệ thống!");
         } finally {
             setLoading(false);
         }
@@ -260,13 +274,14 @@ const VendorPOIs = () => {
                     {/* Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h1 className="!text-4xl font-black text-gray-900 uppercase">Quản lý <span className="text-blue-600">Địa điểm</span> Của bạn ({pois.length}/3)</h1>
+                            <h1 className="!text-4xl font-black text-gray-900 uppercase">Quản lý <span className="text-blue-600">Địa điểm</span> Của bạn ({quota.current_total}/{quota.max_pois})</h1>
+                            <p className="mt-2 text-sm text-gray-500">Gói hiện tại còn có thể tạo thêm {quota.remaining} POI.</p>
                         </div>
                         <div className="space-x-5">
                             <Button onClick={() => setIsMapShowing(true)} className="shadow-lg">
                                 Bản đồ
                             </Button>
-                            <Button onClick={() => handleOpenModal()} className="shadow-lg">
+                            <Button onClick={() => handleOpenModal()} className="shadow-lg" disabled={quota.remaining <= 0}>
                                 <Plus size={12} className="mr-2" /> Thêm địa điểm mới
                             </Button>
                         </div>

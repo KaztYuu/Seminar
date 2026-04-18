@@ -7,20 +7,20 @@ from math import radians, sin, cos, sqrt, atan2
 
 def get_vendor_subscription_limit(vendor_id: int):
     """
-    Get the daily POI limit from vendor's active subscription.
-    Returns the daily_poi_limit from subscription_packages.
+    Get the maximum total POI limit from vendor's active subscription.
+    Returns the configured package limit.
     
     Args:
         vendor_id: The vendor user ID
         
     Returns:
-        int: The daily POI limit (default 1 for FREE tier)
+        int: The maximum total POI limit (default 1 for FREE tier)
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         sql = """
-            SELECT sp.daily_poi_limit
+            SELECT sp.daily_poi_limit, sp.name
             FROM vendor_subscriptions vs
             LEFT JOIN payments p ON vs.payment_id = p.id
             LEFT JOIN subscription_packages sp ON p.package_id = sp.id
@@ -32,7 +32,17 @@ def get_vendor_subscription_limit(vendor_id: int):
         cursor.execute(sql, (vendor_id,))
         result = cursor.fetchone()
         
-        # Default to 1 if no active subscription (FREE tier)
+        if not result:
+            return 1
+
+        package_name = (result.get("name") or "").upper()
+        if package_name in ["FREE", "FREE_VENDOR"]:
+            return 1
+        if package_name == "BASIC":
+            return 3
+        if package_name == "VIP":
+            return 10
+
         return result['daily_poi_limit'] if result else 1
     except Exception as e:
         print(f"Error fetching vendor subscription limit: {e}")
@@ -43,42 +53,40 @@ def get_vendor_subscription_limit(vendor_id: int):
 
 def check_vendor_poi_limit(vendor_id: int):
     """
-    Check if vendor can create another POI today.
+    Check if vendor can create another POI.
     
-    Fetches the daily limit from vendor's active subscription and counts
-    POIs created TODAY only (not total POIs).
+    Fetches the total POI limit from vendor's active subscription and counts
+    all non-deleted POIs currently owned by the vendor.
     
     Args:
         vendor_id: The vendor user ID
         
     Returns:
-        bool: True if vendor can create another POI today, False otherwise
+        bool: True if vendor can create another POI, False otherwise
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Get the daily limit from vendor's subscription
-        daily_limit = get_vendor_subscription_limit(vendor_id)
-        
-        # Count POIs created TODAY only
+        total_limit = get_vendor_subscription_limit(vendor_id)
+
+        # Count current active inventory, not daily creations
         cursor.execute("""
-            SELECT COUNT(*) as today_count 
+            SELECT COUNT(*) as total_count 
             FROM pois 
-            WHERE owner_id = %s AND DATE(created_at) = CURDATE()
+            WHERE owner_id = %s AND is_Deleted = FALSE
         """, (vendor_id,))
         
         result = cursor.fetchone()
-        today_count = result['today_count'] if result else 0
+        total_count = result['total_count'] if result else 0
         
-        # Can create if today's count is less than daily limit
-        return today_count < daily_limit
+        return total_count < total_limit
     finally:
         cursor.close()
         conn.close()
 
 def get_remaining_poi_quota(vendor_id: int):
     """
-    Get remaining POI creation quota for today.
+    Get remaining POI creation quota based on total POIs allowed by package.
     
     Args:
         vendor_id: The vendor user ID
@@ -93,24 +101,23 @@ def get_remaining_poi_quota(vendor_id: int):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Get daily limit from subscription
-        daily_limit = get_vendor_subscription_limit(vendor_id)
-        
-        # Count today's POIs
+        total_limit = get_vendor_subscription_limit(vendor_id)
+
+        # Count all current POIs
         cursor.execute("""
-            SELECT COUNT(*) as today_count
+            SELECT COUNT(*) as total_count
             FROM pois
-            WHERE owner_id = %s AND DATE(created_at) = CURDATE()
+            WHERE owner_id = %s AND is_Deleted = FALSE
         """, (vendor_id,))
         
         result = cursor.fetchone()
-        today_created = result['today_count'] if result else 0
-        
-        remaining = max(0, daily_limit - today_created)
+        total_created = result['total_count'] if result else 0
+
+        remaining = max(0, total_limit - total_created)
         
         return {
-            'daily_limit': daily_limit,
-            'today_created': today_created,
+            'daily_limit': total_limit,
+            'today_created': total_created,
             'remaining': remaining
         }
     finally:

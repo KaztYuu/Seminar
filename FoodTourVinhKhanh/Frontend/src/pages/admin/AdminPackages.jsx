@@ -26,6 +26,7 @@ const AdminPackages = () => {
     price: "",
     duration_hours: "",
     target_role: "vendor",
+    daily_poi_limit: 0,
     is_Active: true,
   };
 
@@ -53,10 +54,12 @@ const AdminPackages = () => {
   const validateForm = () => {
     const errors = {};
     if (!formData.name.trim()) errors.name = "Tên gói không được trống";
-    if (!formData.price || formData.price < 1000)
-      errors.price = "Giá phải ≥ 1000 VNĐ";
+    if (formData.price === "" || formData.price < 0)
+      errors.price = "Giá phải ≥ 0 VNĐ";
     if (!formData.duration_hours || formData.duration_hours <= 0)
       errors.duration_hours = "Thời hạn phải > 0";
+    if (formData.target_role === "vendor" && formData.daily_poi_limit <= 0)
+      errors.daily_poi_limit = "Vendor phải có giới hạn POI lớn hơn 0";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -91,6 +94,7 @@ const AdminPackages = () => {
       price: row.price,
       duration_hours: row.duration_hours,
       target_role: row.target_role,
+      daily_poi_limit: row.daily_poi_limit ?? 0,
       is_Active: row.is_Active,
     });
     setIsModalOpen(true);
@@ -182,6 +186,16 @@ const AdminPackages = () => {
       },
     },
     {
+      header: "Giới hạn POI",
+      render: (row) => (
+        <span className="text-sm font-semibold text-gray-700">
+          {row.target_role === "vendor"
+            ? `${row.daily_poi_limit} POI`
+            : "Không giới hạn POI"}
+        </span>
+      ),
+    },
+    {
       header: "Trạng thái",
       render: (row) => (
         <span
@@ -238,9 +252,6 @@ const AdminPackages = () => {
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">
               Quản Lý <span className="text-blue-600">Gói Dịch Vụ</span>
             </h1>
-            <p className="text-gray-500 mt-1">
-              Quản lý các gói dịch vụ cho vendor và tourist
-            </p>
           </div>
           <Button
             onClick={handleOpenAddModal}
@@ -252,15 +263,19 @@ const AdminPackages = () => {
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4">
-          <SearchBar
-            placeholder="Tìm kiếm gói..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="flex-1 bg-white/95 shadow-lg border-2 border-gray-400/80 rounded-2xl ring-1 ring-gray-300/60 p-1 hover:shadow-xl hover:border-gray-500 focus-within:shadow-2xl focus-within:border-blue-500 focus-within:ring-2 ring-blue-400/50">
+            <SearchBar
+              placeholder="Tìm kiếm gói..."
+              className="shadow-none border-0 ring-0 rounded-xl bg-white"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="px-4 py-2.5 bg-white shadow-sm border-2 border-gray-400 ring-1 ring-gray-300/50 rounded-2xl hover:shadow-md hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-900 [&_option]:bg-white [&_option]:text-gray-900 [&_optgroup]:bg-white [&_optgroup]:text-gray-900 min-w-[160px]">
             <option value="">Tất cả loại</option>
             <option value="vendor">👨‍💼 Vendor</option>
             <option value="tourist">👤 Tourist</option>
@@ -326,6 +341,20 @@ const AdminPackages = () => {
             disabled={loadingSave}
           />
 
+          <Input
+            label="Giới hạn tổng POI"
+            type="number"
+            value={formData.daily_poi_limit}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                daily_poi_limit: Number(e.target.value),
+              })
+            }
+            error={formErrors.daily_poi_limit}
+            disabled={loadingSave || formData.target_role === "tourist"}
+          />
+
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">
               Đối tượng áp dụng
@@ -333,10 +362,17 @@ const AdminPackages = () => {
             <select
               value={formData.target_role}
               onChange={(e) =>
-                setFormData({ ...formData, target_role: e.target.value })
+                setFormData({
+                  ...formData,
+                  target_role: e.target.value,
+                  daily_poi_limit:
+                    e.target.value === "tourist"
+                      ? 0
+                      : formData.daily_poi_limit || 1,
+                })
               }
               disabled={loadingSave}
-              className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 disabled:bg-gray-100">
+              className="px-4 py-2.5 bg-gray-50 shadow-sm border-2 border-gray-300 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 hover:border-gray-400 disabled:bg-gray-100 text-gray-900 [&_option]:bg-white [&_option]:text-gray-900 [&_optgroup]:bg-white [&_optgroup]:text-gray-900">
               <option value="vendor">👨‍💼 Vendor</option>
               <option value="tourist">👤 Tourist</option>
             </select>

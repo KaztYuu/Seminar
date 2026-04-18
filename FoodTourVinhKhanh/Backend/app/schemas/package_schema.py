@@ -11,8 +11,8 @@ class PackageBase(BaseModel):
     )
     price: float = Field(
         ..., 
-        gt=999, 
-        description="Giá gói (phải từ 1000 VNĐ trở lên)",
+        ge=0, 
+        description="Giá gói",
         examples=[50000]
     )
     duration_hours: int = Field(
@@ -25,6 +25,11 @@ class PackageBase(BaseModel):
         ..., 
         description="Đối tượng áp dụng gói"
     )
+    daily_poi_limit: int = Field(
+        0,
+        ge=0,
+        description="Giới hạn tổng số POI mà vendor được phép có"
+    )
     is_Active: bool = Field(True, description="Trạng thái kích hoạt")
 
 class PackageCreate(PackageBase):
@@ -32,9 +37,10 @@ class PackageCreate(PackageBase):
 
 class PackageUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=3, max_length=100)
-    price: Optional[float] = Field(None, gt=999)
+    price: Optional[float] = Field(None, ge=0)
     duration_hours: Optional[int] = Field(None, gt=0)
     target_role: Optional[Literal["vendor", "tourist"]] = None
+    daily_poi_limit: Optional[int] = Field(None, ge=0)
     is_Active: Optional[bool] = None
 
     class Config:

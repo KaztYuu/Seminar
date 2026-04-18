@@ -7,6 +7,7 @@ import api from "../utils/api";
 import toast from "react-hot-toast";
 import vnpayIcon from "../assets/vnpay-logo.png";
 import vietqrIcon from "../assets/vietqr-logo.png";
+import { useAuth } from "../context/AuthContext";
 
 const images = [
   "https://cdn-icons-png.flaticon.com/512/1165/1165629.png",
@@ -27,6 +28,7 @@ const PAYMENT_METHODS = [
 ];
 
 const SubscriptionPackage = () => {
+  const { user } = useAuth();
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -95,6 +97,8 @@ const SubscriptionPackage = () => {
     );
   }
 
+  const isTourist = user?.role === "tourist";
+
   return (
     <div className="min-h-screen w-screen bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-50 via-white to-gray-50 py-10 px-4">
       <div className="max-w-7xl mx-auto">
@@ -108,6 +112,19 @@ const SubscriptionPackage = () => {
           </p>
         </div>
 
+        {isTourist && (
+          <Card className="mb-8 border-blue-100 bg-blue-50/60">
+            <h2 className="text-2xl font-black text-gray-900">
+              Tài khoản du khách đang dùng gói Free
+            </h2>
+            <p className="mt-2 text-gray-600">
+              Hiện tại du khách được cấp sẵn gói miễn phí khi đăng ký và chưa có
+              gói nâng cấp trả phí.
+            </p>
+          </Card>
+        )}
+
+        {!isTourist && (
         <div className="relative px-12">
           <button
             onClick={prevSlide}
@@ -139,13 +156,7 @@ const SubscriptionPackage = () => {
                     {pkg.name}
                   </h3>
                   <div className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full mb-6">
-                    {pkg.duration_hours < 24
-                      ? `${pkg.duration_hours} giờ`
-                      : Math.floor(pkg.duration_hours / 24) +
-                        " ngày" +
-                        (pkg.duration_hours % 24 > 0
-                          ? ` ${pkg.duration_hours % 24} giờ`
-                          : "")}
+                    {pkg.name} · tối đa {pkg.daily_poi_limit} POI
                   </div>
                   <div className="mt-auto w-full text-center border-t pt-6">
                     <div className="mb-6">
@@ -162,9 +173,22 @@ const SubscriptionPackage = () => {
                     </Button>
                   </div>
                 </Card>
-              ))}
+            ))}
           </div>
         </div>
+        )}
+
+        {!isTourist && packages.length === 0 && (
+          <Card className="text-center">
+            <h3 className="text-xl font-black text-gray-900">
+              Chưa có gói nâng cấp khả dụng
+            </h3>
+            <p className="mt-2 text-gray-500">
+              Vendor hiện đang dùng gói Free mặc định. Khi admin mở gói Basic hoặc
+              VIP, chúng sẽ xuất hiện tại đây.
+            </p>
+          </Card>
+        )}
       </div>
 
       {/* --- POPUP CHỌN PHƯƠNG THỨC THANH TOÁN --- */}
