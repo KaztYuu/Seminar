@@ -9,7 +9,7 @@ const Table = ({ columns, data, className = "" }) => {
                 key={index} 
                 className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100"
               >
-                {col.header}
+                {col.header || col.label}
               </th>
             ))}
           </tr>
@@ -19,7 +19,7 @@ const Table = ({ columns, data, className = "" }) => {
             <tr key={i} className="group hover:bg-blue-50/30 transition-colors">
               {columns.map((col, j) => (
                 <td key={j} className="px-6 py-4 text-sm text-gray-600">
-                  {col.render ? col.render(row) : row[col.accessor]}
+                  {col.render ? col.render(row) : row[col.accessor || col.key]}
                 </td>
               ))}
             </tr>

@@ -47,7 +47,7 @@ const TouristExplore = () => {
     const [question, setQuestion] = useState("");
     const [displayQuestion, setDisplayQuestion] = useState("");
     const [aiResponse, setAiResponse] = useState("");
-    const [currentLang, setCurrentLang] = useState(localStorage.getItem('language').toLowerCase() || 'vi');
+    const [currentLang, setCurrentLang] = useState((localStorage.getItem('language') || 'vi').toLowerCase());
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null)

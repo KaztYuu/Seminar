@@ -33,8 +33,9 @@ CREATE TABLE poi_position (
     poi_id INT,
     latitude DOUBLE,
     longitude DOUBLE,
-    audio_range INT DEFAULT 30,
-    access_range INT DEFAULT 10,
+    range_meter INT,                  -- Phạm vi chung (legacy, không dùng nữa)
+    audio_range INT DEFAULT 30,       -- Bán kính (mét) kích hoạt phát thuyết minh
+    access_range INT DEFAULT 10,      -- Bán kính (mét) coi là đã đến POI
     FOREIGN KEY (poi_id) REFERENCES pois(id)
 		ON DELETE CASCADE
         ON UPDATE CASCADE
@@ -55,11 +56,12 @@ CREATE TABLE poi_localized_data (
 
 CREATE TABLE subscription_packages (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255), -- Ví dụ: "Gói du khách 1 ngày", "Gói chủ quán 1 tháng"
-    target_role ENUM('tourist', 'vendor'), -- Gói này dành cho ai
+    name VARCHAR(255),                         -- Ví dụ: "Gói du khách 1 ngày", "Gói chủ quán 1 tháng"
+    target_role ENUM('tourist', 'vendor'),     -- Gói này dành cho ai
     price DECIMAL(10,2),
-    duration_hours INT, -- Thời hạn của gói tính bằng giờ
-    is_Active BOOLEAN DEFAULT TRUE
+    duration_hours INT,                        -- Thời hạn của gói tính bằng giờ
+    is_Active BOOLEAN DEFAULT TRUE,
+    daily_poi_limit INT DEFAULT 1              -- Số POI tối đa Vendor được tạo mỗi ngày khi dùng gói này
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE payments (
@@ -110,7 +112,27 @@ CREATE TABLE vendor_subscriptions (
 CREATE TABLE poi_knowledge_base (
     id INT AUTO_INCREMENT PRIMARY KEY,
     poi_id INT,
-    category ENUM('menu', 'history', 'promotion', 'other'),
+    category ENUM('menu', 'history', 'promotion', 'other'), -- Loại nội dung dùng cho chatbot RAG
     content TEXT,
     FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE CASCADE
-) CHARSET=utf8mb4;
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE tours (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    is_Active BOOLEAN DEFAULT TRUE,           -- TRUE: hiển thị cho Tourist
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE tour_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tour_id INT NOT NULL,
+    poi_id INT NOT NULL,
+    point_order INT NOT NULL,                 -- Thứ tự điểm dừng trong Tour
+    FOREIGN KEY (tour_id) REFERENCES tours(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (poi_id) REFERENCES pois(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
