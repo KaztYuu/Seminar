@@ -360,13 +360,20 @@ const TouristMapPublic = () => {
                 >
                     {selectedPoi && (
                         <div className="flex h-full flex-col">
-                            <div className="border-b border-slate-200 px-5 py-4">
-                                <div className="flex items-start gap-3">
-                                    <div className="min-w-0 flex-1">
-                                        <h2 className="truncate text-[24px] font-semibold leading-tight text-slate-900">
+                            
+                            <div className="border-b border-slate-200 bg-white">
+                                <div className="relative h-48 overflow-hidden">
+                                    <img
+                                        src={`${API_URL}${selectedPoi.banner || ""}`}
+                                        alt={selectedPoi.name || "POI banner"}
+                                        className="h-full w-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/10 to-transparent" />
+                                    <div className="absolute bottom-4 left-5 right-5">
+                                        <h2 className="truncate text-[24px] font-semibold leading-tight text-white">
                                             {selectedPoi.name}
                                         </h2>
-                                        <p className="mt-2 text-sm text-slate-500">
+                                        <p className="mt-2 text-sm text-white/80">
                                             {selectedPoi.poi_type}
                                         </p>
                                     </div>
