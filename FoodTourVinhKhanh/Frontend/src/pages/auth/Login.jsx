@@ -90,6 +90,22 @@ function Login() {
           {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
 
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-[1px] bg-gray-400/30"></div>
+          <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">
+            Hoặc
+          </span>
+          <div className="flex-1 h-[1px] bg-gray-400/30"></div>
+        </div>
+
+        <Link to="/tourist-map">
+          <button
+            type="button"
+            className="w-full !text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95 bg-gray-600 hover:bg-gray-700 shadow-gray-600/30 flex items-center justify-center gap-2">
+            🗺️ Khám phá bản đồ với Tourist
+          </button>
+        </Link>
+
         <p className="mt-6 text-sm text-center text-gray-300">
           Chưa có tài khoản?
           <Link

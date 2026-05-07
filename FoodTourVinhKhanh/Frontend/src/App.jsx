@@ -13,6 +13,7 @@ import TouristProfile from "./pages/tourist/TouristProfile.jsx";
 import TourisTransactions from "./pages/tourist/TouristTransactions.jsx";
 import TouristExplore from "./pages/tourist/TouristExplore.jsx";
 import TouristTours from "./pages/tourist/TouristTours.jsx";
+import TouristMapPublic from "./pages/public/TouristMapPublic.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
 import POIAdminManager from "./pages/admin/AdminPOIs.jsx";
@@ -110,6 +111,8 @@ function App() {
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         <Route path="/chatbot" element={<TestRAG />} />
+
+        <Route path="/tourist-map" element={<TouristMapPublic />} />
       </Routes>
     </BrowserRouter>
   );

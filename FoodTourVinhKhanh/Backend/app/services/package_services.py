@@ -115,7 +115,22 @@ def updatePackage(package_id: int, data: dict):
 
     conn = get_db_connection()
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+        
+        # FEATURE 3: Check if subscription package is protected
+        cursor.execute("SELECT is_protected FROM subscription_packages WHERE id = %s", (package_id,))
+        pkg = cursor.fetchone()
+        
+        if not pkg:
+            return False
+        
+        # FEATURE 3: Reject update if package is protected
+        if pkg.get('is_protected', False):
+            raise HTTPException(
+                status_code=403, 
+                detail="Cannot update protected subscription package"
+            )
+        
         set_clause = ", ".join([f"{key} = %s" for key in data.keys()])
         params = list(data.values())
         params.append(package_id)
@@ -126,6 +141,8 @@ def updatePackage(package_id: int, data: dict):
         conn.commit()
         
         return cursor.rowcount > 0
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi cập nhật: {str(e)}")
@@ -136,13 +153,30 @@ def updatePackage(package_id: int, data: dict):
 def deletePackage(package_id: int):
     conn = get_db_connection()
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+        
+        # FEATURE 3: Check if subscription package is protected
+        cursor.execute("SELECT is_protected FROM subscription_packages WHERE id = %s", (package_id,))
+        pkg = cursor.fetchone()
+        
+        if not pkg:
+            return False
+        
+        # FEATURE 3: Reject delete if package is protected
+        if pkg.get('is_protected', False):
+            raise HTTPException(
+                status_code=403, 
+                detail="Cannot delete protected subscription package"
+            )
+        
         cursor.execute("DELETE FROM subscription_packages WHERE id = %s", (package_id,))
         conn.commit()
         return cursor.rowcount > 0
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Lỗi xóa gói: {str(e)}")
+        raise HTTPException(status_code=400, detail="Không thể xóa gói này vì đang có dữ liệu liên quan!")
     finally:
         cursor.close()
         conn.close()

@@ -149,6 +149,7 @@ def createUser(user):
 def _create_free_subscription(cursor, user_id: int, role: str):
     """
     Create a FREE subscription for a new user.
+    FEATURE 3: Uses is_default=true and is_protected=true flags.
     
     Args:
         cursor: Database cursor
@@ -156,25 +157,22 @@ def _create_free_subscription(cursor, user_id: int, role: str):
         role: User role ('vendor' or 'tourist')
     """
     try:
-        free_package_name = "FREE_VENDOR" if role == "vendor" else "FREE_TOURIST"
-        free_poi_limit = 1 if role == "vendor" else 0
-
-        # Get or create FREE subscription package for this role
+        # FEATURE 3: Get or create DEFAULT FREE subscription package for this role
         cursor.execute("""
             SELECT id FROM subscription_packages
-            WHERE target_role = %s AND name = %s AND price = 0
+            WHERE target_role = %s AND price = 0 AND is_default = TRUE AND is_protected = TRUE
             LIMIT 1
         """, (role, free_package_name))
         
         free_pkg = cursor.fetchone()
         
         if not free_pkg:
-            # Create FREE package if it doesn't exist
+            # FEATURE 3: Create DEFAULT, PROTECTED FREE package if it doesn't exist
             cursor.execute("""
                 INSERT INTO subscription_packages 
-                (name, target_role, price, duration_hours, daily_poi_limit, is_Active)
-                VALUES (%s, %s, 0, 999999, %s, TRUE)
-            """, (free_package_name, role, free_poi_limit))
+                (name, target_role, price, duration_hours, daily_poi_limit, is_Active, is_default, is_protected)
+                VALUES (%s, %s, 0, 999999, 1, TRUE, TRUE, TRUE)
+            """, (f"FREE - {role.capitalize()}", role))
             free_pkg_id = cursor.lastrowid
         else:
             free_pkg_id = free_pkg['id']

@@ -10,54 +10,67 @@ from app.routes.user_router import router as user_router
 from app.routes.poi_router import router as poi_router
 from app.routes.tour_router import router as tour_router
 from fastapi.staticfiles import StaticFiles
-
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+import time
+from collections import defaultdict
+from fastapi.requests import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI()
 
-# Add startup event
-@app.on_event("startup")
-async def startup_event():
-    """Check dependencies on startup"""
-    logger.info("="*50)
-    logger.info("🚀 Application starting...")
-    logger.info("="*50)
+# FIX P0-4: Simple in-memory rate limiting
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    FIX P0-4: Rate limiting to prevent brute force attacks.
+    Limits: 100 requests per minute per IP for sensitive endpoints.
+    """
+    def __init__(self, app):
+        super().__init__(app)
+        self.request_counts = defaultdict(list)
+        self.sensitive_endpoints = [
+            "/auth/login",
+            "/auth/signup",
+            "/pois/vendor/create",
+            "/tours/admin/create"
+        ]
     
-    # Check Redis
-    try:
-        from app.services.redis_services import get_redis_status
-        redis_status = get_redis_status()
-        if redis_status["available"]:
-            logger.info(f"✅ Redis: Connected ({redis_status['host']}:{redis_status['port']})")
-        else:
-            logger.warning("⚠️  Redis: Unavailable (using database fallback)")
-    except Exception as e:
-        logger.warning(f"⚠️  Redis check failed: {str(e)}")
-    
-    # Check Database
-    try:
-        from app.database import get_db_connection
-        conn = get_db_connection()
-        if conn.is_connected():
-            logger.info("✅ Database: Connected")
-            conn.close()
-        else:
-            logger.error("❌ Database: Connection failed")
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {str(e)}")
-    
-    logger.info("="*50)
-    logger.info("Backend API is ready!")
-    logger.info("="*50)
+    async def dispatch(self, request: Request, call_next):
+        # Only rate limit sensitive endpoints
+        if any(request.url.path.startswith(ep) for ep in self.sensitive_endpoints):
+            client_ip = request.client.host if request.client else "unknown"
+            key = f"{client_ip}:{request.url.path}"
+            
+            now = time.time()
+            # Remove requests older than 1 minute
+            self.request_counts[key] = [
+                req_time for req_time in self.request_counts[key]
+                if now - req_time < 60
+            ]
+            
+            # Check if exceeded rate limit (100 per minute)
+            if len(self.request_counts[key]) >= 100:
+                return {
+                    "success": False,
+                    "detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+                    "status": 429
+                }
+            
+            self.request_counts[key].append(now)
+        
+        response = await call_next(request)
+        return response
+
+app.add_middleware(RateLimitMiddleware)
+
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://seminar-murex.vercel.app", # Domain frontend ngrok
+    "*" # Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

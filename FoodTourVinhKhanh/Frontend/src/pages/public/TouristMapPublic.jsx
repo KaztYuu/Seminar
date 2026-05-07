@@ -98,7 +98,8 @@ const TouristMapPublic = () => {
         try {
             const res = await api.get(`/pois/get-pois?search=${searchTxt}`);
             if (res.data.success) setPois(res.data.data);
-        } catch (err) {
+        } catch (error) {
+            console.error(error);
             toast.error("Không thể tải danh sách địa điểm");
         } finally {
             setLoading(false);

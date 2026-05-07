@@ -7,10 +7,38 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies & Build
 node_modules
 dist
 dist-ssr
 *.local
+
+# --- PHẦN BỔ SUNG QUAN TRỌNG ---
+
+# Environment Variables (Bảo mật)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Loại bỏ file cấu hình ngrok nếu bạn vô tình để trong project
+ngrok.yml
+
+# BLOB & Large Files (Dữ liệu lớn/Hình ảnh/Database)
+*.exe
+*.bin
+*.blob
+*.dat
+*.db
+*.sqlite
+# Thư mục chứa ảnh upload từ người dùng (trong dự án Food Street của bạn)
+uploads/
+# Các định dạng media lớn
+*.mp4
+*.zip
+*.tar.gz
+
+# --- KẾT THÚC PHẦN BỔ SUNG ---
 
 # Editor directories and files
 .vscode/*

@@ -1,43 +1,19 @@
 import redis
 import json
-import os
 import logging
 from datetime import datetime
 from decimal import Decimal
-from dotenv import load_dotenv
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Redis configuration
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+redis_client = redis.Redis(
+    host="localhost",
+    port=6379,
+    decode_responses=True
+)
 
-# Initialize Redis connection
-try:
-    redis_client = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        decode_responses=True,
-        socket_connect_timeout=5,
-        socket_keepalive=True
-    )
-    # Test connection
-    redis_client.ping()
-    logger.info(f"✅ Redis connected: {REDIS_HOST}:{REDIS_PORT}")
-    REDIS_AVAILABLE = True
-except Exception as e:
-    logger.warning(f"⚠️  Redis connection failed: {str(e)}")
-    logger.warning("Cache functions will return None and use database fallback")
-    redis_client = None
-    REDIS_AVAILABLE = False
-
-# Session & Cache expiration (in seconds)
-SESSION_EXPIRE = 900  # 15 phút
-# Development: 5 phút, Production: 1 giờ
-DEFAULT_CACHE_EXPIRE = 300 if ENVIRONMENT == "development" else 3600
+SESSION_EXPIRE = 900 # 15 phút
+DEFAULT_CACHE_EXPIRE = 3600 # 1 tiếng
 
 #Session phiên đăng nhập
 def set_session(session_id, user_data):
@@ -227,11 +203,24 @@ def invalidate_poi_cache(poi_id=None):
     if poi_id:
         delete_cache_by_pattern(f"poi_detail:{poi_id}:*")
 
-def get_redis_status():
-    """Kiểm tra trạng thái Redis"""
-    return {
-        "available": REDIS_AVAILABLE,
-        "host": REDIS_HOST,
-        "port": REDIS_PORT,
-        "environment": ENVIRONMENT
-    }
+def count_active_sessions():
+
+    try:
+        keys = redis_client.keys("session:*")
+        active_user_ids = set()
+
+        for key in keys:
+            data = redis_client.get(key)
+            if not data:
+                continue
+
+            session_data = json.loads(data)
+            user_id = session_data.get("id")
+
+            if user_id is not None:
+                active_user_ids.add(user_id)
+
+        return len(active_user_ids)
+    except Exception as e:
+        logger.error(f"Error counting active sessions: {str(e)}")
+        return None

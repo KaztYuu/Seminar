@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
 from app.services.poi_services import (
-    getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, activate_poi_single,
+    getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois,
     check_vendor_poi_limit, getPOIData, get_remaining_poi_quota,
-    get_vendor_subscription_limit, get_nearby_pois
+    get_vendor_subscription_limit, get_nearby_pois, getMapData
 )
 from app.services.redis_services import get_cache, set_cache, invalidate_poi_cache
 from app.services.gemini_services import gemini_service
-from app.dependencies.auth import require_role
-from app.dependencies.subscription import verify_active_subscription
+from app.dependencies.auth import require_role, get_current_user
+from app.dependencies.subscription import verify_active_subscription, verify_read_access, verify_read_access_public
 from typing import Optional
 import logging
 
@@ -29,35 +29,71 @@ def api_activate_pois_bulk(user=Depends(require_role("admin"))):
     return {
         "success": True,
         "message": message
-    } 
-
-@router.put("/admin/approve/{poi_id}")
-def approve_single_poi(poi_id: int, user=Depends(require_role("admin"))):
-    """Duyệt một POI riêng lẻ"""
-    success, message = activate_poi_single(poi_id)
-
-    if not success:
-        raise HTTPException(
-            status_code=400 if "đã được duyệt" in message else 404,
-            detail=message
-        )
-    
-    invalidate_poi_cache()
-    return {
-        "success": True,
-        "message": message,
-        "poi_id": poi_id
     }
 
+# FEATURE 1: MAP API - Single endpoint with multiple scopes
+@router.get("/map")
+def api_get_pois_map(
+    scope: str = "all",
+    x_language_code: Optional[str] = Header(None),
+    user: Optional[dict] = Depends(get_current_user)
+):
+    """
+    FEATURE 1: Map API endpoint for POI visualization.
+    
+    Query Parameters:
+    - scope: "all" (public map, no subscription required) or "vendor" (vendor's own POIs)
+    
+    Behavior:
+    - scope="all": Returns approved POIs (accessible by anyone)
+    - scope="vendor": Returns all vendor's POIs including pending/rejected (vendor only)
+    
+    No subscription check on this endpoint.
+    """
+    if scope not in ["all", "vendor"]:
+        raise HTTPException(status_code=400, detail="Invalid scope. Use 'all' or 'vendor'")
+    
+    lang = x_language_code or "vi"
+    
+    # FEATURE 1: Cache key includes scope and user role
+    cache_key = f"map_pois:{scope}:{lang}"
+    if scope == "vendor" and user:
+        cache_key += f":{user['id']}"
+    
+    # Try cache
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        return {
+            "success": True,
+            "data": cached_data,
+            "source": "cache"
+        }
+    
+    # Get map data
+    try:
+        map_data = getMapData(user, scope, lang)
+        set_cache(cache_key, map_data)
+        
+        return {
+            "success": True,
+            "data": map_data,
+            "source": "database"
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/get-pois")
-def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", user=Depends(verify_active_subscription)):
+def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", user=Depends(verify_read_access_public)):
     lang = x_language_code or "vi"
     cache_key = f"all_pois:{user['role']}:{lang}:{search}"
     if user["role"] == "vendor":
         cache_key += f":{user['id']}"
-    
+
     cached_pois = get_cache(cache_key)
-    
+
     if cached_pois:
         logger.info(f"📦 Cache HIT: {cache_key} (User: {user['id']}, Role: {user['role']})")
         return {
@@ -78,7 +114,7 @@ def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", us
     }
 
 @router.get("/get-poi-by-id/{poi_id}")
-def get_poi_by_id(poi_id: int, x_language_code: Optional[str] = Header(None), user=Depends(verify_active_subscription)):
+def get_poi_by_id(poi_id: int, x_language_code: Optional[str] = Header(None), user=Depends(verify_read_access_public)):
     lang = x_language_code or "vi"
 
     cache_key = f"poi_detail:{poi_id}:{lang}"
@@ -91,10 +127,10 @@ def get_poi_by_id(poi_id: int, x_language_code: Optional[str] = Header(None), us
 
     if not poi:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail="Không tìm thấy POI hoặc bạn không có quyền truy cập"
         )
-    
+
     set_cache(cache_key, poi)
 
     return {
@@ -114,18 +150,21 @@ async def create_poi_admin(data: POICreateAdmin, user=Depends(require_role("admi
 @router.post("/vendor/create")
 async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
     """
-    Create a new POI with total POI limit enforcement based on subscription tier.
+    FEATURE 2: Create a new POI with quota check based on subscription tier.
+    Vendor can only create up to their daily POI limit.
     """
     
-    # Check if vendor can create another POI
+    # FEATURE 2: Check if vendor can create another POI today
     can_create = check_vendor_poi_limit(user["id"])
     
     if not can_create:
+        # FEATURE 2: Return quota exceeded error
         quota = get_remaining_poi_quota(user["id"])
         raise HTTPException(
             status_code=429, 
             detail={
-                "message": "Bạn đã đạt giới hạn tối đa số POI của gói hiện tại",
+                "message": "POI quota exceeded. Please upgrade subscription.",
+                "errorCode": "QUOTA_EXCEEDED",
                 "daily_limit": quota['daily_limit'],
                 "today_created": quota['today_created'],
                 "remaining": 0
