@@ -1,511 +1,172 @@
-# Implementation Change Log — POI Management & Map Explore
+# Change Log — Database Alignment
 
-**Project:** FoodTourVinhKhanh
-**Scope:** POI Management, Map Explore, Subscription Integration
-**Purpose:** Ghi lại các thay đổi so với hệ thống ban đầu mà Codex đã thực hiện, thể hiện rõ:
-
-* Hàm nào đã được chỉnh sửa
-* Dòng logic nào thay đổi
-* Vai trò của từng thay đổi
-* Ảnh hưởng tới sequence diagram và business rule
+**Project:** FoodTourVinhKhanh  
+**Scope:** `FoodTourVinhKhanh/Backend/config/db/db.sql`  
+**Purpose:** Ghi lại các thay đổi đã được cập nhật trực tiếp trong file `db.sql` để đồng bộ schema và seed với nghiệp vụ hiện tại của project.
 
 ---
 
-# 1. Tổng quan thay đổi chính
+# 1. Tổng quan
 
-| Module          | Trạng thái trước  | Trạng thái sau                  | Mục tiêu               |
-| --------------- | ----------------- | ------------------------------- | ---------------------- |
-| POI Daily Limit | Hardcode limit    | Dynamic limit theo subscription | Đúng business rule     |
-| Subscription    | Không auto assign | Auto FREE subscription          | Đảm bảo logic khởi tạo |
-| Map Explore     | Chỉ list POI      | Nearby search theo radius       | Hỗ trợ sequence Map    |
-| Quota Tracking  | Không tồn tại     | Có remaining quota              | Hiển thị dashboard     |
+Các thay đổi được áp dụng theo nguyên tắc:
+
+* Minimal change
+* Không dùng migration
+* Chỉ chỉnh trực tiếp `db.sql`
+* Không refactor kiến trúc hiện tại
+* Không mở rộng phạm vi sang module không liên quan
 
 ---
 
-# 2. Database Changes
+# 2. Subscription Architecture
 
-## File
+## Trạng thái hiện tại
+
+Hệ thống chỉ còn subscription cho **Vendor**.
+
+Luồng quan hệ được giữ nguyên:
 
 ```text
-Backend/migrations/add_daily_poi_limit.sql
+vendor_subscriptions
+→ payment_id
+→ payments.package_id
+→ subscription_packages
 ```
 
-## Thay đổi
+## Thay đổi đã áp dụng
 
-### BEFORE
+* Xóa hoàn toàn bảng `tourist_subscriptions`
+* Giữ nguyên bảng `vendor_subscriptions`
+* Không thêm `package_id` vào `vendor_subscriptions`
+* Giữ `payments.package_id` là điểm nối tới `subscription_packages`
+
+---
+
+# 3. Subscription Packages
+
+## Thay đổi schema
+
+Trong bảng `subscription_packages`:
+
+* Xóa cột `target_role`
+* Giữ package chỉ dành cho Vendor
+* Thêm và giữ:
 
 ```sql
-CREATE TABLE subscription_packages (
-    id INT PRIMARY KEY,
-    name VARCHAR(255),
-    price DECIMAL
-);
+poi_create_limit INT DEFAULT 1
+is_default BOOLEAN DEFAULT FALSE
+is_protected BOOLEAN DEFAULT FALSE
 ```
 
-### AFTER
+## Comment quota chuẩn
 
 ```sql
-ALTER TABLE subscription_packages
-ADD COLUMN daily_poi_limit INT DEFAULT 1;
-```
-
-## Vai trò
-
-```text
-Cho phép mỗi subscription định nghĩa số POI tối đa mỗi ngày
-```
-
-## Ảnh hưởng
-
-```text
-Subscription trở thành nguồn dữ liệu quyết định limit
+-- FEATURE 2
+-- Số POI tối đa Vendor được tạo trong 1 ngày
 ```
 
 ---
 
-# 3. POI Service — Daily Limit Logic
+# 4. Quota Logic
 
-## File
+Ý nghĩa hiện tại của `poi_create_limit`:
 
 ```text
-Backend/app/services/poi_services.py
+Số POI tối đa Vendor được tạo trong 1 ngày
 ```
+
+Không còn dùng tên cũ:
+
+* `daily_poi_limit`
+* `daily_poi_create_limit`
 
 ---
 
-## Change 1 — Fix Daily Count Logic
+# 5. POI Status
 
-### BEFORE
+Trong bảng `pois` đã giữ:
 
-```python
-count_query = """
-SELECT COUNT(*)
-FROM pois
-WHERE owner_id = %s
-"""
+```sql
+status ENUM('approved', 'pending', 'rejected') NOT NULL DEFAULT 'pending'
 ```
 
-### AFTER
-
-```python
-count_query = """
-SELECT COUNT(*)
-FROM pois
-WHERE owner_id = %s
-AND DATE(created_at) = CURRENT_DATE
-"""
-```
-
-## Vai trò
+Seed POI đang hoạt động đã được đồng bộ:
 
 ```text
-Đếm số POI trong ngày thay vì tổng số POI
+is_Active = 1  → status = 'approved'
 ```
 
-## Business Rule
+Đồng thời vẫn giữ nguyên:
 
-```text
-Vendor chỉ được tạo X POI mỗi ngày
-```
+* `is_Active`
+* `is_Deleted`
+
+để đảm bảo backward compatibility.
 
 ---
 
-## Change 2 — Replace Hardcoded Limit
+# 6. Seed Data
 
-### BEFORE
+## Users
 
-```python
-limit = 3
-```
+Seed user đã được rút gọn còn 3 tài khoản:
 
-### AFTER
+* `admin@test.com`
+* `vendor1@test.com`
+* `vendor2@test.com`
 
-```python
-limit = subscription.daily_poi_limit
-```
+## Subscription Packages
 
-## Vai trò
+Chỉ còn package cho Vendor:
 
-```text
-Lấy limit động từ subscription
-```
+* `FREE - Vendor`
+* `Basic Vendor`
+* `Pro Vendor`
 
----
+Đã xóa hoàn toàn:
 
-# 4. New Function — Validate Daily Limit
+* `FREE - Tourist`
 
-## File
+## Default / Protected
 
-```text
-poi_services.py
-```
+FREE package:
 
-## Function
+* `is_default = TRUE`
+* `is_protected = TRUE`
 
-```python
-def validate_daily_poi_limit(vendor_id):
+Paid package:
 
-    subscription = get_vendor_subscription(vendor_id)
+* `is_default = FALSE`
+* `is_protected = FALSE`
 
-    today_count = get_today_poi_count(vendor_id)
+## Vendor Subscriptions
 
-    limit = subscription.daily_poi_limit
+Seed `vendor_subscriptions` hiện gán mặc định cho:
 
-    if today_count >= limit:
-
-        raise Exception("Daily POI limit reached")
-```
-
-## Vai trò
-
-```text
-Ngăn vendor tạo POI vượt quá quota
-```
-
-## Sequence Impact
-
-```text
-Create POI
-→ Check subscription
-→ Check daily limit
-→ Allow / Reject
-```
+* `vendor1`
+* `vendor2`
 
 ---
 
-# 5. New Function — Remaining Quota
+# 7. Kết quả cuối cùng
 
-## File
+File `db.sql` hiện đã đồng bộ theo nghiệp vụ mới:
 
-```text
-poi_services.py
-```
-
-## Function
-
-```python
-def get_remaining_poi_quota(vendor_id):
-
-    subscription = get_vendor_subscription(vendor_id)
-
-    today_count = get_today_poi_count(vendor_id)
-
-    remaining = subscription.daily_poi_limit - today_count
-
-    return {
-        "daily_limit": subscription.daily_poi_limit,
-        "today_created": today_count,
-        "remaining": remaining
-    }
-```
-
-## Vai trò
-
-```text
-Cho phép dashboard hiển thị số POI còn lại trong ngày
-```
+* Vendor-only subscription
+* Không còn tourist subscription schema
+* Không còn tourist package seed
+* Không còn `target_role`
+* Không còn quota field cũ
+* Có `poi_create_limit`
+* Có `is_default` và `is_protected`
+* Có `pois.status`
+* Seed và schema khớp nhau trong cùng file
 
 ---
 
-# 6. Subscription Service — Fetch Limit Logic
-
-## File
+# 8. Files Affected
 
 ```text
-Backend/app/services/subscription_services.py
-```
-
-## Change — Correct Subscription Join
-
-### BEFORE
-
-```python
-SELECT daily_poi_limit
-FROM subscription_packages
-WHERE vendor_id = %s
-```
-
-### AFTER
-
-```python
-SELECT sp.daily_poi_limit
-FROM subscription_packages sp
-JOIN payments p
-ON sp.id = p.package_id
-WHERE p.vendor_id = %s
-ORDER BY p.created_at DESC
-LIMIT 1
-```
-
-## Vai trò
-
-```text
-Lấy subscription hiện tại đúng theo payment mới nhất
-```
-
----
-
-# 7. Auth Service — Auto FREE Subscription
-
-## File
-
-```text
-Backend/app/services/auth_services.py
-```
-
----
-
-## Change — Create FREE Subscription After Register
-
-### BEFORE
-
-```python
-create_user(user_data)
-
-return success
-```
-
-### AFTER
-
-```python
-create_user(user_data)
-
-create_subscription(
-    user_id=user.id,
-    package="FREE",
-    daily_poi_limit=1
-)
-
-return success
-```
-
-## Vai trò
-
-```text
-Đảm bảo mọi user đều có subscription
-```
-
-## Sequence Impact
-
-```text
-Register
-→ Create user
-→ Assign FREE subscription
-```
-
----
-
-# 8. Router — POI Creation Endpoint Update
-
-## File
-
-```text
-Backend/app/routes/poi_router.py
-```
-
----
-
-## Change — Enforce Daily Limit
-
-### BEFORE
-
-```python
-create_poi(data)
-
-return success
-```
-
-### AFTER
-
-```python
-validate_daily_poi_limit(vendor_id)
-
-create_poi(data)
-
-return quota_info
-```
-
-## Vai trò
-
-```text
-Đảm bảo validation chạy trước khi tạo POI
-```
-
----
-
-# 9. Map Explore — Nearby Search
-
-## File
-
-```text
-poi_services.py
-```
-
----
-
-## New Function — Nearby Search
-
-```python
-def get_nearby_pois(latitude, longitude, radius):
-
-    query = """
-    SELECT *,
-    calculate_distance(latitude, longitude, %s, %s) AS distance
-    FROM pois
-    HAVING distance <= %s
-    ORDER BY distance
-    """
-```
-
-## Vai trò
-
-```text
-Trả về POI gần vị trí người dùng
-```
-
-## Sequence Impact
-
-```text
-User
-→ Search nearby POI
-→ Calculate distance
-→ Filter by radius
-→ Return result
-```
-
----
-
-# 10. Router — New API Endpoint
-
-## File
-
-```text
-poi_router.py
-```
-
----
-
-## New Endpoint
-
-```python
-GET /pois/nearby
-```
-
-## Parameters
-
-```text
-latitude
-longitude
-radius
-```
-
-## Example
-
-```http
-GET /pois/nearby?latitude=10.76&longitude=106.66&radius=5
-```
-
-## Vai trò
-
-```text
-Cho phép Map Explore tìm POI theo khoảng cách
-```
-
----
-
-# 11. Business Rule — Before vs After
-
-## BEFORE
-
-```text
-Vendor
-→ Create POI
-→ Save POI
-```
-
----
-
-## AFTER
-
-```text
-Vendor
-→ Create POI
-→ Check subscription
-→ Get daily limit
-→ Count today's POI
-→ Compare
-→ Save POI
-```
-
----
-
-# 12. Sequence Diagram Impact Summary
-
-## Create POI
-
-```text
-Vendor
-   ↓
-API
-   ↓
-Validate subscription
-   ↓
-Check daily limit
-   ↓
-Save POI
-```
-
----
-
-## Register
-
-```text
-User
-   ↓
-Register
-   ↓
-Create user
-   ↓
-Assign FREE subscription
-```
-
----
-
-## Map Explore
-
-```text
-User
-   ↓
-Search nearby POI
-   ↓
-Calculate distance
-   ↓
-Filter by radius
-   ↓
-Return POI list
-```
-
----
-
-# 13. Risk Checklist
-
-Trước khi demo hoặc nộp:
-
-```text
-created_at tồn tại trong table pois
-subscription_packages có daily_poi_limit
-FREE subscription tồn tại
-server timezone đúng
-```
-
----
-
-# 14. Final Status
-
-```text
-POI Daily Limit: IMPLEMENTED
-Subscription Integration: IMPLEMENTED
-Map Explore Nearby Search: IMPLEMENTED
-Sequence Diagram Support: READY
-System Integration Risk: LOW
+FoodTourVinhKhanh/Backend/config/db/db.sql
+changes.md
 ```

@@ -4,6 +4,67 @@ from app.services.image_services import image_service
 from app.services.audio_services import audio_service
 from datetime import datetime, date
 from math import radians, sin, cos, sqrt, atan2
+from fastapi import HTTPException
+
+# FEATURE 1: MAP API - Get map data with scope support
+def getMapData(user, scope: str = "all", lang: str = "vi"):
+    """
+    FEATURE 1: Map API - Return POIs for map visualization.
+    
+    Args:
+        user: Current authenticated user
+        scope: "all" (public map) or "vendor" (vendor's own POIs)
+        lang: Language code for localized data
+        
+    Returns:
+        list: POI data with location info (latitude, longitude, etc.)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # FEATURE 1: Base query returns: id, owner_id, status, coordinates, name
+        query = """
+            SELECT DISTINCT 
+                p.id, p.owner_id, p.status, p.thumbnail, p.banner,
+                pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
+                ld.name, ld.description,
+                u.name as vendor_name, u.role
+            FROM pois p
+            LEFT JOIN poi_position pos ON p.id = pos.poi_id
+            LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
+            LEFT JOIN users u ON p.owner_id = u.id
+            WHERE p.is_Deleted = FALSE
+        """
+        params = [lang]
+        
+        # FEATURE 1: Handle different scopes
+        if scope == "vendor":
+            # Vendor scope: Only vendor can see, returns all their POIs (approved, pending, rejected)
+            if user["role"] != "vendor":
+                raise HTTPException(status_code=403, detail="Only vendors can access vendor scope map")
+            query += " AND p.owner_id = %s"
+            params.append(user["id"])
+        else:
+            # "all" scope: Public map - return only approved POIs
+            query += " AND p.status = 'approved'"
+        
+        query += " ORDER BY p.created_at DESC"
+        
+        cursor.execute(query, params)
+        pois = cursor.fetchall()
+        
+        return pois
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching map data: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
 
 def get_vendor_subscription_limit(vendor_id: int):
     """
@@ -43,74 +104,74 @@ def get_vendor_subscription_limit(vendor_id: int):
 
 def check_vendor_poi_limit(vendor_id: int):
     """
-    Check if vendor can create another POI today.
+    Check if vendor can create another POI.
     
-    Fetches the daily limit from vendor's active subscription and counts
-    POIs created TODAY only (not total POIs).
+    Fetches the max POI limit from vendor's active subscription and counts
+    TOTAL active POIs (not daily).
     
     Args:
         vendor_id: The vendor user ID
         
     Returns:
-        bool: True if vendor can create another POI today, False otherwise
+        bool: True if vendor can create another POI, False if limit reached
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Get the daily limit from vendor's subscription
-        daily_limit = get_vendor_subscription_limit(vendor_id)
+        # Get the max POI limit from vendor's subscription
+        max_pois = get_vendor_subscription_limit(vendor_id)
         
-        # Count POIs created TODAY only
+        # Count TOTAL active POIs (not daily)
         cursor.execute("""
-            SELECT COUNT(*) as today_count 
+            SELECT COUNT(*) as total_count 
             FROM pois 
-            WHERE owner_id = %s AND DATE(created_at) = CURDATE()
+            WHERE owner_id = %s AND is_Deleted = FALSE
         """, (vendor_id,))
         
         result = cursor.fetchone()
-        today_count = result['today_count'] if result else 0
+        total_count = result['total_count'] if result else 0
         
-        # Can create if today's count is less than daily limit
-        return today_count < daily_limit
+        # Can create if total count is less than max limit
+        return total_count < max_pois
     finally:
         cursor.close()
         conn.close()
 
 def get_remaining_poi_quota(vendor_id: int):
     """
-    Get remaining POI creation quota for today.
+    Get remaining POI creation quota (based on total POI limit, not daily).
     
     Args:
         vendor_id: The vendor user ID
         
     Returns:
         dict: {
-            'daily_limit': int,
-            'today_created': int,
+            'max_pois': int,
+            'total_count': int,
             'remaining': int
         }
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Get daily limit from subscription
-        daily_limit = get_vendor_subscription_limit(vendor_id)
+        # Get max POI limit from subscription
+        max_pois = get_vendor_subscription_limit(vendor_id)
         
-        # Count today's POIs
+        # Count TOTAL active POIs
         cursor.execute("""
-            SELECT COUNT(*) as today_count
+            SELECT COUNT(*) as total_count
             FROM pois
-            WHERE owner_id = %s AND DATE(created_at) = CURDATE()
+            WHERE owner_id = %s AND is_Deleted = FALSE
         """, (vendor_id,))
         
         result = cursor.fetchone()
-        today_created = result['today_count'] if result else 0
+        total_count = result['total_count'] if result else 0
         
-        remaining = max(0, daily_limit - today_created)
+        remaining = max(0, max_pois - total_count)
         
         return {
-            'daily_limit': daily_limit,
-            'today_created': today_created,
+            'max_pois': max_pois,
+            'total_count': total_count,
             'remaining': remaining
         }
     finally:
@@ -490,11 +551,24 @@ async def deletePOI(user, poi_id):
         cursor.execute("SELECT audio_url FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
         audio_rows = cursor.fetchall()
 
+        # FIX P0-2: Cascade delete - delete from tour_points first
+        cursor.execute("SELECT DISTINCT tour_id FROM tour_points WHERE poi_id = %s", (poi_id,))
+        affected_tours = cursor.fetchall()
+        
+        cursor.execute("DELETE FROM tour_points WHERE poi_id = %s", (poi_id,))
         cursor.execute("DELETE FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
         cursor.execute("DELETE FROM poi_position WHERE poi_id = %s", (poi_id,))
         cursor.execute("DELETE FROM poi_knowledge_base WHERE poi_id = %s", (poi_id,))
         
         cursor.execute("UPDATE pois SET is_Deleted = TRUE WHERE id = %s", (poi_id,))
+
+        # FIX P0-2: Check if any tour now has 0 POI and delete them
+        for tour in affected_tours:
+            tour_id = tour['tour_id']
+            cursor.execute("SELECT COUNT(*) as count FROM tour_points WHERE tour_id = %s", (tour_id,))
+            result = cursor.fetchone()
+            if result['count'] == 0:
+                cursor.execute("DELETE FROM tours WHERE id = %s", (tour_id,))
 
         conn.commit()
 
