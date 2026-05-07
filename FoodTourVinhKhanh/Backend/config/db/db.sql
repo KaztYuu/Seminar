@@ -55,10 +55,8 @@ CREATE TABLE subscription_packages (
     price DECIMAL(10, 2),
     duration_hours INT,
     is_Active BOOLEAN DEFAULT TRUE,
-    -- FEATURE 2
     -- Số POI tối đa Vendor được tạo trong 1 ngày
     poi_create_limit INT DEFAULT 1,
-    -- FEATURE 3
     is_default BOOLEAN DEFAULT FALSE,
     is_protected BOOLEAN DEFAULT FALSE
 ) CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
