@@ -1,7 +1,32 @@
 import { Link } from "react-router-dom"
 import banner from "../assets/pho-am-thuc-vinh-khanh-banner.jpg";
+import { useEffect } from "react";
+import { getVisitorId } from "../utils/visitor";
+import api from "../utils/api";
+import { toast } from "react-hot-toast";
 
 export default function Home() {
+
+  useEffect(() => {
+      const reportVisit = async () => {
+          try {
+              const visitorId = getVisitorId();
+              const role = localStorage.getItem('token') ? 'member' : 'guest';
+              
+              await api.post('/auth/track-visit', { visitor_id: visitorId, role });
+          } catch (error) {
+              if (error.response?.status === 503) {
+                  toast.error("Hệ thống đang đầy người dùng, bạn chỉ có thể xem bản đồ tĩnh.");
+              }
+          }
+      };
+
+      reportVisit();
+      // Cứ mỗi 4 phút gửi lại 1 lần để duy trì session (Heartbeat)
+      const interval = setInterval(reportVisit, 4 * 60 * 1000);
+      return () => clearInterval(interval);
+  }, []);
+
   return (
     <div 
       className="min-h-screen w-screen flex flex-col items-center justify-center bg-cover bg-center bg-no-repeat p-4"

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.dependencies.auth import get_current_user, require_role
 from app.schemas.user_schema import UserRegister, UserLogin
 from app.services.auth_services import createUser, userLogin, userLogout
+from app.services.redis_services import check_and_track_visit
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -60,3 +61,14 @@ def logout(request: Request, response: Response, user=Depends(get_current_user))
     
     response.delete_cookie(key="session_id", httponly=True, samesite="None", secure=True)
     return {"message": "Logged out successfully"}
+
+@router.post("/track-visit")
+async def track_visit(data: dict):
+    visitor_id = data.get("visitor_id")
+    role = data.get("role", "guest")
+    
+    success, message = check_and_track_visit(visitor_id, role)
+    if not success:
+        raise HTTPException(status_code=503, detail=message)
+        
+    return {"success": True}
