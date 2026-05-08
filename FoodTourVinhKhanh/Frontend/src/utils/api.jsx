@@ -26,7 +26,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const message = error.response?.data?.detail || "Có lỗi xảy ra";
-    const isAuthPage = ["/login", "/", "/signup"].includes(
+    const isAuthPage = ["/login", "/", "/signup", "/server-overload"].includes(
       window.location.pathname,
     );
 
