@@ -2,12 +2,9 @@ import React from "react";
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 
 export default function ServerOverloadPage() {
-    const handleReload = () => {
-        window.location.reload();
-    };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-black to-zinc-900 flex items-center justify-center px-6 text-white">
+        <div className="min-h-screen min-w-screen bg-gradient-to-br from-zinc-900 via-black to-zinc-900 flex items-center justify-center px-6 text-white">
             <div className="max-w-lg w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 shadow-2xl text-center">
 
                 {/* Icon */}
@@ -36,15 +33,6 @@ export default function ServerOverloadPage() {
                         Server Busy
                     </span>
                 </div>
-
-                {/* Button */}
-                <button
-                    onClick={handleReload}
-                    className="inline-flex items-center gap-2 bg-white text-black font-semibold px-6 py-3 rounded-xl hover:scale-105 transition-all duration-200"
-                >
-                    <RefreshCcw size={18} />
-                    Thử lại
-                </button>
 
                 {/* Footer */}
                 <p className="text-zinc-500 text-sm mt-8">
