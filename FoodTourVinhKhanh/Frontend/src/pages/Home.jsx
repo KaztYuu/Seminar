@@ -18,7 +18,7 @@ export default function Home() {
               await api.post('/auth/track-visit', { visitor_id: visitorId, role });
           } catch (error) {
               if (error.response?.status === 503) {
-                  navigate("/server-overload");
+                  navigate("/server-overload", {replace: true});
               }
           }
       };

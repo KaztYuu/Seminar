@@ -65,6 +65,9 @@ api.interceptors.response.use(
       setTimeout(() => {
         window.location.href = "/packages";
       }, 1500);
+    } else if (error.response?.status === 503) {
+      window.location.href = "/server-overload"; 
+      return Promise.reject(error);
     } else {
       toast.error(message);
     }
