@@ -28,6 +28,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Unauthorized from "./pages/auth/Unauthorized.jsx";
 import TestRAG from "./pages/ChatBot.jsx";
 import profileImg from "./assets/ProfileImage.png";
+import ServerOverloadPage from "./pages/ServerOverloadPage.jsx";
 import {
   touristMenu,
   vendorMenu,
@@ -110,6 +111,8 @@ function App() {
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         <Route path="/chatbot" element={<TestRAG />} />
+
+        <Route path="/server-overload" element={<ServerOverloadPage />} />
       </Routes>
     </BrowserRouter>
   );

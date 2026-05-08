@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import banner from "../assets/pho-am-thuc-vinh-khanh-banner.jpg";
 import { useEffect } from "react";
 import { getVisitorId } from "../utils/visitor";
@@ -6,6 +6,8 @@ import api from "../utils/api";
 import { toast } from "react-hot-toast";
 
 export default function Home() {
+
+  const navigate = useNavigate();
 
   useEffect(() => {
       const reportVisit = async () => {
@@ -16,7 +18,7 @@ export default function Home() {
               await api.post('/auth/track-visit', { visitor_id: visitorId, role });
           } catch (error) {
               if (error.response?.status === 503) {
-                  toast.error("Hệ thống đang đầy người dùng, bạn chỉ có thể xem bản đồ tĩnh.");
+                  navigate("/server-overload");
               }
           }
       };
