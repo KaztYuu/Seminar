@@ -21,12 +21,12 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 FRONTEND_URL = os.getenv("ENV_FRONTEND_URL") or "http://localhost:5173"
+print(f"Using FRONTEND_URL: {FRONTEND_URL}")
 
 origins = [
     "http://localhost:5173",
     "http://localhost:5174",
-    FRONTEND_URL, # Domain frontend vercel
-    "*" # Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
+    FRONTEND_URL  # Domain frontend vercel Hoặc dùng ["*"] nếu bạn muốn mở hoàn toàn trong quá trình test
 ]
 
 app.add_middleware(

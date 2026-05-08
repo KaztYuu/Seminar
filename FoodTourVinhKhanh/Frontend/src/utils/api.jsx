@@ -6,6 +6,9 @@ const SUPPORTED_LANGUAGES = ["VI", "EN", "KR", "FR"];
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   withCredentials: true, // Gửi cookie với mỗi request
+  headers: {
+    'ngrok-skip-browser-warning': 'true', // Bỏ qua trang cảnh báo của ngrok
+  }
 });
 
 api.interceptors.request.use((config) => {
