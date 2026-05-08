@@ -1,5 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
-from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
+from app.schemas.poi_schema import (
+    POICreateAdmin,
+    POICreateVendor,
+    POITranslationSuggestionRequest,
+    POIUpdateAdmin,
+    POIUpdateVendor,
+)
 from app.services.poi_services import (
     getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois,
     check_vendor_poi_limit, getPOIData, get_remaining_poi_quota,
@@ -308,14 +314,23 @@ async def ask_poi(poi_id: int, question: str):
         }
     }
 
-@router.get("/ai/tts")
-async def get_ai_voice(text: str, x_language_code: Optional[str] = Header(None)):
-    lang = x_language_code or "vi"
-    try:
-        audio_data = await gemini_service.generate_voice_audio(text, lang=lang)
-        return {
-            "success": True,
-            "audio_base64": audio_data # Chuỗi base64 của file audio
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+@router.post("/suggestions/translate/{lang_code}")
+async def suggest_translation(
+    lang_code: str,
+    payload: POITranslationSuggestionRequest,
+    user=Depends(require_role(["vendor", "admin"])),
+):
+    lang = lang_code.lower()
+    if lang == "vi":
+        raise HTTPException(status_code=400, detail="Không cần dịch cho tiếng Việt")
+
+    suggestion = await gemini_service.translate_single_language(
+        name=payload.name,
+        description=payload.description,
+        target_lang=lang,
+    )
+
+    return {
+        "success": True,
+        "data": suggestion,
+    }

@@ -1,7 +1,6 @@
 from app.database import get_db_connection
-from app.services.gemini_services import gemini_service
 from app.services.image_services import image_service
-from app.services.audio_services import audio_service
+
 from datetime import datetime, date
 from math import radians, sin, cos, sqrt, atan2
 from fastapi import HTTPException
@@ -356,19 +355,19 @@ def getPOIById(user, poi_id, lang="vi"):
             # Dùng LEFT JOIN để an toàn nếu thiếu bản dịch
             cursor.execute("""
                 SELECT p.*, pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
-                       ld.name, ld.description, ld.audio_url, ld.lang_code
+                    ld.name, ld.description, ld.audio_url, ld.lang_code
                 FROM pois p
                 JOIN users u ON p.owner_id = u.id
                 LEFT JOIN vendor_subscriptions vs ON u.id = vs.user_id
                 LEFT JOIN poi_position pos ON p.id = pos.poi_id
                 LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = %s
                 WHERE p.id = %s 
-                  AND p.is_Deleted = FALSE 
-                  AND p.is_Active = TRUE
-                  AND (
-                      u.role = 'admin' 
-                      OR (u.role = 'vendor' AND vs.end_time > NOW())
-                  )
+                AND p.is_Deleted = FALSE 
+                AND p.is_Active = TRUE
+                AND (
+                    u.role = 'admin' 
+                    OR (u.role = 'vendor' AND vs.end_time > NOW())
+                )
                 ORDER BY vs.end_time DESC
                 LIMIT 1
             """, (lang, poi_id))
@@ -376,7 +375,7 @@ def getPOIById(user, poi_id, lang="vi"):
             # Vendor/Admin sửa bài: Lấy bản 'vi' chuẩn
             cursor.execute("""
                 SELECT p.*, pos.latitude, pos.longitude, pos.audio_range, pos.access_range,
-                       ld.name, ld.description
+                    ld.name, ld.description
                 FROM pois p
                 LEFT JOIN poi_position pos ON p.id = pos.poi_id
                 LEFT JOIN poi_localized_data ld ON p.id = ld.poi_id AND ld.lang_code = 'vi'
@@ -415,11 +414,29 @@ async def createPOI(user, data):
         thumbnail_path = image_service.save_image(data.thumbnail, "thumb")
         banner_path = image_service.save_image(data.banner, "banner")
 
-        # 2. Dịch thuật
-        translations = await gemini_service.translate_to_multiple_languages(data.localized.description)
-        localized_items = [{"lang_code": "vi", "name": data.localized.name, "description": data.localized.description}]
-        for lang, text in translations.items():
-            localized_items.append({"lang_code": lang, "name": data.localized.name, "description": text})
+        # 2. Vietnamese is the official source. No backend auto-translation here.
+        # - vi is stored in `data.localized`
+        # - other languages are stored in `data.localized_data` (vendor-selected)
+        localized_items = []
+
+        # Ensure we don't allow `vi` inside localized_data
+        localized_data_items = data.localized_data or []
+        for item in localized_data_items:
+            if item.lang_code.lower() == "vi":
+                raise HTTPException(status_code=400, detail="localized_data must not include 'vi'")
+            localized_items.append({
+                "lang_code": item.lang_code,
+                "name": item.name,
+                "description": item.description,
+            })
+
+        # Add official VI source
+        localized_items.insert(
+            0,
+            {"lang_code": "vi", "name": data.localized.name, "description": data.localized.description},
+        )
+
+
 
         # 3. Insert bảng POI trước ĐỂ LẤY poi_id
         cursor.execute("""
@@ -445,19 +462,13 @@ async def createPOI(user, data):
                 VALUES (%s, %s, %s)
             """, (poi_id, kn.category, kn.content))
 
-        # 6. Xử lý Audio và Localized Data
+        # 6. Store localized data (vendor-approved). Backend does not generate audio.
         for item in localized_items:
-            # Gọi Gemini tạo file audio
-            audio_bytes = await gemini_service.text_to_speech(item["description"], lang=item["lang_code"])
-            
-            # Lưu file xuống server
-            audio_url = audio_service.save_audio(audio_bytes, poi_id, item["lang_code"])
-            
-            # Lưu đường dẫn vào db
             cursor.execute("""
                 INSERT INTO poi_localized_data (poi_id, lang_code, name, description, audio_url)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (poi_id, item["lang_code"], item["name"], item["description"], audio_url))
+                VALUES (%s, %s, %s, %s, NULL)
+            """, (poi_id, item["lang_code"], item["name"], item["description"]))
+
 
         conn.commit()
         return True, "Thành công", poi_id
@@ -466,7 +477,7 @@ async def createPOI(user, data):
         conn.rollback()
         image_service.delete_image(thumbnail_path)
         image_service.delete_image(banner_path)
-        if poi_id : audio_service.delete_poi_audios(poi_id=poi_id)
+
         return False, str(e), None
     finally:
         cursor.close()
@@ -528,34 +539,39 @@ async def updatePOI(user, poi_id, data):
                     VALUES (%s, %s, %s)
                 """, (poi_id, kn.category, kn.content))
 
-        # Chỉ dịch lại và gọi API sinh audio mới nếu mô tả bị thay đổi
+        # If vendor edits the official Vietnamese narration, reset all other languages.
         if data.localized and data.localized.description != old_poi['old_desc']:
-            
-            translations = await gemini_service.translate_to_multiple_languages(data.localized.description)
-            localized_items = [{"lang_code": "vi", "name": data.localized.name, "description": data.localized.description}]
-            for lang, text in translations.items():
-                localized_items.append({"lang_code": lang, "name": data.localized.name, "description": text})
+            cursor.execute(
+                """DELETE FROM poi_localized_data WHERE poi_id = %s AND lang_code <> 'vi'""",
+                (poi_id,),
+            )
 
-            # Xóa các bản dịch và audio cũ trong DB
-            cursor.execute("DELETE FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
+            cursor.execute(
+                """UPDATE poi_localized_data
+                   SET name = %s, description = %s
+                   WHERE poi_id = %s AND lang_code = 'vi'""",
+                (data.localized.name, data.localized.description, poi_id),
+            )
 
-            for item in localized_items:
-                # Sinh Audio mới từ Gemini
-                audio_bytes = await gemini_service.text_to_speech(item["description"], lang=item["lang_code"])
-                # Lưu file audio mới
-                audio_url = audio_service.save_audio(audio_bytes, poi_id, item["lang_code"])
-                
-                cursor.execute("""
-                    INSERT INTO poi_localized_data (poi_id, lang_code, name, description, audio_url)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (poi_id, item["lang_code"], item["name"], item["description"], audio_url))
-        
+            # Ensure VI row exists (in case it was missing)
+            cursor.execute(
+                """INSERT INTO poi_localized_data (poi_id, lang_code, name, description, audio_url)
+                   SELECT %s, 'vi', %s, %s, NULL
+                   WHERE NOT EXISTS (
+                       SELECT 1 FROM poi_localized_data WHERE poi_id = %s AND lang_code = 'vi'
+                   )""",
+                (poi_id, data.localized.name, data.localized.description, poi_id),
+            )
+
         elif data.localized:
-            cursor.execute("""
-                UPDATE poi_localized_data 
-                SET name = %s 
-                WHERE poi_id = %s
-            """, (data.localized.name, poi_id))
+            # Update only Vietnamese
+            cursor.execute(
+                """UPDATE poi_localized_data
+                   SET name = %s, description = %s
+                   WHERE poi_id = %s AND lang_code = 'vi'""",
+                (data.localized.name, data.localized.description, poi_id),
+            )
+
 
         conn.commit()
 
@@ -594,8 +610,7 @@ async def deletePOI(user, poi_id):
         if user["role"] == "vendor" and poi["owner_id"] != user["id"]:
             return False, "Bạn không phải chủ sở hữu của POI này."
 
-        cursor.execute("SELECT audio_url FROM poi_localized_data WHERE poi_id = %s", (poi_id,))
-        audio_rows = cursor.fetchall()
+
 
         # FIX P0-2: Cascade delete - delete from tour_points first
         cursor.execute("SELECT DISTINCT tour_id FROM tour_points WHERE poi_id = %s", (poi_id,))
@@ -618,9 +633,7 @@ async def deletePOI(user, poi_id):
 
         conn.commit()
 
-        for row in audio_rows:
-            if row['audio_url']:
-                audio_service.delete_audio(row['audio_url'])
+
         
         image_service.delete_image(poi["thumbnail"])
         image_service.delete_image(poi["banner"])
