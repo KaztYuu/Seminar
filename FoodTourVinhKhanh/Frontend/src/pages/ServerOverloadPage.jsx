@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCcw } from "lucide-react";
 
 export default function ServerOverloadPage() {
     const handleReload = () => {
-        window.location.href = "/home";
+        window.location.href = "/";
     };
 
     return (
