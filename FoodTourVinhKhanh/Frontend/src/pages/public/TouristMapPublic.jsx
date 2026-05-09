@@ -32,6 +32,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import Button from "../../components/common/Button";
 import FullPageLoading from "../../components/common/FullPageLoading";
+import { QRCodeCanvas } from "qrcode.react"
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -862,11 +863,27 @@ const TouristMapPublic = () => {
                         Quét QR để mở nhanh POI này trên thiết bị khác
                       </p>
 
-                      <div className="mt-6 rounded-[28px] border border-white/30 bg-white/90 backdrop-blur-xl p-5 shadow-sm">
+                      {/* <div className="mt-6 rounded-[28px] border border-white/30 bg-white/90 backdrop-blur-xl p-5 shadow-sm">
                         <img
                           src={`${API_URL}${selectedPoi.qr_code}`}
                           alt="QR Code"
                           className="h-64 w-64 object-contain"
+                        />
+                      </div> */}
+
+                      <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
+                        <QRCodeCanvas 
+                            id="qr-gen"
+                            value={String(selectedPoi.id)} 
+                            size={512}
+                            style={{ 
+                                width: '220px', 
+                                height: '220px',
+                                padding: '10px',
+                                backgroundColor: 'white' 
+                            }} 
+                            marginSize={4}
+                            level="H"
                         />
                       </div>
 
