@@ -62,7 +62,7 @@ def check_and_track_visit(visitor_id: str, role: str):
         return False, "Hệ thống đang quá tải, vui lòng quay lại sau."
 
     session_data = {"id": visitor_id, "role": role}
-    redis_client.setex(f"online_user:{visitor_id}", 300, json.dumps(session_data))
+    redis_client.setex(f"online_user:{visitor_id}", 60, json.dumps(session_data))
     
     return True, "Thành công"
 

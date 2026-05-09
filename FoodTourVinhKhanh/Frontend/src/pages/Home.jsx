@@ -24,8 +24,7 @@ export default function Home() {
       };
 
       reportVisit();
-      // Cứ mỗi 4 phút gửi lại 1 lần để duy trì session (Heartbeat)
-      const interval = setInterval(reportVisit, 4 * 60 * 1000);
+      const interval = setInterval(reportVisit, 0.5 * 60 * 1000);
       return () => clearInterval(interval);
   }, []);
 

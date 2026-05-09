@@ -370,11 +370,14 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-xs text-slate-600 font-medium">
+                        <div className="text-xs text-slate-800 font-medium">
                           {staff.deviceMetadata.platform} • {staff.deviceMetadata.screenRes}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-600">
                           CPU: {staff.deviceMetadata.cores} Cores | RAM: {staff.deviceMetadata.memory}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Ngôn ngữ: {staff.deviceMetadata.language} | Trình duyệt: {staff.deviceMetadata.userAgent}
                         </div>
                       </td>
                       <td className="px-6 py-4">
