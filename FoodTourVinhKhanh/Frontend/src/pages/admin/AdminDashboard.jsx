@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { act, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -102,6 +102,7 @@ export default function AdminDashboard() {
     vendor_count: 0,
     admin_count: 0,
     recent_users: [],
+    active_users: [],
   };
 
   const summaryCards = [
