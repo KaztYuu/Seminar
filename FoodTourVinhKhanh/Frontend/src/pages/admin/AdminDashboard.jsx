@@ -342,7 +342,7 @@ export default function AdminDashboard() {
             <div className="bg-slate-900 p-6">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <UserRoundCheck className="text-emerald-400" />
-                Nhân sự đang hoạt động
+                Tài khoản đang hoạt động
               </h2>
               <p className="text-slate-400 text-sm">Danh sách Admin và Vendor đang truy cập hệ thống</p>
             </div>
