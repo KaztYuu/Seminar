@@ -1,6 +1,6 @@
 from app.database import get_db_connection
 from app.services.auth_services import verify_password, hash_password
-from app.services.redis_services import count_active_sessions, get_max_online_users
+from app.services.redis_services import count_active_sessions, get_max_online_users, get_all_login_users
 
 def update_profile(user_id: int, name: str, phoneNumber: str):
     conn = get_db_connection()
@@ -279,6 +279,8 @@ def getAdminDashboardStats():
 
         max_limit = get_max_online_users()
 
+        active_users = get_all_login_users()
+
         if active_sessions is None:
             cursor.execute("""
                 SELECT COUNT(*) AS online_users
@@ -312,7 +314,8 @@ def getAdminDashboardStats():
             "total_revenue": float(payment_stats.get("total_revenue", 0) or 0),
             "online_users": online_users,
             "recent_users": recent_users,
-            "max_limit": max_limit
+            "max_limit": max_limit,
+            "active_users": active_users
         }
     finally:
         cursor.close()

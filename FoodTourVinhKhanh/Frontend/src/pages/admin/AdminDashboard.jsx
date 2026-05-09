@@ -328,6 +328,59 @@ export default function AdminDashboard() {
               )}
             </div>
           </Card>
+
+          <Card className="mt-8 overflow-hidden border-none shadow-lg">
+            <div className="bg-slate-900 p-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <UserRoundCheck className="text-emerald-400" />
+                Nhân sự đang hoạt động
+              </h2>
+              <p className="text-slate-400 text-sm">Danh sách Admin và Vendor đang truy cập hệ thống</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Người dùng</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Vai trò</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Cấu hình máy</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {dashboardStats.active_users?.map((staff) => (
+                    <tr key={staff.id} className="hover:bg-blue-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-900">{staff.name}</div>
+                        <div className="text-xs text-slate-400">ID: {staff.id}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${ROLE_META[staff.role]?.tone}`}>
+                          {ROLE_META[staff.role]?.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs text-slate-600 font-medium">
+                          {staff.device.platform} • {staff.device.screenRes}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          CPU: {staff.device.cores} Cores | RAM: {staff.device.memory}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-emerald-500 text-sm font-bold">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Trực tuyến
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
         </div>
       </div>
     </div>

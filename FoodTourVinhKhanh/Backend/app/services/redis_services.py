@@ -109,6 +109,21 @@ def get_session(session_id):
         logger.error(f"Error getting session: {str(e)}")
         return None
 
+def get_all_login_users():
+    login_users = []
+    for key in redis_client.scan_iter("session:*"):
+        data = redis_client.get(key)
+        if data:
+            try:
+                user_info = json.loads(data)
+                login_users.append(user_info)
+            except Exception as e:
+                print(f"Error parsing redis data for key {key}: {e}")
+                
+    # Sắp xếp theo thời gian đăng nhập mới nhất lên đầu
+    login_users.sort(key=lambda x: x.get('login_at', ''), reverse=True)
+    return login_users
+
 def delete_session(session_id):
     """Xóa session khỏi Redis"""
     if not REDIS_AVAILABLE:
