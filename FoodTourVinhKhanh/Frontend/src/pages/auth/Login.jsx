@@ -1,10 +1,134 @@
+// import { useState } from "react";
+// import { Link, useNavigate } from "react-router-dom";
+// import toast from "react-hot-toast";
+// import banner from "../../assets/pho-am-thuc-vinh-khanh-banner.jpg";
+// import { useAuth } from "../../context/AuthContext";
+// import api from "../../utils/api";
+// import { getDeviceMetadata } from "../../utils/deviceDetector";
+
+// function Login() {
+//   const [email, setEmail] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [loading, setLoading] = useState(false);
+//   const navigate = useNavigate();
+//   const { fetchUser, user } = useAuth();
+
+//   const handleLogin = async (e) => {
+//     e.preventDefault();
+//     setLoading(true);
+
+//     try {
+//       const deviceMetadata = getDeviceMetadata();
+//       const res = await api.post("/auth/login", { email, password, deviceMetadata });
+
+//       const userData = await fetchUser();
+
+//       toast.success("Đăng nhập thành công!");
+//       switch (userData.role) {
+//         case "admin":
+//           navigate("/admin");
+//           break;
+//         case "tourist":
+//           navigate("/tourist");
+//           break;
+//         case "vendor":
+//           navigate("/vendor");
+//           break;
+//         default:
+//           navigate("/login");
+//       }
+//     } catch (error) {
+//       toast.error(
+//         error.response?.data?.detail ||
+//           error.response?.data?.message ||
+//           "Đăng nhập thất bại",
+//       );
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div
+//       className="min-h-screen w-screen flex items-center justify-center bg-cover bg-center p-4"
+//       style={{
+//         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${banner}')`,
+//       }}>
+//       <form
+//         onSubmit={handleLogin}
+//         className="backdrop-blur-xl bg-white/10 p-8 rounded-2xl border border-white/20 shadow-2xl w-full max-w-md">
+//         <h2 className="text-3xl font-bold mb-2 text-center text-white">
+//           Chào mừng trở lại
+//         </h2>
+//         <p className="text-gray-300 text-center mb-8 text-sm">
+//           Vui lòng nhập thông tin để tiếp tục hành trình
+//         </p>
+
+//         <div className="space-y-4">
+//           <input
+//             type="email"
+//             placeholder="Email"
+//             required
+//             className="w-full bg-white/5 border border-white/20 p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+//             onChange={(e) => setEmail(e.target.value)}
+//           />
+//           <input
+//             type="password"
+//             placeholder="Mật khẩu"
+//             required
+//             className="w-full bg-white/5 border border-white/20 p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+//             onChange={(e) => setPassword(e.target.value)}
+//           />
+//         </div>
+
+//         <button
+//           type="submit"
+//           disabled={loading}
+//           className={`w-full !text-white font-bold py-3 rounded-xl mt-8 shadow-lg transition-all active:scale-95 ${
+//             loading
+//               ? "bg-blue-400 shadow-blue-400/30 cursor-not-allowed"
+//               : "bg-blue-500 hover:bg-blue-600 shadow-blue-500/30 active:scale-95"
+//           }`}>
+//           {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+//         </button>
+
+//         <div className="flex items-center gap-3 my-6">
+//           <div className="flex-1 h-[1px] bg-gray-400/30"></div>
+//           <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">
+//             Hoặc
+//           </span>
+//           <div className="flex-1 h-[1px] bg-gray-400/30"></div>
+//         </div>
+
+//         <Link to="/tourist-map">
+//           <button
+//             type="button"
+//             className="w-full !text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95 bg-gray-600 hover:bg-gray-700 shadow-gray-600/30 flex items-center justify-center gap-2">
+//             🗺️ Khám phá bản đồ với Tourist
+//           </button>
+//         </Link>
+
+//         <p className="mt-6 text-sm text-center text-gray-300">
+//           Chưa có tài khoản?
+//           <Link
+//             to="/signup"
+//             className="!text-green-400 font-semibold ml-2 hover:underline">
+//             Đăng ký ngay
+//           </Link>
+//         </p>
+//       </form>
+//     </div>
+//   );
+// }
+
+// export default Login;
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import banner from "../../assets/pho-am-thuc-vinh-khanh-banner.jpg";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
-import { getDeviceMetadata } from "../../utils/deviceDetector";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -18,8 +142,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const deviceMetadata = getDeviceMetadata();
-      const res = await api.post("/auth/login", { email, password, deviceMetadata });
+      const res = await api.post("/auth/login", { email, password });
 
       const userData = await fetchUser();
 
