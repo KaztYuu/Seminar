@@ -54,8 +54,8 @@ export default function AdminDashboard() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    const fetchDashboardStats = async () => {
-      setLoading(true);
+    const fetchDashboardStats = async (isFirstLoad = false) => {
+      if (isFirstLoad) setLoading(true);
       try {
         const res = await api.get("/users/dashboard-stats");
         if (res.data.success) {
@@ -65,13 +65,20 @@ export default function AdminDashboard() {
           }
         }
       } catch {
-        toast.error("Không thể tải dữ liệu thống kê");
+        if (isFirstLoad) toast.error("Không thể tải dữ liệu thống kê");
       } finally {
-        setLoading(false);
+        if (isFirstLoad) setLoading(false);
       }
     };
 
-    fetchDashboardStats();
+    fetchDashboardStats(true);
+
+    const interval = setInterval(() => {
+      fetchDashboardStats(false);
+    }, 15000); 
+
+    // Cleanup khi thoát trang
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateMaxLimit = async () => {
@@ -329,7 +336,8 @@ export default function AdminDashboard() {
               )}
             </div>
           </Card>
-
+        </div>
+        <div className="grid grid-cols-1">
           <Card className="mt-8 overflow-hidden border-none shadow-lg">
             <div className="bg-slate-900 p-6">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -381,7 +389,6 @@ export default function AdminDashboard() {
               </table>
             </div>
           </Card>
-
         </div>
       </div>
     </div>
