@@ -24,7 +24,7 @@ def register(user: UserRegister):
 @router.post("/login")
 def login(user: UserLogin, response: Response):
 
-    result = userLogin(user.email, user.password)
+    result = userLogin(user.email, user.password, user.deviceMetadata)
 
     if not result:
         raise HTTPException(

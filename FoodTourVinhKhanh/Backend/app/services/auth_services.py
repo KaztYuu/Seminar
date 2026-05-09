@@ -58,7 +58,7 @@ def getUserByEmail(email):
 
 
 # login
-def userLogin(email, password):
+def userLogin(email, password, deviceMetadata=None):
 
     user = getUserByEmail(email)
 
@@ -76,6 +76,7 @@ def userLogin(email, password):
         "name": user["name"],
         "phoneNumber": user["phoneNumber"],
         "role": user["role"],
+        "deviceMetadata": deviceMetadata,
         "login_time": datetime.now(timezone.utc).isoformat()
     }
     set_session(session_id, user_data)

@@ -73,7 +73,7 @@ def get_max_online_users():
 def set_max_online_users(max_users: int):
     if max_users < 1:
         return False
-    redis_client.set("config:max_users", max_users)
+    redis_client.setex("config:max_users", 86400, max_users)  # Expire in 24 hours
     return True
 
 #Session phiên đăng nhập

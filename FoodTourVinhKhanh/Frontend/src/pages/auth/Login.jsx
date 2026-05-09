@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import banner from "../../assets/pho-am-thuc-vinh-khanh-banner.jpg";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
+import { getDeviceMetadata } from "../../utils/deviceDetector";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,8 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const deviceMetadata = getDeviceMetadata();
+      const res = await api.post("/auth/login", { email, password, deviceMetadata });
 
       const userData = await fetchUser();
 

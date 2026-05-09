@@ -173,7 +173,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Giới hạn truy cập hệ thống</h3>
-                <p className="text-sm text-gray-500">Thiết lập số lượng người dùng (bao gồm khách) có thể vào bản đồ cùng lúc</p>
+                <p className="text-sm text-gray-500">Thiết lập số lượng người dùng có thể truy cập hệ thống cùng lúc</p>
               </div>
             </div>
             

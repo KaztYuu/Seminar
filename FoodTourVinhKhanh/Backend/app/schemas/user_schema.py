@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal, Optional, Any, Dict
 from datetime import datetime
 
 class UserRole(str, Enum):
@@ -19,6 +19,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    deviceMetadata: Optional[Dict[str, Any]] = None
 
 class UserLogout(BaseModel):
     id: int
