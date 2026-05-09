@@ -363,10 +363,10 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-xs text-slate-600 font-medium">
-                          {staff.device.platform} • {staff.device.screenRes}
+                          {staff.deviceMetadata.platform} • {staff.deviceMetadata.screenRes}
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          CPU: {staff.device.cores} Cores | RAM: {staff.device.memory}
+                          CPU: {staff.deviceMetadata.cores} Cores | RAM: {staff.deviceMetadata.memory}
                         </div>
                       </td>
                       <td className="px-6 py-4">
