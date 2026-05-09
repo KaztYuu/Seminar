@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from app.dependencies.auth import get_current_user, require_role
 from app.schemas.user_schema import UserRegister, UserLogin
 from app.services.auth_services import createUser, userLogin, userLogout
-from app.services.redis_services import check_and_track_visit
+from app.services.redis_services import check_and_track_visit, set_max_online_users
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -72,3 +72,11 @@ async def track_visit(data: dict):
         raise HTTPException(status_code=503, detail=message)
         
     return {"success": True}
+
+@router.post("/set-max-users")
+def set_max_users(data: dict, user=Depends(require_role("admin"))):
+    max_users = data.get("max_users")
+    if max_users is None or max_users < 1:
+        raise HTTPException(status_code=400, detail="Invalid max_users value")
+    set_max_online_users(max_users)
+    return {"message": "Max users limit updated successfully"}

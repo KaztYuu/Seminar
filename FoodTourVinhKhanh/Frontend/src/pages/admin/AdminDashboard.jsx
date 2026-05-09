@@ -7,6 +7,8 @@ import {
   Store,
   Users,
   UserRoundCheck,
+  Settings,
+  Save,
 } from "lucide-react";
 import Card from "../../components/common/Card";
 import FullPageLoading from "../../components/common/FullPageLoading";
@@ -48,6 +50,8 @@ const formatLastLogin = (value) => {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [maxLimit, setMaxLimit] = useState(100);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
@@ -56,6 +60,9 @@ export default function AdminDashboard() {
         const res = await api.get("/users/dashboard-stats");
         if (res.data.success) {
           setStats(res.data.data);
+          if (res.data.data.max_limit) {
+            setMaxLimit(res.data.data.max_limit);
+          }
         }
       } catch {
         toast.error("Không thể tải dữ liệu thống kê");
@@ -66,6 +73,22 @@ export default function AdminDashboard() {
 
     fetchDashboardStats();
   }, []);
+
+  const handleUpdateMaxLimit = async () => {
+    if (maxLimit < 1) return toast.error("Giới hạn phải lớn hơn 0");
+    
+    setIsUpdating(true);
+    try {
+      const res = await api.post("/auth/set-max-users", { max_users: maxLimit });
+      if (res.data.success) {
+        toast.success("Đã cập nhật giới hạn truy cập hệ thống");
+      }
+    } catch (error) {
+      toast.error("Không thể cập nhật cấu hình");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (loading) {
     return <FullPageLoading />;
@@ -141,6 +164,39 @@ export default function AdminDashboard() {
             thống trên cùng một màn hình.
           </p>
         </div>
+
+        <Card className="border-l-4 border-l-blue-600 bg-white overflow-hidden">
+          <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                <Settings size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Giới hạn truy cập hệ thống</h3>
+                <p className="text-sm text-gray-500">Thiết lập số lượng người dùng (bao gồm khách) có thể vào bản đồ cùng lúc</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-32">
+                <input
+                  type="number"
+                  value={maxLimit}
+                  onChange={(e) => setMaxLimit(parseInt(e.target.value))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-center transition-all"
+                />
+              </div>
+              <button
+                onClick={handleUpdateLimit}
+                disabled={isUpdating}
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold transition-all disabled:opacity-50 active:scale-95 shadow-lg shadow-slate-200"
+              >
+                {isUpdating ? "..." : <Save size={18} />}
+                Lưu cấu hình
+              </button>
+            </div>
+          </div>
+        </Card>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {summaryCards.map((card) => {

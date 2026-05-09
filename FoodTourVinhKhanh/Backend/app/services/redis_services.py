@@ -47,12 +47,11 @@ SESSION_EXPIRE = 900  # 15 phút
 DEFAULT_CACHE_EXPIRE = 300 if ENVIRONMENT == "development" else 3600
 
 # Max connection
-DEFAULT_MAX_USERS = 3
+DEFAULT_MAX_USERS = 100
 
 def check_and_track_visit(visitor_id: str, role: str):
 
-    max_limit = redis_client.get("config:max_users")
-    max_limit = int(max_limit) if max_limit else DEFAULT_MAX_USERS
+    max_limit = get_max_online_users()
     
     current_online_keys = redis_client.keys("online_user:*")
     current_count = len(current_online_keys)
@@ -66,6 +65,16 @@ def check_and_track_visit(visitor_id: str, role: str):
     redis_client.setex(f"online_user:{visitor_id}", 300, json.dumps(session_data))
     
     return True, "Thành công"
+
+def get_max_online_users():
+    max_limit = redis_client.get("config:max_users")
+    return int(max_limit) if max_limit else DEFAULT_MAX_USERS
+
+def set_max_online_users(max_users: int):
+    if max_users < 1:
+        return False
+    redis_client.set("config:max_users", max_users)
+    return True
 
 #Session phiên đăng nhập
 def set_session(session_id, user_data):
