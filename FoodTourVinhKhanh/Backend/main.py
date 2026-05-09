@@ -10,18 +10,58 @@ from app.routes.user_router import router as user_router
 from app.routes.poi_router import router as poi_router
 from app.routes.tour_router import router as tour_router
 from fastapi.staticfiles import StaticFiles
-
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+import time
+from collections import defaultdict
+from fastapi.requests import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI()
 
 FRONTEND_URL = os.getenv("ENV_FRONTEND_URL") or "http://localhost:5173"
 print(f"Using FRONTEND_URL: {FRONTEND_URL}")
+# FIX P0-4: Simple in-memory rate limiting
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    FIX P0-4: Rate limiting to prevent brute force attacks.
+    Limits: 100 requests per minute per IP for sensitive endpoints.
+    """
+    def __init__(self, app):
+        super().__init__(app)
+        self.request_counts = defaultdict(list)
+        self.sensitive_endpoints = [
+            "/auth/login",
+            "/auth/signup",
+            "/pois/vendor/create",
+            "/tours/admin/create"
+        ]
+    
+    async def dispatch(self, request: Request, call_next):
+        # Only rate limit sensitive endpoints
+        if any(request.url.path.startswith(ep) for ep in self.sensitive_endpoints):
+            client_ip = request.client.host if request.client else "unknown"
+            key = f"{client_ip}:{request.url.path}"
+            
+            now = time.time()
+            # Remove requests older than 1 minute
+            self.request_counts[key] = [
+                req_time for req_time in self.request_counts[key]
+                if now - req_time < 60
+            ]
+            
+            # Check if exceeded rate limit (100 per minute)
+            if len(self.request_counts[key]) >= 100:
+                return {
+                    "success": False,
+                    "detail": "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+                    "status": 429
+                }
+            
+            self.request_counts[key].append(now)
+        
+        response = await call_next(request)
+        return response
+
+app.add_middleware(RateLimitMiddleware)
 
 origins = [
     "http://localhost:5173",

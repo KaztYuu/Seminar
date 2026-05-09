@@ -187,9 +187,39 @@ def deleteUser(user_id: int):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT id FROM users WHERE id = %s AND is_Deleted = FALSE", (user_id,))
-        if not cursor.fetchone():
+        # Check user exists
+        cursor.execute("SELECT id, role FROM users WHERE id = %s AND is_Deleted = FALSE", (user_id,))
+        user = cursor.fetchone()
+        if not user:
             return False, "Người dùng không tồn tại."
+        
+        # FIX P1-6: If vendor, soft delete their POIs and handle cascade
+        if user["role"] == "vendor":
+            # Get all POI IDs owned by this vendor
+            cursor.execute("SELECT id FROM pois WHERE owner_id = %s AND is_Deleted = FALSE", (user_id,))
+            pois = cursor.fetchall()
+            
+            for poi in pois:
+                poi_id = poi["id"]
+                # Get affected tours (will have 0 POI after this)
+                cursor.execute("SELECT DISTINCT tour_id FROM tour_points WHERE poi_id = %s", (poi_id,))
+                affected_tours = cursor.fetchall()
+                
+                # Delete tour_points referencing this POI
+                cursor.execute("DELETE FROM tour_points WHERE poi_id = %s", (poi_id,))
+                
+                # Delete tours that now have 0 POI
+                for tour in affected_tours:
+                    tour_id = tour['tour_id']
+                    cursor.execute("SELECT COUNT(*) as count FROM tour_points WHERE tour_id = %s", (tour_id,))
+                    result = cursor.fetchone()
+                    if result['count'] == 0:
+                        cursor.execute("DELETE FROM tours WHERE id = %s", (tour_id,))
+            
+            # Soft delete all vendor's POIs
+            cursor.execute("UPDATE pois SET is_Deleted = TRUE WHERE owner_id = %s", (user_id,))
+        
+        # Soft delete user
         cursor.execute("UPDATE users SET is_Deleted = TRUE WHERE id = %s", (user_id,))
         conn.commit()
         return True, "Xóa người dùng thành công."

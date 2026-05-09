@@ -26,12 +26,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const message = error.response?.data?.detail || "Có lỗi xảy ra";
-    const isAuthPage = ["/login", "/", "/signup", "/server-overload"].includes(
+    const isAuthPage = ["/login", "/", "/signup", "/tourist-map", "/server-overload"].includes(
       window.location.pathname,
     );
 
     if (error.response?.status === 401) {
-      // Chỉ show toast nếu NOT trên trang login/signup
+      // Chỉ show toast nếu NOT trên trang login/signup/tourist-map
       if (!isAuthPage) {
         toast.error(message);
       }

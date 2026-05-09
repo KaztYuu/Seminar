@@ -2,15 +2,14 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal, List
 
 
-# ===== POIKNOWLEDGE =====
 class POIKnowledgeBase(BaseModel):
     category: Literal["menu", "history", "promotion", "other"] = Field(
-        ..., 
-        description="Loại thông tin"
+        ...,
+        description="Loại thông tin",
     )
     content: str = Field(..., min_length=1)
 
-# ===== POSITION =====
+
 class POIPositionAdmin(BaseModel):
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
@@ -23,82 +22,81 @@ class POIPositionVendor(BaseModel):
     longitude: float = Field(..., ge=-180, le=180)
 
 
-# ===== LOCALIZED =====
 class POILocalized(BaseModel):
     lang_code: str = Field(..., min_length=2, max_length=5)
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
-    def name_must_not_be_empty(cls, v):
-        if not v or len(v.strip()) == 0:
-            raise ValueError('Tên địa điểm không được để trống')
-        return v
+    def name_must_not_be_empty(cls, value):
+        if not value or len(value.strip()) == 0:
+            raise ValueError("Tên địa điểm không được để trống")
+        return value.strip()
 
-    @field_validator('description')
+    @field_validator("description")
     @classmethod
-    def description_must_not_be_empty(cls, v):
-        if not v or len(v.strip()) == 0:
-            raise ValueError('Mô tả không được để trống')
-        return v
+    def description_must_not_be_empty(cls, value):
+        if not value or len(value.strip()) == 0:
+            raise ValueError("Mô tả không được để trống")
+        return value.strip()
 
 
-# ===== BASE =====
+class POITranslationSuggestionRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=1)
+
+
 class POIBase(BaseModel):
     thumbnail: str | None = None
     banner: str | None = None
 
 
-# ===== CREATE =====
 class POICreateAdmin(POIBase):
     is_active: bool = True
     position: POIPositionAdmin
     localized: POILocalized
+    localized_data: List[POILocalized] = Field(default_factory=list)
     knowledge: List[POIKnowledgeBase]
 
 
 class POICreateVendor(POIBase):
     position: POIPositionVendor
     localized: POILocalized
+    localized_data: List[POILocalized] = Field(default_factory=list)
     knowledge: List[POIKnowledgeBase]
 
 
-# ===== UPDATE =====
 class POIUpdateAdmin(BaseModel):
     thumbnail: Optional[str] = None
     banner: Optional[str] = None
     is_active: Optional[bool] = None
-
     position: Optional[POIPositionAdmin] = None
     localized: Optional[POILocalized] = None
+    localized_data: Optional[List[POILocalized]] = None
     knowledge: Optional[List[POIKnowledgeBase]] = None
 
 
 class POIUpdateVendor(BaseModel):
     thumbnail: Optional[str] = None
     banner: Optional[str] = None
-
     position: Optional[POIPositionVendor] = None
     localized: Optional[POILocalized] = None
+    localized_data: Optional[List[POILocalized]] = None
     knowledge: Optional[List[POIKnowledgeBase]] = None
 
 
-# ===== RESPONSE =====
 class POIResponse(BaseModel):
     id: int
     owner_id: int
-
     thumbnail: str | None
     banner: str | None
     is_active: bool
-
     latitude: float
     longitude: float
     audio_range: int | None
     access_range: int | None
-
     lang_code: str
     name: str
     description: str
-    audio_url: str | None
+    localized_data: List[POILocalized] = Field(default_factory=list)

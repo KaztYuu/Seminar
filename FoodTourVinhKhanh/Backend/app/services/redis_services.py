@@ -17,34 +17,29 @@ logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
-# Redis configuration
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+REDIS_AVAILABLE = False
+redis_client = None
 
-# Initialize Redis connection
 try:
     redis_client = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        decode_responses=True,
-        socket_connect_timeout=5,
-        socket_keepalive=True
+        host="localhost",
+        port=6379,
+        decode_responses=True
     )
-    # Test connection
-    redis_client.ping()
-    logger.info(f"✅ Redis connected: {REDIS_HOST}:{REDIS_PORT}")
-    REDIS_AVAILABLE = True
-except Exception as e:
-    logger.warning(f"⚠️  Redis connection failed: {str(e)}")
-    logger.warning("Cache functions will return None and use database fallback")
-    redis_client = None
-    REDIS_AVAILABLE = False
 
-# Session & Cache expiration (in seconds)
-SESSION_EXPIRE = 900  # 15 phút
-# Development: 5 phút, Production: 1 giờ
-DEFAULT_CACHE_EXPIRE = 300 if ENVIRONMENT == "development" else 3600
+    # test connection
+    redis_client.ping()
+
+    REDIS_AVAILABLE = True
+    logger.info("Redis connected successfully")
+
+except Exception as e:
+    REDIS_AVAILABLE = False
+    redis_client = None
+    logger.warning(f"Redis unavailable: {str(e)}")
+
+SESSION_EXPIRE = 900 # 15 phút
+DEFAULT_CACHE_EXPIRE = 3600 # 1 tiếng
 
 # Max connection
 DEFAULT_MAX_USERS = 100

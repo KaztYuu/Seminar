@@ -86,8 +86,29 @@ SELECT tp.point_order, p.id as poi_id, pld.name, pp.latitude, pp.longitude, pld.
 def createTour(data):
     """Tạo tour mới kèm các điểm POI"""
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
+        # FIX P0-1: Validate tour must have at least 1 POI
+        if not data.points or len(data.points) < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Tour phải có ít nhất 1 điểm POI"
+            )
+        
+        # FIX P0-1: Validate all POI exist and not deleted
+        poi_ids = [point.poi_id for point in data.points]
+        placeholders = ",".join(["%s"] * len(poi_ids))
+        cursor.execute(
+            f"SELECT COUNT(*) as count FROM pois WHERE id IN ({placeholders}) AND is_Deleted = FALSE",
+            poi_ids
+        )
+        result = cursor.fetchone()
+        if result['count'] != len(poi_ids):
+            raise HTTPException(
+                status_code=400,
+                detail="Một hoặc nhiều POI không tồn tại hoặc đã bị xóa"
+            )
+        
         # Tạo tour
         cursor.execute(
             "INSERT INTO tours (name, is_Active) VALUES (%s, %s)",
@@ -104,6 +125,9 @@ def createTour(data):
 
         conn.commit()
         return tour_id
+    except HTTPException:
+        conn.rollback()
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi tạo tour: {str(e)}")
@@ -115,8 +139,30 @@ def createTour(data):
 def updateTour(tour_id: int, data):
     """Cập nhật thông tin tour"""
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
+        # FIX P0-1: Validate points if being updated
+        if data.points is not None:
+            if len(data.points) < 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Tour phải có ít nhất 1 điểm POI"
+                )
+            
+            # Validate all POI exist
+            poi_ids = [point.poi_id for point in data.points]
+            placeholders = ",".join(["%s"] * len(poi_ids))
+            cursor.execute(
+                f"SELECT COUNT(*) as count FROM pois WHERE id IN ({placeholders}) AND is_Deleted = FALSE",
+                poi_ids
+            )
+            result = cursor.fetchone()
+            if result['count'] != len(poi_ids):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Một hoặc nhiều POI không tồn tại hoặc đã bị xóa"
+                )
+        
         # Cập nhật tên và trạng thái nếu có
         if data.name is not None or data.is_Active is not None:
             cursor.execute(
@@ -135,6 +181,9 @@ def updateTour(tour_id: int, data):
 
         conn.commit()
         return True
+    except HTTPException:
+        conn.rollback()
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi cập nhật tour: {str(e)}")

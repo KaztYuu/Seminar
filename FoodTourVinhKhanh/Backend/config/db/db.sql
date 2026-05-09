@@ -20,6 +20,8 @@ CREATE TABLE pois (
     banner VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_Active BOOLEAN DEFAULT FALSE,
+    -- FEATURE 1
+    status ENUM('approved', 'pending', 'rejected') NOT NULL DEFAULT 'pending',
     is_Deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE
     SET NULL ON UPDATE CASCADE
@@ -29,8 +31,12 @@ CREATE TABLE poi_position (
     poi_id INT,
     latitude DOUBLE,
     longitude DOUBLE,
+    range_meter INT,
+    -- Phạm vi chung (legacy, không dùng nữa)
     audio_range INT DEFAULT 30,
+    -- Bán kính (mét) kích hoạt phát thuyết minh
     access_range INT DEFAULT 10,
+    -- Bán kính (mét) coi là đã đến POI
     FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 CREATE TABLE poi_localized_data (
@@ -46,18 +52,13 @@ CREATE TABLE poi_localized_data (
 CREATE TABLE subscription_packages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
-    -- Ví dụ: "Gói du khách 1 ngày", "Gói chủ quán 1 tháng"
-    target_role ENUM('tourist', 'vendor'),
-    -- Gói này dành cho ai
     price DECIMAL(10, 2),
     duration_hours INT,
-    -- Thời hạn của gói tính bằng giờ
-    daily_poi_limit INT DEFAULT 0,
-    -- Maximum total POIs a vendor can own at one time
     is_Active BOOLEAN DEFAULT TRUE,
-    description TEXT DEFAULT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    -- Số POI tối đa Vendor được tạo trong 1 ngày
+    poi_create_limit INT DEFAULT 1,
+    is_default BOOLEAN DEFAULT FALSE,
+    is_protected BOOLEAN DEFAULT FALSE
 ) CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -73,16 +74,6 @@ CREATE TABLE payments (
         FOREIGN KEY (package_id) REFERENCES subscription_packages(id) ON DELETE
     SET NULL ON UPDATE CASCADE
 ) CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-CREATE TABLE tourist_subscriptions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    start_time DATETIME,
-    end_time DATETIME,
-    payment_id INT,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE
-    SET NULL ON UPDATE CASCADE
-) CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 CREATE TABLE vendor_subscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
@@ -96,7 +87,7 @@ CREATE TABLE vendor_subscriptions (
 CREATE TABLE poi_knowledge_base (
     id INT AUTO_INCREMENT PRIMARY KEY,
     poi_id INT,
-    category ENUM('menu', 'history', 'promotion', 'other'), -- Loại nội dung dùng cho chatbot RAG
+    category ENUM('menu', 'history', 'promotion', 'other'),
     content TEXT,
     FOREIGN KEY (poi_id) REFERENCES pois(id) ON DELETE CASCADE
 ) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -104,10 +95,9 @@ CREATE TABLE poi_knowledge_base (
 CREATE TABLE tours (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    is_Active BOOLEAN DEFAULT TRUE,           -- TRUE: hiển thị cho Tourist
+    is_Active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-) CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
+) CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 CREATE TABLE tour_points (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tour_id INT NOT NULL,
