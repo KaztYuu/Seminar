@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
+from app.database import get_db_connection
 from app.schemas.poi_schema import (
     POICreateAdmin,
     POICreateVendor,
@@ -211,6 +212,29 @@ async def update_poi_admin(poi_id: int, data: POIUpdateAdmin, user=Depends(requi
     invalidate_poi_cache(poi_id)
     return {"success": True, "message": message, "poi_id": updated_id}
 
+@router.put("/admin/approve/{poi_id}")
+def approve_poi(poi_id: int, user=Depends(require_role("admin"))):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE pois SET is_Active = TRUE, status = 'approved' WHERE id = %s AND is_Deleted = FALSE",
+            (poi_id,)
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy POI")
+        conn.commit()
+        invalidate_poi_cache(poi_id)
+        return {"success": True, "message": "Duyệt POI thành công"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+        
 @router.put("/vendor/update/{poi_id}")
 async def update_poi_vendor(poi_id: int, data: POIUpdateVendor, user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
     success, message, updated_poi_id = await updatePOI(user, poi_id, data)
@@ -318,7 +342,6 @@ async def ask_poi(poi_id: int, question: str):
 async def suggest_translation(
     lang_code: str,
     payload: POITranslationSuggestionRequest,
-    user=Depends(require_role(["vendor", "admin"])),
 ):
     lang = lang_code.lower()
     if lang == "vi":

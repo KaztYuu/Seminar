@@ -29,6 +29,13 @@ const POIAdminManager = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [localizedData, setLocalizedData] = useState([]); // [{lang_code, name, description}]
+  const [translatingLang, setTranslatingLang] = useState(null);
+  const TRANSLATE_LANGS = [
+    { code: "en", label: "English (EN)" },
+    { code: "ko", label: "Korean (KR)" },
+    { code: "fr", label: "French (FR)" },
+  ];
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -155,6 +162,13 @@ const POIAdminManager = () => {
               : [{ category: "menu", content: "" }],
         });
         setIsModalOpen(true);
+        if (fullData.localized_data && fullData.localized_data.length > 0) {
+          setLocalizedData(
+            fullData.localized_data.filter((d) => d.lang_code !== "vi"),
+          );
+        } else {
+          setLocalizedData([]);
+        }
       }
     } catch {
       toast.error("Không thể lấy thông tin chi tiết địa điểm");
@@ -168,6 +182,43 @@ const POIAdminManager = () => {
     setIsModalOpen(false);
     setEditingId(null);
     setFormData(initialForm);
+    setLocalizedData([]);
+  };
+
+  const handleTranslateForForm = async (langCode) => {
+    const name = formData.localized.name || "";
+    const description = formData.localized.description || "";
+
+    if (!name.trim() || !description.trim()) {
+      toast.error("Vui lòng nhập tên và mô tả tiếng Việt trước");
+      return;
+    }
+
+    setTranslatingLang(langCode);
+    try {
+      const res = await api.post(`/pois/suggestions/translate/${langCode}`, {
+        name: name.trim(),
+        description: description.trim(),
+      });
+      const data = res?.data?.data;
+      if (data) {
+        setLocalizedData((prev) => {
+          const filtered = prev.filter((d) => d.lang_code !== langCode);
+          return [
+            ...filtered,
+            {
+              lang_code: langCode,
+              name: data.name || name,
+              description: data.description || description,
+            },
+          ];
+        });
+      }
+    } catch {
+      toast.error("Không thể dịch nội dung");
+    } finally {
+      setTranslatingLang(null);
+    }
   };
 
   const handleActivate = async () => {
@@ -240,7 +291,10 @@ const POIAdminManager = () => {
     // Tạo object data cuối cùng để gửi đi
     const finalData = {
       ...formData,
-      knowledge: cleanedKnowledge, // Gửi mảng đã lọc sạch dòng trống
+      knowledge: cleanedKnowledge,
+      localized_data: localizedData.filter(
+        (d) => d.name.trim() && d.description.trim(),
+      ),
     };
 
     setLoading(true);
@@ -628,7 +682,98 @@ const POIAdminManager = () => {
                 ))}
               </div>
             </div>
+            {/* TRANSLATE SECTION */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-cyan-600 uppercase ml-1">
+                  Nội dung thuyết minh đa ngôn ngữ
+                </label>
+                <span className="text-[10px] text-gray-400">
+                  Dựa trên mô tả tiếng Việt ở trên
+                </span>
+              </div>
 
+              {TRANSLATE_LANGS.map((lang) => {
+                const existing = localizedData.find(
+                  (d) => d.lang_code === lang.code,
+                );
+                const isTranslating = translatingLang === lang.code;
+
+                return (
+                  <div
+                    key={lang.code}
+                    className="bg-gray-50 rounded-2xl border border-gray-100 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-600 uppercase">
+                        {lang.label}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isTranslating || !!translatingLang}
+                        onClick={() => handleTranslateForForm(lang.code)}>
+                        {isTranslating
+                          ? "Đang dịch..."
+                          : existing
+                            ? "Dịch lại"
+                            : "Tạo bản dịch"}
+                      </Button>
+                    </div>
+
+                    {existing && (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-cyan-400"
+                          placeholder="Tên địa điểm"
+                          value={existing.name}
+                          onChange={(e) =>
+                            setLocalizedData((prev) =>
+                              prev.map((d) =>
+                                d.lang_code === lang.code
+                                  ? { ...d, name: e.target.value }
+                                  : d,
+                              ),
+                            )
+                          }
+                        />
+                        <textarea
+                          className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-cyan-400 min-h-[80px]"
+                          placeholder="Mô tả"
+                          value={existing.description}
+                          onChange={(e) =>
+                            setLocalizedData((prev) =>
+                              prev.map((d) =>
+                                d.lang_code === lang.code
+                                  ? { ...d, description: e.target.value }
+                                  : d,
+                              ),
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLocalizedData((prev) =>
+                              prev.filter((d) => d.lang_code !== lang.code),
+                            )
+                          }
+                          className="text-xs text-red-400 hover:text-red-600">
+                          Xóa bản dịch này
+                        </button>
+                      </div>
+                    )}
+
+                    {!existing && (
+                      <p className="text-xs text-gray-400 italic">
+                        Chưa có bản dịch. Nhấn "Tạo bản dịch" để generate.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
             {/* Position Section */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">

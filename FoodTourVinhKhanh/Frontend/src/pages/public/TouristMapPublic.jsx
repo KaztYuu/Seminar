@@ -21,7 +21,6 @@ import {
   Globe,
   MapPin,
   Pause,
-  Play,
   Volume2,
   Languages,
   ArrowRightLeft,
@@ -115,19 +114,21 @@ const TouristMapPublic = () => {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  // const [isTranslatePanelOpen, setIsTranslatePanelOpen] = useState(false);
+  const [playingSource, setPlayingSource] = useState(null);
+
+  const sidebarAudioRef = useRef(null);
+  const sourceAudioRef = useRef(null);
+  const translatedAudioRef = useRef(null);
   const [translatedText, setTranslatedText] = useState("");
   const [targetLanguage, setTargetLanguage] = useState(null);
   const TRANSLATE_LANGUAGES = [
     { code: "en", label: "EN" },
-    { code: "kr", label: "KR" },
+    { code: "ko", label: "KR" },
     { code: "fr", label: "FR" },
   ];
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
 
-  // const [translatedText, setTranslatedText] = useState("");
-  const audioRef = useRef(null);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -182,61 +183,52 @@ const TouristMapPublic = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedPoi) {
-      return;
-    }
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-
-    setIsAudioPlaying(false);
+    stopAllAudio();
   }, [selectedPoi?.id]);
 
-  useEffect(() => {
-    if (!audioRef.current) {
-      return undefined;
-    }
+  const stopAllAudio = () => {
+    [sidebarAudioRef, sourceAudioRef, translatedAudioRef].forEach((ref) => {
+      if (ref.current) {
+        ref.current.pause();
+        ref.current.currentTime = 0;
+      }
+    });
 
-    const audioElement = audioRef.current;
-    const handlePlay = () => setIsAudioPlaying(true);
-    const handlePause = () => setIsAudioPlaying(false);
-    const handleEnded = () => setIsAudioPlaying(false);
-
-    audioElement.addEventListener("play", handlePlay);
-    audioElement.addEventListener("pause", handlePause);
-    audioElement.addEventListener("ended", handleEnded);
-
-    return () => {
-      audioElement.removeEventListener("play", handlePlay);
-      audioElement.removeEventListener("pause", handlePause);
-      audioElement.removeEventListener("ended", handleEnded);
-    };
-  }, []);
-
-  const toggleAudioPlayback = async () => {
-    if (!audioRef.current || !selectedPoi?.audio_url) {
-      return;
-    }
-
-    const nextAudioUrl = `${API_URL}${selectedPoi.audio_url}`;
-
-    if (isAudioPlaying) {
-      audioRef.current.pause();
-      return;
-    }
-
-    if (audioRef.current.src !== nextAudioUrl) {
-      audioRef.current.src = nextAudioUrl;
-    }
-
-    try {
-      await audioRef.current.play();
-    } catch (error) {
-      console.warn("Autoplay blocked:", error);
-    }
+    setPlayingSource(null);
   };
+
+  // const handlePlayAudio = async ({ source, ref, audioUrl }) => {
+  //   if (!ref?.current || !audioUrl) {
+  //     return;
+  //   }
+
+  //   // nếu đang play chính source này -> pause
+  //   if (playingSource === source) {
+  //     ref.current.pause();
+  //     setPlayingSource(null);
+  //     return;
+  //   }
+
+  //   // stop toàn bộ audio khác
+  //   stopAllAudio();
+
+  //   try {
+  //     if (ref.current.src !== audioUrl) {
+  //       ref.current.src = audioUrl;
+  //     }
+
+  //     await ref.current.play();
+
+  //     setPlayingSource(source);
+
+  //     ref.current.onended = () => {
+  //       setPlayingSource(null);
+  //     };
+  //   } catch (error) {
+  //     console.warn(error);
+  //     setPlayingSource(null);
+  //   }
+  // };
 
   const handleDownloadQr = async () => {
     if (!selectedPoi?.qr_code) {
@@ -303,21 +295,83 @@ const TouristMapPublic = () => {
   };
 
   const handleClearSelection = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    stopAllAudio();
+
     setIsSearchOpen(false);
-    setIsAudioPlaying(false);
     setSelectedPoi(null);
     setActiveNarrationLanguage("vi");
     setIsSidebarOpen(false);
   };
 
+  const handleTranslate = async (langCode) => {
+    console.log("selectedPoi:", selectedPoi);
+    if (!selectedPoi) return;
+
+    const name = selectedPoi.name || "";
+    const description =
+      selectedPoi.original_description || selectedPoi.description || "";
+
+    // Kiểm tra trước khi gửi
+    if (!name.trim() || !description.trim()) {
+      toast.error("POI chưa có tên hoặc mô tả để dịch");
+      return;
+    }
+
+    setTargetLanguage(langCode);
+    setTranslatedText("");
+    setIsTranslating(true);
+
+    try {
+      const res = await api.post(`/pois/suggestions/translate/${langCode}`, {
+        name: name.trim(),
+        description: description.trim(),
+      });
+
+      const data = res?.data?.data;
+      setTranslatedText(data?.description || "Không có bản dịch.");
+    } catch (err) {
+      const message =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Không thể dịch nội dung";
+      toast.error(
+        typeof message === "string" ? message : "Không thể dịch nội dung",
+      );
+      setTranslatedText("");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleTTS = (text, langCode) => {
+    if (!text) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang =
+      langCode === "ko"
+        ? "ko-KR"
+        : langCode === "fr"
+          ? "fr-FR"
+          : langCode === "en"
+            ? "en-US"
+            : "vi-VN";
+
+    utterance.rate = 0.9;
+    utterance.onend = () => setPlayingSource(null);
+
+    setPlayingSource("translated");
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className="fixed inset-0 bg-white overflow-hidden">
       {loading && <FullPageLoading />}
-      <audio ref={audioRef} hidden />
+
+      <audio ref={sidebarAudioRef} hidden />
+      <audio ref={sourceAudioRef} hidden />
+      <audio ref={translatedAudioRef} hidden />
 
       <div className="relative h-full w-full bg-slate-100">
         <div className="absolute right-4 top-4 z-[1100] md:right-6 md:top-6">
@@ -351,124 +405,152 @@ const TouristMapPublic = () => {
         )}
 
         <aside
-          className={`absolute inset-y-0 left-0 z-[1300] w-[460px] overflow-hidden border-r border-slate-200 bg-white shadow-2xl transition-transform duration-300
-            ${
-              selectedPoi && isSidebarOpen
-                ? "translate-x-0"
-                : "-translate-x-full"
-            }`}>
+          className={`absolute inset-y-0 left-0 z-[1300]
+            flex flex-col
+            w-[460px]
+            border-r border-slate-200
+            bg-white shadow-2xl
+            transition-transform duration-300
+          ${selectedPoi && isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           {selectedPoi && (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="border-b border-slate-200 bg-white">
-                <div className="relative h-[300px] overflow-hidden">
-                  <img
-                    src={`${API_URL}${selectedPoi.banner || ""}`}
-                    alt={selectedPoi.name || "POI banner"}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-5 py-5 min-h-0">
-                <div className="space-y-5">
-                  <div className="rounded-3xl border border-white/30 bg-white/90 backdrop-blur-xl px-5 py-5 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">
-                        <div className="h-[2px] w-5 bg-cyan-700" />
-                        Mô tả
-                      </div>
-
-                      <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                        {activeNarrationLanguage}
-                      </div>
-                    </div>
-
-                    <p className="break-words whitespace-pre-line text-[15px] leading-7 text-slate-700">
-                      {selectedPoi.original_description ||
-                        selectedPoi.description ||
-                        "Địa điểm này hiện chưa có mô tả chi tiết."}
-                    </p>
+              {/* SCROLL AREA */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                {/* BANNER */}
+                <div className="border-b border-slate-200 bg-white">
+                  <div className="relative h-[300px] overflow-hidden">
+                    <img
+                      src={`${API_URL}${selectedPoi.banner || ""}`}
+                      alt={selectedPoi.name || "POI banner"}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
+                </div>
+                {/* CONTENT SCROLL */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 min-h-0">
+                  <div className="space-y-5">
+                    <div className="rounded-3xl border border-white/30 bg-white/90 backdrop-blur-xl px-5 py-5 shadow-sm">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">
+                          <div className="h-[2px] w-5 bg-cyan-700" />
+                          Nội dung thuyết minh
+                        </div>
 
-                  <div className="rounded-3xl border border-white/30 bg-white/90 backdrop-blur-xl px-5 py-5 shadow-sm">
-                    <div className="mt-4 flex items-start justify-between gap-4">
-                      {/* LEFT */}
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <p className="text-base font-semibold text-slate-900">
-                          Địa chỉ
-                        </p>
-
-                        <div className="mt-5 flex gap-4">
-                          {/* ICON */}
-                          <div className="mt-1 shrink-0">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-                              <MapPin size={22} />
-                            </div>
-                          </div>
-
-                          {/* CONTENT */}
-                          <div className="min-w-0 flex-1">
-                            <p className="break-words text-[17px] font-medium leading-7 text-slate-800">
-                              {selectedPoi.address}
-                            </p>
-
-                            <p className="mt-3 text-sm leading-6 text-slate-400">
-                              {selectedPoi.latitude}, {selectedPoi.longitude}
-                            </p>
-                          </div>
+                        <div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                          {activeNarrationLanguage}
                         </div>
                       </div>
-                      {/* RIGHT */}
-                      <button
-                        type="button"
-                        onClick={() => setIsQrModalOpen(true)}
-                        className="
+
+                      <p className="break-words whitespace-pre-line text-[15px] leading-7 text-slate-700">
+                        {selectedPoi.original_description ||
+                          selectedPoi.description ||
+                          "Địa điểm này hiện chưa có mô tả chi tiết."}
+                      </p>
+                    </div>
+
+                    <div className="rounded-3xl border border-white/30 bg-white/90 backdrop-blur-xl px-5 py-5 shadow-sm">
+                      <div className="mt-4 flex items-start justify-between gap-4">
+                        {/* LEFT */}
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <p className="text-base font-semibold text-slate-900">
+                            Địa chỉ
+                          </p>
+
+                          <div className="mt-5 flex gap-4">
+                            {/* ICON */}
+                            <div className="mt-1 shrink-0">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+                                <MapPin size={22} />
+                              </div>
+                            </div>
+
+                            {/* CONTENT */}
+                            <div className="min-w-0 flex-1">
+                              <p className="break-words text-[17px] font-medium leading-7 text-slate-800">
+                                {selectedPoi.address}
+                              </p>
+
+                              <p className="mt-3 text-sm leading-6 text-slate-400">
+                                {selectedPoi.latitude}, {selectedPoi.longitude}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        {/* RIGHT */}
+                        <button
+                          type="button"
+                          onClick={() => setIsQrModalOpen(true)}
+                          className="
                           flex w-[120px] shrink-0 flex-col items-center justify-center
                           rounded-3xl border border-slate-200 bg-slate-50
                           px-4 py-4 text-center transition
                           hover:bg-slate-100
                         ">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6 text-slate-700"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}>
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M4 4h5v5H4V4zm11 0h5v5h-5V4zM4 15h5v5H4v-5zm13 2h3m-3 3h3m-8-8h8v8h-8v-8z"
-                            />
-                          </svg>
-                        </div>
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-6 w-6 text-slate-700"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4 4h5v5H4V4zm11 0h5v5h-5V4zM4 15h5v5H4v-5zm13 2h3m-3 3h3m-8-8h8v8h-8v-8z"
+                              />
+                            </svg>
+                          </div>
 
-                        <p className="mt-3 text-sm font-semibold text-slate-800">
-                          Chia sẻ
-                        </p>
+                          <p className="mt-3 text-sm font-semibold text-slate-800">
+                            Chia sẻ
+                          </p>
 
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
-                          Mở QR Code
-                        </p>
-                      </button>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            Mở QR Code
+                          </p>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div className="border-t border-slate-200 bg-white px-5 py-4">
+              {/* FOOTER FIXED */}
+              <div className="shrink-0 border-t border-slate-200 bg-white px-5 py-4">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
                     className="shrink-0 px-4"
-                    onClick={() => setIsTranslateModalOpen(true)}>
+                    onClick={() => {
+                      stopAllAudio();
+                      setIsTranslateModalOpen(true);
+                    }}>
                     <Languages size={16} className="mr-2" />
                     Dịch
                   </Button>
 
-                  <Button className="w-full" onClick={toggleAudioPlayback}>
-                    {isAudioPlaying ? (
+                  <Button
+                    className="w-full"
+                    disabled={!!playingSource && playingSource !== "sidebar"}
+                    onClick={() => {
+                      if (playingSource === "sidebar") {
+                        window.speechSynthesis.cancel();
+                        setPlayingSource(null);
+                      } else {
+                        const text =
+                          selectedPoi.original_description ||
+                          selectedPoi.description ||
+                          "";
+                        window.speechSynthesis.cancel();
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.lang = "vi-VN";
+                        utterance.rate = 0.9;
+                        utterance.onend = () => setPlayingSource(null);
+                        setPlayingSource("sidebar");
+                        window.speechSynthesis.speak(utterance);
+                      }
+                    }}>
+                    {playingSource === "sidebar" ? (
                       <>
                         <Pause size={16} className="mr-2" />
                         Tạm dừng
@@ -511,8 +593,8 @@ const TouristMapPublic = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    handleClearSelection();
                     setSearchKeyword("");
-                    setSelectedPoi(null);
                   }}
                   className="ml-2 text-slate-400 hover:text-slate-600">
                   <X size={18} />
@@ -584,6 +666,7 @@ const TouristMapPublic = () => {
               <button
                 type="button"
                 onClick={() => {
+                  stopAllAudio();
                   setIsTranslateModalOpen(false);
                   setTargetLanguage(null);
                   setTranslatedText("");
@@ -592,98 +675,150 @@ const TouristMapPublic = () => {
                 <X size={18} />
               </button>
 
-              <div className="grid h-full w-full grid-cols-[1fr_120px_1fr]">
+              <div className="grid h-full w-full grid-cols-[1fr_140px_1fr]">
                 {/* LEFT */}
                 <div className="flex h-full flex-col border-r border-slate-200">
+                  {/* HEADER */}
                   <div className="border-b border-slate-200 px-6 py-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">
-                          Ngôn ngữ gốc
-                        </p>
-
-                        <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                          {(
-                            selectedPoi.original_language || "vi"
-                          ).toUpperCase()}
-                        </h3>
-                      </div>
-
-                      <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-600">
-                        SOURCE
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Globe size={18} className="text-slate-600" />
+                      <p className="text-sm font-semibold text-slate-700">
+                        Ngôn ngữ gốc (
+                        {(selectedPoi.original_language || "vi").toUpperCase()})
+                      </p>
                     </div>
                   </div>
 
+                  {/* CONTENT */}
                   <div className="flex-1 overflow-y-auto px-6 py-6">
                     <p className="whitespace-pre-line text-[15px] leading-8 text-slate-700">
                       {selectedPoi.original_description ||
                         "Không có nội dung gốc."}
                     </p>
                   </div>
-                </div>
 
-                {/* CENTER */}
-                <div className="flex flex-col items-center justify-center gap-5 border-r border-slate-200 bg-slate-50 px-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
-                    <ArrowRightLeft size={24} />
+                  {/* FOOTER */}
+                  <div className="border-t border-slate-200 px-6 py-4">
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      disabled={!!playingSource && playingSource !== "source"}
+                      onClick={() => {
+                        if (playingSource === "source") {
+                          window.speechSynthesis.cancel();
+                          setPlayingSource(null);
+                        } else {
+                          const text =
+                            selectedPoi.original_description ||
+                            selectedPoi.description ||
+                            "";
+                          const lang = selectedPoi.original_language || "vi";
+                          window.speechSynthesis.cancel();
+                          const utterance = new SpeechSynthesisUtterance(text);
+                          utterance.lang = lang === "vi" ? "vi-VN" : lang;
+                          utterance.rate = 0.9;
+                          utterance.onend = () => setPlayingSource(null);
+                          setPlayingSource("source");
+                          window.speechSynthesis.speak(utterance);
+                        }
+                      }}>
+                      {playingSource === "source" ? (
+                        <>
+                          <Pause size={16} className="mr-2" />
+                          Tạm dừng
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 size={16} className="mr-2" />
+                          Phát thuyết minh
+                        </>
+                      )}
+                    </Button>
                   </div>
+                </div>
+                {/* CENTER */}
+                <div className="flex flex-col items-center justify-center gap-4 bg-slate-50 px-4">
+                  <ArrowRightLeft size={26} className="text-cyan-600" />
 
                   <div className="w-full space-y-3">
-                    {TRANSLATE_LANGUAGES.map((language) => {
-                      const isActive = targetLanguage === language.code;
+                    {TRANSLATE_LANGUAGES.map((lang) => {
+                      const isActive = targetLanguage === lang.code;
 
                       return (
                         <button
-                          key={language.code}
+                          key={lang.code}
                           type="button"
                           disabled={isActive}
-                          onClick={() => {
-                            setTargetLanguage(language.code);
-
-                            // CALL API TRANSLATE HERE
-                          }}
-                          className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
-                            isActive
-                              ? "pointer-events-none bg-slate-200 text-slate-400 opacity-60 blur-[0.3px]"
-                              : "border border-white/30 bg-white/90 backdrop-blur-xl text-slate-700 hover:bg-slate-50"
-                          }`}>
-                          Dịch sang {language.label}
+                          onClick={() => handleTranslate(lang.code)}
+                          className={`w-full rounded-xl border px-3 py-2.5 text-sm font-medium transition
+            ${
+              isActive
+                ? "bg-slate-200 text-slate-400 opacity-60"
+                : "bg-white text-slate-700 hover:bg-slate-100"
+            }`}>
+                          Dịch sang {lang.label}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
                 {/* RIGHT */}
                 <div className="flex h-full flex-col">
-                  <div className="border-b border-slate-200 pr-20 pl-6 py-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">
-                          Bản dịch
-                        </p>
+                  {/* HEADER */}
+                  <div className="border-b border-slate-200 px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <Globe size={18} className="text-slate-600" />
 
-                        <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                          {targetLanguage
-                            ? `Bản dịch ${targetLanguage.toUpperCase()}`
-                            : "Chưa chọn ngôn ngữ"}
-                        </h3>
-                      </div>
-
-                      <div className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold uppercase text-cyan-700">
-                        TARGET
-                      </div>
+                      <p className="text-sm font-semibold text-slate-700">
+                        Bản dịch (
+                        {targetLanguage ? targetLanguage.toUpperCase() : "..."})
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex-1 p-6">
-                    <textarea
-                      value={translatedText}
-                      readOnly
-                      placeholder="Nội dung sau khi dịch sẽ hiển thị tại đây..."
-                      className="h-full w-full resize-none rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5 text-[15px] leading-7 text-slate-700 outline-none"
-                    />
+                  {/* CONTENT */}
+                  <div className="flex-1 overflow-y-auto px-6 py-6 bg-slate-50">
+                    {isTranslating ? (
+                      <div className="flex items-center gap-2 text-sm text-slate-400">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-500" />
+                        Đang dịch...
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-line text-[15px] leading-8 text-slate-700">
+                        {translatedText || "Chưa có bản dịch."}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* FOOTER */}
+                  <div className="border-t border-slate-200 px-6 py-4">
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      disabled={
+                        !translatedText ||
+                        (playingSource && playingSource !== "translated")
+                      }
+                      onClick={() => {
+                        if (playingSource === "translated") {
+                          window.speechSynthesis.cancel();
+                          setPlayingSource(null);
+                        } else {
+                          handleTTS(translatedText, targetLanguage);
+                        }
+                      }}>
+                      {playingSource === "translated" ? (
+                        <>
+                          <Pause size={16} className="mr-2" />
+                          Tạm dừng
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 size={16} className="mr-2" />
+                          Phát bản dịch
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -696,8 +831,8 @@ const TouristMapPublic = () => {
             center={DEFAULT_CENTER}
             zoom={15}
             maxZoom={18}
-            className="h-full w-full z-0">
             zoomControl={false}
+            className="h-full w-full z-0">
             <ZoomControl position="bottomright" />
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {isQrModalOpen && selectedPoi && (

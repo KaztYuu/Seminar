@@ -393,6 +393,16 @@ def getPOIById(user, poi_id, lang="vi"):
                 """
             , (poi_id,))
             poi['knowledge'] = cursor.fetchall()
+            
+            cursor.execute(
+                """
+                    SELECT lang_code, name, description
+                    FROM poi_localized_data
+                    WHERE poi_id = %s AND lang_code <> 'vi'
+                """,
+                (poi_id,)
+            )
+            poi['localized_data'] = cursor.fetchall()
 
     except Exception as e:
         print(f"Get POI Error: {e}")
@@ -517,18 +527,19 @@ async def updatePOI(user, poi_id, data):
             WHERE id = %s
         """, (new_thumbnail_path, new_banner_path, is_active, poi_id))
 
-        if user["role"] == "admin":
-            cursor.execute("""
-                UPDATE poi_position 
-                SET latitude = %s, longitude = %s, audio_range = %s, access_range = %s
-                WHERE poi_id = %s
-            """, (data.position.latitude, data.position.longitude, data.position.audio_range, data.position.access_range, poi_id))
-        else:
-            cursor.execute("""
-                UPDATE poi_position 
-                SET latitude = %s, longitude = %s
-                WHERE poi_id = %s
-            """, (data.position.latitude, data.position.longitude, poi_id))
+        if data.position:
+            if user["role"] == "admin":
+                cursor.execute("""
+                    UPDATE poi_position 
+                    SET latitude = %s, longitude = %s, audio_range = %s, access_range = %s
+                    WHERE poi_id = %s
+                """, (data.position.latitude, data.position.longitude, data.position.audio_range, data.position.access_range, poi_id))
+            else:
+                cursor.execute("""
+                    UPDATE poi_position 
+                    SET latitude = %s, longitude = %s
+                    WHERE poi_id = %s
+                """, (data.position.latitude, data.position.longitude, poi_id))
 
         if data.knowledge:
             cursor.execute("DELETE FROM poi_knowledge_base WHERE poi_id = %s", (poi_id,))
