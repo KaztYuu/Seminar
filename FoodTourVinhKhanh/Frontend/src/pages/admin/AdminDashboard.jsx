@@ -187,7 +187,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <button
-                onClick={handleUpdateLimit}
+                onClick={handleUpdateMaxLimit}
                 disabled={isUpdating}
                 className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold transition-all disabled:opacity-50 active:scale-95 shadow-lg shadow-slate-200"
               >
