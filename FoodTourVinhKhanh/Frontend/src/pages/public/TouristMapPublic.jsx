@@ -34,10 +34,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import Button from "../../components/common/Button";
 import FullPageLoading from "../../components/common/FullPageLoading";
-<<<<<<< Updated upstream
-=======
 import { QRCodeCanvas } from "qrcode.react";
->>>>>>> Stashed changes
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -212,7 +209,9 @@ const TouristMapPublic = () => {
         return null;
       }
 
-      const coords = points.map((p) => `${p.longitude},${p.latitude}`).join(";");
+      const coords = points
+        .map((p) => `${p.longitude},${p.latitude}`)
+        .join(";");
       const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
       const res = await fetch(url);
       const data = await res.json();
@@ -1084,9 +1083,7 @@ const TouristMapPublic = () => {
                           alt="QR Code"
                           className="h-64 w-64 object-contain"
                         />
-<<<<<<< Updated upstream
-=======
-                      </div> */}
+                      </div>
 
                       <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
                         <QRCodeCanvas
@@ -1102,7 +1099,6 @@ const TouristMapPublic = () => {
                           marginSize={4}
                           level="H"
                         />
->>>>>>> Stashed changes
                       </div>
 
                       <p className="mt-5 text-base font-semibold text-slate-800">
