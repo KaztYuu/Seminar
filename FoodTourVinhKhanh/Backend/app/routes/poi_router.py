@@ -338,6 +338,31 @@ async def ask_poi(poi_id: int, question: str):
         }
     }
 
+@router.get("/ai/tts")
+async def text_to_speech(text: str, language: str = "vi"):
+    """
+    Convert text to speech using Edge TTS.
+    
+    Query Parameters:
+    - text: Text to convert to speech (required)
+    - language: Language code - vi, en, fr, kr, ja (default: vi)
+    
+    Returns base64 encoded MP3 audio
+    """
+    if not text or len(text.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Text không được để trống")
+    
+    result = await gemini_service.text_to_speech(text=text, language=language)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=f"TTS failed: {result.get('error')}")
+    
+    return {
+        "success": True,
+        "audio_base64": result["audio_base64"],
+        "language": result["language"]
+    }
+
 @router.post("/suggestions/translate/{lang_code}")
 async def suggest_translation(
     lang_code: str,

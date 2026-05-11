@@ -7,6 +7,8 @@ import {
   useMap,
   useMapEvents,
   ZoomControl,
+  Polyline,
+  Popup,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -32,6 +34,10 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import Button from "../../components/common/Button";
 import FullPageLoading from "../../components/common/FullPageLoading";
+<<<<<<< Updated upstream
+=======
+import { QRCodeCanvas } from "qrcode.react";
+>>>>>>> Stashed changes
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -86,6 +92,10 @@ const normalizePoi = (poi) => {
   const latitude = Number(poi?.latitude);
   const longitude = Number(poi?.longitude);
 
+  // normalize tour_id (nếu API trả về field khác nhau)
+  const tourId =
+    poi?.tour_id ?? poi?.tourId ?? poi?.tour?.id ?? poi?.tour?.tour_id ?? null;
+
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return null;
   }
@@ -100,6 +110,9 @@ const normalizePoi = (poi) => {
     address: poi?.address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
     original_description: poi.original_description || poi.description || "",
     original_language: poi.original_language || poi.language || "vi",
+
+    // dùng thống nhất ở UI
+    tour_id: tourId,
   };
 };
 
@@ -130,7 +143,188 @@ const TouristMapPublic = () => {
 
   const [isTranslating, setIsTranslating] = useState(false);
 
+  // Tour dropdown (tourist-map)
+  const [tours, setTours] = useState([]);
+  const [selectedTourId, setSelectedTourId] = useState(null);
+  const [tourPoints, setTourPoints] = useState([]);
+  const [tourRouteCoords, setTourRouteCoords] = useState([]); // OSRM polyline lat/lng[]
+
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        console.log("[TouristMapPublic] fetching /tours ...");
+        const res = await api.get("/tours/public");
+        console.log("[TouristMapPublic] /tours response:", res?.data);
+
+        const payload = res?.data;
+        const arr = Array.isArray(payload?.data) ? payload.data : [];
+
+        console.log(
+          "[TouristMapPublic] tours payload array length:",
+          arr.length,
+        );
+        if (arr.length > 0) {
+          setTours(arr);
+        } else {
+          // nếu backend trả khác shape thì vẫn log để debug
+          console.warn(
+            "[TouristMapPublic] no tours array found in /tours payload",
+            payload,
+          );
+          setTours([]);
+        }
+      } catch (e) {
+        console.error("[TouristMapPublic] fetch /tours failed:", e);
+        setTours([]);
+      }
+    };
+
+    fetchTours();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTourId) {
+      setTourPoints([]);
+      setTourRouteCoords([]);
+      return;
+    }
+
+    const tour = tours.find((t) => t.id === selectedTourId) || null;
+    const points = (tour?.points || [])
+      .filter(
+        (p) => Number.isFinite(p?.latitude) && Number.isFinite(p?.longitude),
+      )
+      .map((p) => ({
+        ...p,
+        latitude: Number(p.latitude),
+        longitude: Number(p.longitude),
+      }));
+
+    setTourPoints(points);
+    setTourRouteCoords([]);
+  }, [selectedTourId, tours]);
+
+  const fetchRoute = async (points, saveToState = true) => {
+    try {
+      if (!Array.isArray(points) || points.length < 2) {
+        return null;
+      }
+
+      const coords = points.map((p) => `${p.longitude},${p.latitude}`).join(";");
+      const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data?.routes?.length) {
+        return null;
+      }
+
+      const route = data.routes[0];
+      const latlngs = route.geometry?.coordinates?.map((c) => [c[1], c[0]]);
+
+      if (!latlngs || latlngs.length < 2) {
+        return null;
+      }
+
+      if (saveToState) {
+        setTourRouteCoords(latlngs);
+      }
+
+      return latlngs;
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const validPoints = Array.isArray(tourPoints)
+      ? tourPoints.filter(
+          (p) => Number.isFinite(p?.latitude) && Number.isFinite(p?.longitude),
+        )
+      : [];
+
+    if (validPoints.length < 2) {
+      setTourRouteCoords([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      const result = await fetchRoute(validPoints, false);
+      if (cancelled) return;
+
+      if (result && result.length > 1) {
+        setTourRouteCoords(result);
+      } else {
+        // fallback: nối thẳng qua các điểm như khi OSRM lỗi
+        setTourRouteCoords(validPoints.map((p) => [p.latitude, p.longitude]));
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tourPoints]);
+
+  const FitBoundsTour = ({ points }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      if (!points || points.length === 0) return;
+      if (points.length === 1) {
+        map.setView([points[0].latitude, points[0].longitude], map.getZoom(), {
+          animate: true,
+        });
+        return;
+      }
+      const bounds = points.map((p) => [p.latitude, p.longitude]);
+      map.fitBounds(bounds, { padding: [60, 60] });
+    }, [map, points]);
+
+    return null;
+  };
+
+  const renderTourMarkers = () => {
+    if (!tourPoints || tourPoints.length === 0) return null;
+
+    return tourPoints.map((p, index) => (
+      <React.Fragment key={p.poi_id ?? `${p.latitude}-${p.longitude}-${index}`}>
+        <Marker
+          position={[p.latitude, p.longitude]}
+          icon={L.divIcon({
+            className: "",
+            html: `<div style="background:#f97316;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${index + 1}</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          })}>
+          <Popup>
+            <div className="text-sm">
+              <b>
+                #{index + 1} {p.name || `Điểm ${index + 1}`}
+              </b>
+            </div>
+          </Popup>
+        </Marker>
+
+        {Number.isFinite(p.audio_range) && p.audio_range > 0 && (
+          <Circle
+            center={[p.latitude, p.longitude]}
+            radius={p.audio_range}
+            pathOptions={{
+              color: "#f97316",
+              fillColor: "#f59e0b",
+              fillOpacity: 0.08,
+            }}
+          />
+        )}
+      </React.Fragment>
+    ));
+  };
 
   const normalizedPois = useMemo(() => {
     if (!Array.isArray(pois)) {
@@ -374,7 +568,7 @@ const TouristMapPublic = () => {
       <audio ref={translatedAudioRef} hidden />
 
       <div className="relative h-full w-full bg-slate-100">
-        <div className="absolute right-4 top-4 z-[1100] md:right-6 md:top-6">
+        <div className="absolute right-4 top-4 z-[1100] md:right-6 md:top-6 flex flex-col items-end gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -382,8 +576,30 @@ const TouristMapPublic = () => {
             onClick={() => navigate("/login")}>
             Quay lại đăng nhập
           </Button>
-        </div>
 
+          <div className="w-[240px]">
+            <select
+              className="w-full border border-slate-200 bg-white/95 shadow-lg rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none"
+              value={selectedTourId ?? ""}
+              disabled={!Array.isArray(tours) || tours.length === 0}
+              onChange={(e) => {
+                const next = e.target.value ? Number(e.target.value) : null;
+                setSelectedTourId(next);
+              }}>
+              <option value="">
+                {Array.isArray(tours) && tours.length > 0
+                  ? "Chọn Tour (hiển thị điểm trên map)"
+                  : "Không có tour / đang tải"}
+              </option>
+              {Array.isArray(tours) &&
+                tours.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
         {selectedPoi && (
           <button
             type="button"
@@ -868,6 +1084,25 @@ const TouristMapPublic = () => {
                           alt="QR Code"
                           className="h-64 w-64 object-contain"
                         />
+<<<<<<< Updated upstream
+=======
+                      </div> */}
+
+                      <div className="p-2 bg-white border-2 border-gray-100 rounded-xl relative group">
+                        <QRCodeCanvas
+                          id="qr-gen"
+                          value={String(selectedPoi.id)}
+                          size={512}
+                          style={{
+                            width: "220px",
+                            height: "220px",
+                            padding: "10px",
+                            backgroundColor: "white",
+                          }}
+                          marginSize={4}
+                          level="H"
+                        />
+>>>>>>> Stashed changes
                       </div>
 
                       <p className="mt-5 text-base font-semibold text-slate-800">
@@ -905,39 +1140,54 @@ const TouristMapPublic = () => {
                 })}
               />
             )}
-            {normalizedPois.map((poi) => (
-              <React.Fragment key={poi.id}>
-                <Marker
-                  position={[poi.latitude, poi.longitude]}
-                  eventHandlers={{
-                    click: () => handleSelectPoi(poi),
-                  }}
-                />
+            {/* Zoom/hiển thị Tour points */}
+            {tourPoints.length > 0 && <FitBoundsTour points={tourPoints} />}
 
-                {poi.audio_range > 0 && (
-                  <Circle
-                    center={[poi.latitude, poi.longitude]}
-                    radius={poi.audio_range}
-                    pathOptions={{
-                      color: "#f59e0b",
-                      fillColor: "#fcd34d",
-                      fillOpacity: selectedPoi?.id === poi.id ? 0.15 : 0.08,
-                    }}
-                  />
-                )}
+            {/* Lối đi thực tế OSRM */}
+            {tourRouteCoords.length > 1 && (
+              <Polyline
+                positions={tourRouteCoords}
+                color="#f97316"
+                weight={4}
+              />
+            )}
 
-                <Circle
-                  center={[poi.latitude, poi.longitude]}
-                  radius={poi.access_range}
-                  pathOptions={{
-                    color: selectedPoi?.id === poi.id ? "#1d4ed8" : "#3b82f6",
-                    fillColor: "#93c5fd",
-                    fillOpacity: selectedPoi?.id === poi.id ? 0.28 : 0.16,
-                    dashArray: "5, 10",
-                  }}
-                />
-              </React.Fragment>
-            ))}
+            {tourPoints.length > 0
+              ? renderTourMarkers()
+              : normalizedPois.map((poi) => (
+                  <React.Fragment key={poi.id}>
+                    <Marker
+                      position={[poi.latitude, poi.longitude]}
+                      eventHandlers={{
+                        click: () => handleSelectPoi(poi),
+                      }}
+                    />
+
+                    {poi.audio_range > 0 && (
+                      <Circle
+                        center={[poi.latitude, poi.longitude]}
+                        radius={poi.audio_range}
+                        pathOptions={{
+                          color: "#f59e0b",
+                          fillColor: "#fcd34d",
+                          fillOpacity: selectedPoi?.id === poi.id ? 0.15 : 0.08,
+                        }}
+                      />
+                    )}
+
+                    <Circle
+                      center={[poi.latitude, poi.longitude]}
+                      radius={poi.access_range}
+                      pathOptions={{
+                        color:
+                          selectedPoi?.id === poi.id ? "#1d4ed8" : "#3b82f6",
+                        fillColor: "#93c5fd",
+                        fillOpacity: selectedPoi?.id === poi.id ? 0.28 : 0.16,
+                        dashArray: "5, 10",
+                      }}
+                    />
+                  </React.Fragment>
+                ))}
           </MapContainer>
         </div>
       </div>

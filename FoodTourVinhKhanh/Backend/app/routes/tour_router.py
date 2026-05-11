@@ -41,7 +41,14 @@ def api_delete_tour(tour_id: int, user=Depends(require_role("admin"))):
 
 @router.get("/")
 def api_get_tours(user=Depends(verify_read_access)):
-    """Tourist xem danh sách tour đang hoạt động"""
+    """Tourist (có quyền đọc) xem danh sách tour đang hoạt động"""
+    tours = getTours()
+    return {"success": True, "data": tours}
+
+
+@router.get("/public")
+def api_get_tours_public():
+    """Public map xem danh sách tour đang hoạt động (không cần auth)"""
     tours = getTours()
     return {"success": True, "data": tours}
 

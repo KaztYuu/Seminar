@@ -1,9 +1,12 @@
 import json
 import os
+import base64
+import io
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from groq import Groq
+import edge_tts
 
 load_dotenv()
 
@@ -177,6 +180,57 @@ class GeminiService:
                 print(f"Chat fallback failed: {groq_exc}")
                 return "Xin lỗi, hệ thống AI đang quá tải. Bạn vui lòng thử lại sau giây lát nhé!"
 
+    async def text_to_speech(self, text: str, language: str = "vi"):
+        """
+        Convert text to speech using Edge TTS (Microsoft).
+        Returns base64 encoded audio MP3.
+        
+        Args:
+            text: Text to convert to speech
+            language: Language code (vi, en, fr, etc.)
+        
+        Returns:
+            dict with audio_base64 if successful
+        """
+        try:
+            # Language voice mapping
+            voice_map = {
+                "vi": "vi-VN-HoaiMyNeural",  # Vietnamese
+                "en": "en-US-AriaNeural",    # English
+                "fr": "fr-FR-DeniseNeural",  # French
+                "kr": "ko-KR-SunHiNeural",   # Korean
+                "ja": "ja-JP-NanamiNeural",  # Japanese
+            }
+            
+            voice = voice_map.get(language, "vi-VN-HoaiMyNeural")
+            
+            # Convert text to speech
+            communicate = edge_tts.Communicate(text=text, voice=voice, rate="+0%", volume="+0%")
+            
+            # Collect audio data
+            audio_data = io.BytesIO()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.write(chunk["data"])
+            
+            # Convert to base64
+            audio_data.seek(0)
+            audio_base64 = base64.b64encode(audio_data.getvalue()).decode('utf-8')
+            
+            return {
+                "success": True,
+                "audio_base64": audio_base64,
+                "language": language,
+                "voice": voice
+            }
+        except Exception as exc:
+            print(f"TTS generation failed: {exc}")
+            return {
+                "success": False,
+                "error": str(exc)
+            }
+
 
 gemini_service = GeminiService()
+
 
