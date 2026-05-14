@@ -5,7 +5,7 @@ def check_subscription_active(user):
     Kiểm tra hạn sử dụng dựa trên Role của người dùng.
     """
 
-    if user["role"] == "admin":
+    if user["role"] != "vendor":
         return True
 
     conn = get_db_connection()

@@ -1,6 +1,18 @@
 from fastapi import Request, HTTPException, Depends
 from app.services.redis_services import get_session
 
+GUEST_USER = {"id": None, "role": "tourist", "name": "Guest"}
+
+def get_current_user_optional(request: Request) -> dict:
+    session_id = request.cookies.get("session_id")
+    if not session_id:
+        return GUEST_USER
+        
+    user = get_session(session_id)
+    if not user:
+        return GUEST_USER
+        
+    return user
 
 def get_current_user(request: Request):
     session_id = request.cookies.get("session_id")
