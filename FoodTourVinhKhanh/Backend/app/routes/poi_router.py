@@ -31,24 +31,6 @@ def api_activate_pois_bulk(user=Depends(require_role("admin"))):
         "message": message
     } 
 
-@router.put("/admin/approve/{poi_id}")
-def approve_single_poi(poi_id: int, user=Depends(require_role("admin"))):
-    """Duyệt một POI riêng lẻ"""
-    success, message = activate_poi_single(poi_id)
-
-    if not success:
-        raise HTTPException(
-            status_code=400 if "đã được duyệt" in message else 404,
-            detail=message
-        )
-    
-    invalidate_poi_cache()
-    return {
-        "success": True,
-        "message": message,
-        "poi_id": poi_id
-    }
-
 @router.get("/get-pois")
 def get_pois(x_language_code: Optional[str] = Header(None), search: str = "", user=Depends(verify_active_subscription)):
     lang = x_language_code or "vi"
@@ -119,15 +101,13 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
     
     # Check if vendor can create another POI
     can_create = check_vendor_poi_limit(user["id"])
-    
+
     if not can_create:
-        quota = get_remaining_poi_quota(user["id"])
         raise HTTPException(
             status_code=429, 
             detail={
                 "message": "Bạn đã đạt giới hạn tối đa số POI của gói hiện tại",
-                "daily_limit": quota['daily_limit'],
-                "today_created": quota['today_created'],
+                "daily_limit": 3,
                 "remaining": 0
             }
         )
@@ -137,13 +117,10 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
         raise HTTPException(status_code=400, detail=message)
     invalidate_poi_cache()
     
-    quota = get_remaining_poi_quota(user["id"])
-    
     return {
         "success": True, 
         "message": message, 
         "poi_id": poi_id,
-        "quota": quota
     }
 
 @router.get("/vendor/quota")

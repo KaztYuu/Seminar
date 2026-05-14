@@ -52,24 +52,12 @@ def get_vendor_subscription_limit(vendor_id: int):
         conn.close()
 
 def check_vendor_poi_limit(vendor_id: int):
-    """
-    Check if vendor can create another POI.
-    
-    Fetches the total POI limit from vendor's active subscription and counts
-    all non-deleted POIs currently owned by the vendor.
-    
-    Args:
-        vendor_id: The vendor user ID
-        
-    Returns:
-        bool: True if vendor can create another POI, False otherwise
-    """
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        total_limit = get_vendor_subscription_limit(vendor_id)
+        total_limit = 3
 
-        # Count current active inventory, not daily creations
         cursor.execute("""
             SELECT COUNT(*) as total_count 
             FROM pois 
