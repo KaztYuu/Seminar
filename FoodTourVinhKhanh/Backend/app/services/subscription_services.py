@@ -11,12 +11,9 @@ def check_subscription_active(user):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Xác định bảng cần truy vấn dựa trên role
-    table_name = "vendor_subscriptions" if user["role"] == "vendor" else "tourist_subscriptions"
-
     try:
         sql = f"""
-            SELECT id FROM {table_name}
+            SELECT id FROM vendor_subscriptions
             WHERE user_id = %s
             AND end_time > NOW()
             ORDER BY end_time DESC
