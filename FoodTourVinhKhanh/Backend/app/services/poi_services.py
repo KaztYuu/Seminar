@@ -72,46 +72,6 @@ def check_vendor_poi_limit(vendor_id: int):
         cursor.close()
         conn.close()
 
-def get_remaining_poi_quota(vendor_id: int):
-    """
-    Get remaining POI creation quota based on total POIs allowed by package.
-    
-    Args:
-        vendor_id: The vendor user ID
-        
-    Returns:
-        dict: {
-            'daily_limit': int,
-            'today_created': int,
-            'remaining': int
-        }
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    try:
-        total_limit = get_vendor_subscription_limit(vendor_id)
-
-        # Count all current POIs
-        cursor.execute("""
-            SELECT COUNT(*) as total_count
-            FROM pois
-            WHERE owner_id = %s AND is_Deleted = FALSE
-        """, (vendor_id,))
-        
-        result = cursor.fetchone()
-        total_created = result['total_count'] if result else 0
-
-        remaining = max(0, total_limit - total_created)
-        
-        return {
-            'daily_limit': total_limit,
-            'today_created': total_created,
-            'remaining': remaining
-        }
-    finally:
-        cursor.close()
-        conn.close()
-
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     Calculate distance between two coordinates using Haversine formula.

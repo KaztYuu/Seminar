@@ -95,10 +95,7 @@ async def create_poi_admin(data: POICreateAdmin, user=Depends(require_role("admi
 
 @router.post("/vendor/create")
 async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
-    """
-    Create a new POI with total POI limit enforcement based on subscription tier.
-    """
-    
+
     # Check if vendor can create another POI
     can_create = check_vendor_poi_limit(user["id"])
 
@@ -106,8 +103,8 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
         raise HTTPException(
             status_code=429, 
             detail={
-                "message": "Bạn đã đạt giới hạn tối đa số POI của gói hiện tại",
-                "daily_limit": 3,
+                "message": "Bạn đã đạt giới hạn tối đa số POI có thể tạo",
+                "pois_limit": 3,
                 "remaining": 0
             }
         )
@@ -121,17 +118,6 @@ async def create_poi_vendor(data: POICreateVendor, user=Depends(require_role("ve
         "success": True, 
         "message": message, 
         "poi_id": poi_id,
-    }
-
-@router.get("/vendor/quota")
-def get_vendor_quota(user=Depends(require_role("vendor")), active_user=Depends(verify_active_subscription)):
-    quota = get_remaining_poi_quota(user["id"])
-    quota["current_total"] = quota["today_created"]
-    quota["max_pois"] = quota["daily_limit"]
-
-    return {
-        "success": True,
-        "data": quota
     }
 
 @router.put("/admin/update/{poi_id}")
@@ -165,68 +151,6 @@ async def delete_poi(poi_id: int, user=Depends(require_role(["vendor", "admin"])
         raise HTTPException(status_code=status_code, detail=message)
     invalidate_poi_cache(poi_id)
     return {"success": True, "message": message}
-
-@router.get("/nearby")
-def get_nearby_pois_endpoint(
-    latitude: float, 
-    longitude: float, 
-    radius: float = 5.0,
-    x_language_code: Optional[str] = Header(None),
-    user=Depends(verify_active_subscription)
-):
-    """
-    Get POIs within a specified radius (Map Explore feature).
-    
-    Parameters:
-    - latitude: User's latitude (-90 to 90)
-    - longitude: User's longitude (-180 to 180)
-    - radius: Search radius in kilometers (default 5, max 50)
-    - x_language_code: Language code (default 'vi')
-    
-    Example: GET /pois/nearby?latitude=10.76&longitude=106.66&radius=5
-    """
-    
-    # Validate coordinates
-    if not (-90 <= latitude <= 90):
-        raise HTTPException(status_code=400, detail="Latitude must be between -90 and 90")
-    if not (-180 <= longitude <= 180):
-        raise HTTPException(status_code=400, detail="Longitude must be between -180 and 180")
-    
-    # Limit radius to prevent excessive queries
-    if radius < 0.1 or radius > 50:
-        raise HTTPException(status_code=400, detail="Radius must be between 0.1 and 50 km")
-    
-    lang = x_language_code or "vi"
-    
-    # Check cache first
-    cache_key = f"nearby_pois:{latitude}:{longitude}:{radius}:{lang}:{user['role']}:{user['id']}"
-    cached_result = get_cache(cache_key)
-    
-    if cached_result:
-        return {
-            "success": True,
-            "data": cached_result,
-            "source": "cache",
-            "count": len(cached_result)
-        }
-    
-    # Get nearby POIs
-    pois = get_nearby_pois(user, latitude, longitude, radius, lang)
-    
-    # Cache for 5 minutes
-    set_cache(cache_key, pois, expire=300)
-    
-    return {
-        "success": True,
-        "data": pois,
-        "source": "database",
-        "count": len(pois),
-        "search_params": {
-            "latitude": latitude,
-            "longitude": longitude,
-            "radius_km": radius
-        }
-    }
 
 @router.get("/ai/chat")
 async def ask_poi(poi_id: int, question: str):
