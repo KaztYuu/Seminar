@@ -49,7 +49,7 @@ def vnpay_ipn(request: Request):
     return JSONResponse(content=result)
 
 @router.get("/my-payments")
-def get_my_payments(user=Depends(require_role(["tourist", "vendor"]))):
+def get_my_payments(user=Depends(require_role(["vendor"]))):
 
     payments = get_payment_history(user["id"])
 

@@ -10,7 +10,7 @@ router = APIRouter(prefix="/packages", tags=["Packages"])
 PACKAGES_CACHE_PREFIX = "packages_list"
 
 @router.get("/get-my-package")
-def get_my_package(user=Depends(require_role(["vendor", "tourist"]))):
+def get_my_package(user=Depends(require_role(["vendor"]))):
     myPackage = getMyPackage(user["id"], user["role"])
     if not myPackage:
         return {
@@ -26,7 +26,6 @@ def get_my_package(user=Depends(require_role(["vendor", "tourist"]))):
 
 @router.get("/get-all")
 def get_all_packages(user=Depends(require_role("admin"))):
-    """Get all packages for admin management"""
     packages = getPackages(user)
     
     return {

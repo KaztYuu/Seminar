@@ -25,14 +25,12 @@ def getMyPackage(user_id: int, role: str):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    target_table = "tourist_subscriptions" if role == "tourist" else "vendor_subscriptions"
-
     try:
         query = f"""
             SELECT sp.*, ts.start_time, ts.end_time, p.status as payment_status
             FROM subscription_packages sp
             JOIN payments p ON sp.id = p.package_id
-            JOIN {target_table} ts ON p.id = ts.payment_id
+            JOIN vendor_subscriptions ts ON p.id = ts.payment_id
             WHERE ts.user_id = %s 
               AND ts.end_time > NOW()
             ORDER BY ts.end_time DESC
@@ -64,7 +62,6 @@ def getPackages(user):
             SELECT * 
             FROM subscription_packages
             WHERE is_Active = TRUE
-              AND target_role = 'vendor'
               AND price > 0
             ORDER BY price ASC
                        """)

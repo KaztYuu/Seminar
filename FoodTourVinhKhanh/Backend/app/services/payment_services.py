@@ -24,9 +24,8 @@ def create_payment_service(user_id, package_id, payment_method):
         SELECT * FROM subscription_packages 
         WHERE id = %s
           AND is_Active = TRUE
-          AND target_role = %s
           AND price > 0
-    """, (package_id, current_user["role"]))
+    """, (package_id))
     pkg = cursor.fetchone()
 
     if not pkg:
@@ -122,7 +121,7 @@ def activate_package(cursor, user_id, package_id, payment_id):
 
     # Lấy package
     cursor.execute("""
-        SELECT target_role, duration_hours 
+        SELECT duration_hours 
         FROM subscription_packages 
         WHERE id = %s
     """, (package_id,))
@@ -134,55 +133,28 @@ def activate_package(cursor, user_id, package_id, payment_id):
     now = datetime.now()
     duration = timedelta(hours=pkg["duration_hours"])
 
-    if pkg["target_role"] == "tourist":
+    cursor.execute("""
+        SELECT * FROM vendor_subscriptions
+        WHERE user_id = %s AND end_time > NOW()
+        ORDER BY end_time DESC LIMIT 1
+    """, (user_id,))
+    current = cursor.fetchone()
+
+    if current:
+        # Nếu còn hạn của gói cũ thì gia hạn
+        new_end = current["end_time"] + duration
 
         cursor.execute("""
-            SELECT * FROM tourist_subscriptions
-            WHERE user_id = %s AND end_time > NOW()
-            ORDER BY end_time DESC LIMIT 1
-        """, (user_id,))
-        current = cursor.fetchone()
-
-        if current:
-            # Nếu còn hạn của gói cũ thì gia hạn
-            new_end = current["end_time"] + duration
-
-            cursor.execute("""
-                UPDATE tourist_subscriptions
-                SET end_time = %s, payment_id = %s
-                WHERE id = %s
-            """, (new_end, payment_id, current["id"]))
-        else:
-            # Tạo sub mới
-            cursor.execute("""
-                INSERT INTO tourist_subscriptions (user_id, start_time, end_time, payment_id)
-                VALUES (%s, %s, %s, %s)
-            """, (user_id, now, now + duration, payment_id))
-
-    elif pkg["target_role"] == "vendor":
-
+            UPDATE vendor_subscriptions
+            SET end_time = %s, payment_id = %s
+            WHERE id = %s
+        """, (new_end, payment_id, current["id"]))
+    else:
+        # Tạo sub mới
         cursor.execute("""
-            SELECT * FROM vendor_subscriptions
-            WHERE user_id = %s AND end_time > NOW()
-            ORDER BY end_time DESC LIMIT 1
-        """, (user_id,))
-        current = cursor.fetchone()
-
-        if current:
-            # Nếu còn hạn của gói cũ thì gia hạn
-            new_end = current["end_time"] + duration
-
-            cursor.execute("""
-                UPDATE vendor_subscriptions
-                SET end_time = %s, payment_id = %s
-                WHERE id = %s
-            """, (new_end, payment_id, current["id"]))
-        else:
-            # Tạo sub mới
-            cursor.execute("""
-                INSERT INTO vendor_subscriptions (user_id, start_time, end_time, payment_id)
-                VALUES (%s, %s, %s, %s)
-            """, (user_id, now, now + duration, payment_id))
+            INSERT INTO vendor_subscriptions (user_id, start_time, end_time, payment_id)
+            VALUES (%s, %s, %s, %s)
+        """, (user_id, now, now + duration, payment_id))
 
 def get_payment_history(user_id):
     conn = get_db_connection()

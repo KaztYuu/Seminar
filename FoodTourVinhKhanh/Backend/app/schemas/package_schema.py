@@ -39,8 +39,6 @@ class PackageUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=3, max_length=100)
     price: Optional[float] = Field(None, ge=0)
     duration_hours: Optional[int] = Field(None, gt=0)
-    target_role: Optional[Literal["vendor", "tourist"]] = None
-    daily_poi_limit: Optional[int] = Field(None, ge=0)
     is_Active: Optional[bool] = None
 
     class Config:
