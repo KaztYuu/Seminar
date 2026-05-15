@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from app.schemas.poi_schema import POICreateAdmin, POICreateVendor, POIUpdateAdmin, POIUpdateVendor
 from app.services.poi_services import (
-    getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois, activate_poi_single,
-    check_vendor_poi_limit, getPOIData, get_remaining_poi_quota,
-    get_vendor_subscription_limit, get_nearby_pois
+    getPois, createPOI, updatePOI, getPOIById, deletePOI, activate_pois,
+    check_vendor_poi_limit, getPOIData
 )
 from app.services.redis_services import get_cache, set_cache, invalidate_poi_cache
 from app.services.gemini_services import gemini_service

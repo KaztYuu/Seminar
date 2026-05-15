@@ -30,6 +30,7 @@ import TestRAG from "./pages/ChatBot.jsx";
 import profileImg from "./assets/ProfileImage.png";
 import ServerOverloadPage from "./pages/ServerOverloadPage.jsx";
 import {
+  touristMenu,
   vendorMenu,
   adminMenu,
 } from "./components/MenuConstants.jsx";
@@ -81,6 +82,19 @@ function App() {
         </Route> */}
 
         <Route
+          path="/tourist"
+          element={
+            <DashBoardLayout
+              userName={user ? user.name : "Khách"}
+              profileImg={profileImg}
+              menuItems={touristMenu}
+            />
+          }>
+          <Route path="explore" element={<TouristExplore />} />
+          <Route path="tours" element={<TouristTours />} />
+        </Route>
+
+        <Route
           path="/vendor"
           element={
             <ProtectedRoute role="vendor">
@@ -98,10 +112,6 @@ function App() {
         </Route>
 
         <Route path="/" element={<Home />} />
-
-        <Route path="/explore" element={<TouristExplore />} />
-
-        <Route path="/tours" element={<TouristTours />} />
 
         <Route path="/login" element={<Login />} />
 
