@@ -43,6 +43,7 @@ export default function Home() {
             >
               Đăng ký tài khoản mới
             </Link>
+            <span className="text-gray-500">|</span>
             <Link 
               to="/tourist/explore" 
               className="!text-yellow-400 hover:text-yellow-300 transition-colors underline-offset-4 hover:underline"
