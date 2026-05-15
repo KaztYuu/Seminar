@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, Circle } from 'react-leaflet';
 import { QRCodeCanvas } from "qrcode.react"
+import { NavLink, useNavigate } from 'react-router-dom';
 //import QRScanner from "../../components/QRScanner"
 import QRScannerZXing from '../../components/QRScannerZXing';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, ScanLine, Bot, Send, Download } from 'lucide-react';
+import { Volume2, Navigation, MapPin, Search, ChevronUp, ChevronDown, X, ScanLine, Bot, Send, Download, Undo2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 import Button from '../../components/common/Button';
@@ -54,6 +55,8 @@ const TouristExplore = () => {
     const audioRef = useRef(null);
     const lastPlayedPoiId = useRef(null);
 
+    const navigate = useNavigate();
+
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -94,6 +97,10 @@ const TouristExplore = () => {
             console.error("Lỗi chuẩn bị TTS:", error);
         }
         return null;
+    };
+
+    const handleBackToHome = () => {
+        navigate('/');
     };
 
     const handleAskAI = useCallback(async (overrideQuestion = null) => {
@@ -366,6 +373,15 @@ const TouristExplore = () => {
                             QR Scan <span className='ml-2'><ScanLine size={28} /></span>
                         </Button>
                     </div>
+                </div>
+
+                <div className="absolute top-20 right-4 z-[1000]">
+                    <Button
+                    className='hover:text-blue-600'
+                    onClick={handleBackToHome}
+                    >
+                    <Undo2 size={24}/> <span className='ml-2'>Quay lại</span>
+                    </Button>
                 </div>
 
                 {/* BẢN ĐỒ */}

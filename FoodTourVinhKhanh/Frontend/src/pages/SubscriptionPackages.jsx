@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Card from "../components/common/Card";
 import Button from "../components/common/Button";
 import Modal from "../components/common/Modal";
@@ -6,6 +7,7 @@ import api from "../utils/api";
 import toast from "react-hot-toast";
 import vnpayIcon from "../assets/vnpay-logo.png"
 import vietqrIcon from "../assets/vietqr-logo.png"
+import { ArrowLeft } from "lucide-react";
 
 const images = [
   "https://cdn-icons-png.flaticon.com/512/1165/1165629.png",
@@ -129,6 +131,19 @@ const SubscriptionPackage = () => {
             ))}
           </div>
         </div>
+
+        <div className="mt-16 flex justify-center pb-10">
+            <button 
+                onClick={() => navigate("/dashboard")} // Thay đổi route tương ứng với Dashboard của bạn
+                className="group flex items-center gap-2 text-gray-400 hover:text-blue-600 font-bold transition-all duration-300 py-2 px-6 rounded-full hover:bg-blue-50"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 transition-transform group-hover:-translate-x-1">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+                Quay lại
+            </button>
+        </div>
+
       </div>
 
       {/* --- POPUP CHỌN PHƯƠNG THỨC THANH TOÁN --- */}

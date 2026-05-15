@@ -208,7 +208,7 @@ const VendorPOIs = () => {
         {isMapShowing && (
             <div className="fixed inset-0 md:ml-64 ml-0 pt-16 bg-white z-99 overflow-hidden flex flex-col">
 
-            <div className="absolute top-20 left-4 z-[1000]">
+            <div className="absolute top-20 right-4 z-[1000]">
                 <Button
                 className='hover:text-blue-600'
                 onClick={() => setIsMapShowing(false)}
