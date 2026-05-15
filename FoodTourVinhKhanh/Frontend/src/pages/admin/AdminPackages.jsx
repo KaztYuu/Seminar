@@ -149,9 +149,6 @@ const AdminPackages = () => {
       render: (row) => (
         <div className="flex flex-col">
           <span className="font-bold text-gray-900">{row.name}</span>
-          <span className="text-xs text-gray-500 mt-1">
-            {row.target_role === "vendor" ? "👨‍💼 Vendor" : "👤 Tourist"}
-          </span>
         </div>
       ),
     },
@@ -278,7 +275,7 @@ const AdminPackages = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title={editingId ? "Cập Nhật Gói" : "Thêm Gói Mới"}
-        showCloseButton={!loadingSave}>
+        showCloseButton={false}>
         <div className="space-y-4 min-w-96">
           <Input
             label="Tên gói"
