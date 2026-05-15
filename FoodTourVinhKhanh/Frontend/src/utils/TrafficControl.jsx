@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import api from "./utils/api";
-import { getVisitorId } from "./utils/visitor";
+import api from "./api";
+import { getVisitorId } from "./visitor";
 
 export default function TrafficControl({ children }) {
   const navigate = useNavigate();
