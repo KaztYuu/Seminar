@@ -134,7 +134,7 @@ const SubscriptionPackage = () => {
           </div>
         </div>
 
-        <div className="mt-10 flex justify-center pb-8">
+        <div className="mt-5 flex justify-center">
             <button 
                 onClick={() => navigate("/vendor")}
                 className="group flex items-center gap-2 text-gray-400 hover:text-blue-600 font-bold transition-all duration-300 py-2 px-6 rounded-full hover:bg-blue-50"
