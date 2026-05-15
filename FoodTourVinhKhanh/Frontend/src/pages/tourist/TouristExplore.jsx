@@ -372,17 +372,7 @@ const TouristExplore = () => {
                         >
                             QR Scan <span className='ml-2'><ScanLine size={28} /></span>
                         </Button>
-                        <Button
-                            className='hover:text-blue-600'
-                            onClick={handleBackToHome}
-                        >
-                            <Undo2 size={24}/> <span className='ml-2'>Quay lại</span>
-                        </Button>
                     </div>
-                </div>
-
-                <div className="absolute top-24 right-4 z-[1000]">
-
                 </div>
 
                 {/* BẢN ĐỒ */}
