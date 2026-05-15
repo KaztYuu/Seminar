@@ -25,7 +25,7 @@ def create_payment_service(user_id, package_id, payment_method):
         WHERE id = %s
           AND is_Active = TRUE
           AND price > 0
-    """, (package_id))
+    """, (package_id,))
     pkg = cursor.fetchone()
 
     if not pkg:
