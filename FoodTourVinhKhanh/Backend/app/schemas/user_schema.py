@@ -4,7 +4,6 @@ from typing import Literal, Optional, Any, Dict
 from datetime import datetime
 
 class UserRole(str, Enum):
-    tourist = "tourist"
     vendor = "vendor"
 
 
@@ -13,7 +12,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     phoneNumber: str
-    role: UserRole = UserRole.tourist
+    role: UserRole = UserRole.vendor
 
 
 class UserLogin(BaseModel):
@@ -49,7 +48,7 @@ class CreateUserRequest(BaseModel):
     email: EmailStr
     password: str
     phoneNumber: str
-    role: Literal["tourist", "vendor", "admin"]
+    role: Literal["vendor", "admin"]
     is_Blocked: bool = False
 
 class UpdateUserRequest(BaseModel):
@@ -57,7 +56,7 @@ class UpdateUserRequest(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     phoneNumber: Optional[str] = None
-    role: Optional[Literal["tourist", "vendor", "admin"]] = None
+    role: Optional[Literal["vendor", "admin"]] = None
     is_Blocked: Optional[bool] = None
 
 class UserResponse(BaseModel):

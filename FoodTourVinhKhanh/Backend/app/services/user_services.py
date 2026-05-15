@@ -99,7 +99,6 @@ def getAdminDashboardStats():
         cursor.execute("""
             SELECT
                 COUNT(*) AS total_users,
-                SUM(CASE WHEN role = 'tourist' THEN 1 ELSE 0 END) AS tourist_count,
                 SUM(CASE WHEN role = 'vendor' THEN 1 ELSE 0 END) AS vendor_count,
                 SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admin_count
             FROM users
@@ -143,7 +142,6 @@ def getAdminDashboardStats():
 
         return {
             "total_users": user_stats.get("total_users", 0) or 0,
-            "tourist_count": user_stats.get("tourist_count", 0) or 0,
             "vendor_count": user_stats.get("vendor_count", 0) or 0,
             "admin_count": user_stats.get("admin_count", 0) or 0,
             "total_revenue": float(payment_stats.get("total_revenue", 0) or 0),
@@ -260,7 +258,6 @@ def getAdminDashboardStats():
         cursor.execute("""
             SELECT
                 COUNT(*) AS total_users,
-                SUM(CASE WHEN role = 'tourist' THEN 1 ELSE 0 END) AS tourist_count,
                 SUM(CASE WHEN role = 'vendor' THEN 1 ELSE 0 END) AS vendor_count,
                 SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admin_count
             FROM users
@@ -308,7 +305,6 @@ def getAdminDashboardStats():
 
         return {
             "total_users": user_stats.get("total_users", 0) or 0,
-            "tourist_count": user_stats.get("tourist_count", 0) or 0,
             "vendor_count": user_stats.get("vendor_count", 0) or 0,
             "admin_count": user_stats.get("admin_count", 0) or 0,
             "total_revenue": float(payment_stats.get("total_revenue", 0) or 0),
