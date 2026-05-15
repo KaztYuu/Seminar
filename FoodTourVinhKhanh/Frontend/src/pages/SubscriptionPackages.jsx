@@ -132,9 +132,9 @@ const SubscriptionPackage = () => {
           </div>
         </div>
 
-        <div className="mt-16 flex justify-center pb-10">
+        <div className="mt-10 flex justify-center pb-8">
             <button 
-                onClick={() => navigate("/dashboard")} // Thay đổi route tương ứng với Dashboard của bạn
+                onClick={() => navigate("/vendor")}
                 className="group flex items-center gap-2 text-gray-400 hover:text-blue-600 font-bold transition-all duration-300 py-2 px-6 rounded-full hover:bg-blue-50"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 transition-transform group-hover:-translate-x-1">
