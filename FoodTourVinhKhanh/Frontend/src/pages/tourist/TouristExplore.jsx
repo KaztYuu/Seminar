@@ -375,7 +375,7 @@ const TouristExplore = () => {
                     </div>
                 </div>
 
-                <div className="absolute top-20 right-4 z-[1000]">
+                <div className="absolute top-24 right-4 z-[1000]">
                     <Button
                     className='hover:text-blue-600'
                     onClick={handleBackToHome}
