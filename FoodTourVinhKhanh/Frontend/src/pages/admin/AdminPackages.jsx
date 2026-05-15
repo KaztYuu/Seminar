@@ -25,8 +25,6 @@ const AdminPackages = () => {
     name: "",
     price: "",
     duration_hours: "",
-    target_role: "vendor",
-    daily_poi_limit: 0,
     is_Active: true,
   };
 
@@ -58,8 +56,6 @@ const AdminPackages = () => {
       errors.price = "Giá phải ≥ 0 VNĐ";
     if (!formData.duration_hours || formData.duration_hours <= 0)
       errors.duration_hours = "Thời hạn phải > 0";
-    if (formData.target_role === "vendor" && formData.daily_poi_limit <= 0)
-      errors.daily_poi_limit = "Vendor phải có giới hạn POI lớn hơn 0";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -93,8 +89,6 @@ const AdminPackages = () => {
       name: row.name,
       price: row.price,
       duration_hours: row.duration_hours,
-      target_role: row.target_role,
-      daily_poi_limit: row.daily_poi_limit ?? 0,
       is_Active: row.is_Active,
     });
     setIsModalOpen(true);
@@ -184,16 +178,6 @@ const AdminPackages = () => {
           </span>
         );
       },
-    },
-    {
-      header: "Giới hạn POI",
-      render: (row) => (
-        <span className="text-sm font-semibold text-gray-700">
-          {row.target_role === "vendor"
-            ? `${row.daily_poi_limit} POI`
-            : "Không giới hạn POI"}
-        </span>
-      ),
     },
     {
       header: "Trạng thái",
@@ -340,44 +324,7 @@ const AdminPackages = () => {
             error={formErrors.duration_hours}
             disabled={loadingSave}
           />
-
-          <Input
-            label="Giới hạn tổng POI"
-            type="number"
-            value={formData.daily_poi_limit}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                daily_poi_limit: Number(e.target.value),
-              })
-            }
-            error={formErrors.daily_poi_limit}
-            disabled={loadingSave || formData.target_role === "tourist"}
-          />
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Đối tượng áp dụng
-            </label>
-            <select
-              value={formData.target_role}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  target_role: e.target.value,
-                  daily_poi_limit:
-                    e.target.value === "tourist"
-                      ? 0
-                      : formData.daily_poi_limit || 1,
-                })
-              }
-              disabled={loadingSave}
-              className="px-4 py-2.5 bg-gray-50 shadow-sm border-2 border-gray-300 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 hover:border-gray-400 disabled:bg-gray-100 text-gray-900 [&_option]:bg-white [&_option]:text-gray-900 [&_optgroup]:bg-white [&_optgroup]:text-gray-900">
-              <option value="vendor">👨‍💼 Vendor</option>
-              <option value="tourist">👤 Tourist</option>
-            </select>
-          </div>
-
+          
           <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
             <input
               type="checkbox"
