@@ -293,7 +293,7 @@ const POIAdminManager = () => {
       header: "Hình ảnh",
       render: (row) => (
         <img
-          src={`http://localhost:8000${row.thumbnail}`}
+          src={`${API_URL}${row.thumbnail}`}
           alt="thumb"
           className="w-12 h-12 rounded-xl object-cover border border-gray-100"
         />
