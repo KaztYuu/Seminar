@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ menuItems }) => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleLogout = async () => {
     const result = await logout();
@@ -15,6 +15,10 @@ const Sidebar = ({ menuItems }) => {
     } else {
       toast.error(result.message);
     }
+  };
+
+  const handleBackToHome = () => {
+    navigate('/');
   };
 
   return (
@@ -41,11 +45,11 @@ const Sidebar = ({ menuItems }) => {
 
       <div className="p-4 border-t border-gray-100">
         <button
-          onClick={handleLogout}
+          onClick={(!user || (user.role !== 'vendor' && user.role !== 'admin')) ? handleBackToHome : handleLogout}
           className="flex items-center gap-3 w-full px-4 py-3 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-all font-medium group"
         >
           <LogOut size={20} className="group-hover:translate-x-1 transition-transform" />
-          <span className="text-sm tracking-wide">Đăng xuất</span>
+          <span className="text-sm tracking-wide"> {(!user || (user.role !== 'vendor' && user.role !== 'admin')) ? "Quay lại trang chủ" : "Đăng xuất" }</span>
         </button>
       </div>
     </aside>

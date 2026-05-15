@@ -28,9 +28,6 @@ function Login() {
         case "admin":
           navigate("/admin");
           break;
-        case "tourist":
-          navigate("/tourist");
-          break;
         case "vendor":
           navigate("/vendor");
           break;

@@ -16,10 +16,6 @@ import api from "../../utils/api";
 import { toast } from "react-hot-toast";
 
 const ROLE_META = {
-  tourist: {
-    label: "Du khách",
-    tone: "bg-blue-50 text-blue-600",
-  },
   vendor: {
     label: "Chủ quán",
     tone: "bg-orange-50 text-orange-600",
@@ -105,7 +101,6 @@ export default function AdminDashboard() {
     total_revenue: 0,
     total_users: 0,
     online_users: 0,
-    tourist_count: 0,
     vendor_count: 0,
     admin_count: 0,
     recent_users: [],
@@ -137,12 +132,6 @@ export default function AdminDashboard() {
   ];
 
   const roleCards = [
-    {
-      label: "Du khách",
-      count: dashboardStats.tourist_count,
-      icon: Users,
-      iconClass: "bg-blue-50 text-blue-600",
-    },
     {
       label: "Chủ quán",
       count: dashboardStats.vendor_count,

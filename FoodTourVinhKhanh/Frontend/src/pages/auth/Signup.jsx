@@ -10,7 +10,6 @@ function Signup() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("tourist");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e) => {
@@ -28,7 +27,7 @@ function Signup() {
         email,
         phoneNumber: phone,
         password,
-        role,
+        role: "vendor",
       });
 
       toast.success(res.data.message);
@@ -55,7 +54,7 @@ function Signup() {
           Phố ẩm thực Vĩnh Khánh
         </h2>
         <p className="text-gray-300 text-center mb-6 text-sm">
-          Tạo tài khoản để khám phá ẩm thực
+          Tạo tài khoản tham gia xây dựng cộng đồng ẩm thực sôi động tại Vĩnh Khánh!
         </p>
 
         <div className="space-y-4">
@@ -83,26 +82,6 @@ function Signup() {
             className="w-full bg-white/5 border border-white/20 p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all"
             onChange={(e) => setPhone(e.target.value)}
           />
-
-          <div className="relative">
-            <label className="text-base text-gray-400 ml-2 mb-1 mr-2 flex">
-              Bạn là:
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-gray-800/50 border border-white/20 p-3 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none cursor-pointer">
-              <option value="tourist" className="bg-gray-800">
-                Du khách
-              </option>
-              <option value="vendor" className="bg-gray-800">
-                Chủ gian hàng
-              </option>
-            </select>
-            <div className="absolute right-4 bottom-4 pointer-events-none text-white/50">
-              ▼
-            </div>
-          </div>
 
           <input
             type="password"

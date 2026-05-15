@@ -326,11 +326,10 @@ import Table from '../../components/common/Table';
 import SearchBar from '../../components/common/SearchBar';
 import { UserPlus, ShieldAlert, Trash2, Key, LockKeyhole, LockKeyholeOpen, SquarePen } from "lucide-react";
 
-const ROLE_LABEL = { admin: "Admin", vendor: "Chủ quán", tourist: "Du khách" };
+const ROLE_LABEL = { admin: "Admin", vendor: "Chủ quán"};
 const ROLE_COLOR = {
   admin: "bg-purple-100 text-purple-700",
-  vendor: "bg-orange-100 text-orange-700",
-  tourist: "bg-blue-100 text-blue-700",
+  vendor: "bg-orange-100 text-orange-700"
 };
 
 const emptyForm = {
@@ -338,7 +337,7 @@ const emptyForm = {
   email: "",
   password: "",
   phoneNumber: "",
-  role: "tourist",
+  role: "vendor",
 };
 
 const Users = () => {
@@ -577,7 +576,6 @@ const Users = () => {
               className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="tourist">Du khách (Tourist)</option>
               <option value="vendor">Chủ quán (Vendor)</option>
               <option value="admin">Quản trị viên (Admin)</option>
             </select>
