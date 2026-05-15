@@ -137,7 +137,7 @@ const SubscriptionPackage = () => {
         <div className="mt-5 flex justify-center">
             <button 
                 onClick={() => navigate("/vendor")}
-                className="group flex items-center gap-2 text-gray-400 hover:text-blue-600 font-bold transition-all duration-300 py-2 px-6 rounded-full hover:bg-blue-50"
+                className="group flex items-center gap-2 text-white hover:text-blue-600 font-bold transition-all duration-300 py-2 px-6 rounded-full hover:bg-blue-50"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 transition-transform group-hover:-translate-x-1">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
