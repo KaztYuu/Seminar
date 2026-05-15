@@ -122,7 +122,7 @@ const [currentTime, setCurrentTime] = useState(new Date());
             <p className="text-sm text-gray-500 font-medium">POIs</p>
             <p className="text-xl font-bold text-gray-800 hover:text-blue-600 hover:cursor-pointer">
               <Link
-                to="/vendor/pois"
+                to="/vendor/my-pois"
                 className="flex !text-xl !font-bold !text-gray-800 hover:!text-blue-600 !hover:cursor-pointer">
                 Quán lý gian hàng của bạn{" "}
                 <MousePointer2 size={24} className="mt-1 ml-2 text-blue-600" />
