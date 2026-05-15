@@ -7,27 +7,6 @@ import { toast } from "react-hot-toast";
 
 export default function Home() {
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-      const reportVisit = async () => {
-          try {
-              const visitorId = getVisitorId();
-              const role = localStorage.getItem('token') ? 'member' : 'guest';
-              
-              await api.post('/auth/track-visit', { visitor_id: visitorId, role });
-          } catch (error) {
-              if (error.response?.status === 503) {
-                  navigate("/server-overload", {replace: true});
-              }
-          }
-      };
-
-      reportVisit();
-      const interval = setInterval(reportVisit, 0.5 * 60 * 1000);
-      return () => clearInterval(interval);
-  }, []);
-
   return (
     <div 
       className="min-h-screen w-screen flex flex-col items-center justify-center bg-cover bg-center bg-no-repeat p-4"

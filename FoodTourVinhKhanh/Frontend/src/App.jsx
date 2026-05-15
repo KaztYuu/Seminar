@@ -29,6 +29,7 @@ import Unauthorized from "./pages/auth/Unauthorized.jsx";
 import TestRAG from "./pages/ChatBot.jsx";
 import profileImg from "./assets/ProfileImage.png";
 import ServerOverloadPage from "./pages/ServerOverloadPage.jsx";
+import TrafficControl from "./utils/TrafficControl.jsx";
 import {
   touristMenu,
   vendorMenu,
@@ -41,92 +42,93 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+      <TrafficControl>
+        <Routes>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <DashBoardLayout
+                  userName={user ? user.name : "Admin"}
+                  profileImg={profileImg}
+                  menuItems={adminMenu}
+                />
+              </ProtectedRoute>
+            }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<Users />} />
+            <Route path="profile" element={<AdminProfile />} />
+            <Route path="pois" element={<POIAdminManager />} />{" "}
+            <Route path="packages" element={<AdminPackages />} />
+            <Route path="tours" element={<AdminTours />} />
+            <Route path="transactions" element={<AdminTransactions />} />{" "}
+          </Route>
 
-      <Routes>
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute role="admin">
-              <DashBoardLayout
-                userName={user ? user.name : "Admin"}
-                profileImg={profileImg}
-                menuItems={adminMenu}
-              />
-            </ProtectedRoute>
-          }>
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<Users />} />
-          <Route path="profile" element={<AdminProfile />} />
-          <Route path="pois" element={<POIAdminManager />} />{" "}
-          <Route path="packages" element={<AdminPackages />} />
-          <Route path="tours" element={<AdminTours />} />
-          <Route path="transactions" element={<AdminTransactions />} />{" "}
-        </Route>
+          {/* <Route
+            path="/tourist"
+            element={
+              <ProtectedRoute role="tourist">
+                <DashBoardLayout
+                  userName={user ? user.name : "Khách"}
+                  profileImg={profileImg}
+                  menuItems={touristMenu}
+                />
+              </ProtectedRoute>
+            }>
+            <Route index element={<TouristDashboard />} />
+            <Route path="profile" element={<TouristProfile />} />
+            <Route path="transactions" element={<TourisTransactions />} />
+            <Route path="explore" element={<TouristExplore />} />
+            <Route path="tours" element={<TouristTours />} />
+          </Route> */}
 
-        {/* <Route
-          path="/tourist"
-          element={
-            <ProtectedRoute role="tourist">
+          <Route
+            path="/tourist"
+            element={
               <DashBoardLayout
                 userName={user ? user.name : "Khách"}
                 profileImg={profileImg}
                 menuItems={touristMenu}
               />
-            </ProtectedRoute>
-          }>
-          <Route index element={<TouristDashboard />} />
-          <Route path="profile" element={<TouristProfile />} />
-          <Route path="transactions" element={<TourisTransactions />} />
-          <Route path="explore" element={<TouristExplore />} />
-          <Route path="tours" element={<TouristTours />} />
-        </Route> */}
+            }>
+            <Route path="explore" element={<TouristExplore />} />
+            <Route path="tours" element={<TouristTours />} />
+          </Route>
 
-        <Route
-          path="/tourist"
-          element={
-            <DashBoardLayout
-              userName={user ? user.name : "Khách"}
-              profileImg={profileImg}
-              menuItems={touristMenu}
-            />
-          }>
-          <Route path="explore" element={<TouristExplore />} />
-          <Route path="tours" element={<TouristTours />} />
-        </Route>
+          <Route
+            path="/vendor"
+            element={
+              <ProtectedRoute role="vendor">
+                <DashBoardLayout
+                  userName={user ? user.name : "Vendor"}
+                  profileImg={profileImg}
+                  menuItems={vendorMenu}
+                />
+              </ProtectedRoute>
+            }>
+            <Route index element={<VendorDashboard />} />
+            <Route path="profile" element={<VendorProfile />} />
+            <Route path="transactions" element={<VendorTransactions />} />
+            <Route path="my-pois" element={<VendorPOIs />} />
+          </Route>
 
-        <Route
-          path="/vendor"
-          element={
-            <ProtectedRoute role="vendor">
-              <DashBoardLayout
-                userName={user ? user.name : "Vendor"}
-                profileImg={profileImg}
-                menuItems={vendorMenu}
-              />
-            </ProtectedRoute>
-          }>
-          <Route index element={<VendorDashboard />} />
-          <Route path="profile" element={<VendorProfile />} />
-          <Route path="transactions" element={<VendorTransactions />} />
-          <Route path="my-pois" element={<VendorPOIs />} />
-        </Route>
+          <Route path="/" element={<Home />} />
 
-        <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
 
-        <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        <Route path="/signup" element={<Signup />} />
+          <Route path="/packages" element={<SubscriptionPackages />} />
 
-        <Route path="/packages" element={<SubscriptionPackages />} />
+          <Route path="/payment-result" element={<PaymentResult />} />
 
-        <Route path="/payment-result" element={<PaymentResult />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
-        <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/chatbot" element={<TestRAG />} />
 
-        <Route path="/chatbot" element={<TestRAG />} />
-
-        <Route path="/server-overload" element={<ServerOverloadPage />} />
-      </Routes>
+          <Route path="/server-overload" element={<ServerOverloadPage />} />
+        </Routes>
+      </TrafficControl>
     </BrowserRouter>
   );
 }
