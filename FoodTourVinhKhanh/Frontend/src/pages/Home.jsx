@@ -43,6 +43,12 @@ export default function Home() {
             >
               Đăng ký tài khoản mới
             </Link>
+            <Link 
+              to="/tourist/explore" 
+              className="!text-yellow-400 hover:text-yellow-300 transition-colors underline-offset-4 hover:underline"
+            >
+              Khám phá ngay
+            </Link>
           </div>
         </div>
       </div>
