@@ -19,7 +19,6 @@ const AdminPackages = () => {
   const [loadingDelete, setLoadingDelete] = useState(null); // Store the ID being deleted
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
 
   const initialForm = {
     name: "",
@@ -135,15 +134,6 @@ const AdminPackages = () => {
     setIsModalOpen(true);
   };
 
-  // Filter packages
-  const filteredPackages = packages.filter((pkg) => {
-    const matchName = pkg.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchRole = !roleFilter || pkg.target_role === roleFilter;
-    return matchName && matchRole;
-  });
-
   // Table columns
   const columns = [
     {
@@ -255,15 +245,6 @@ const AdminPackages = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white shadow-sm border-2 border-gray-400 ring-1 ring-gray-300/50 rounded-2xl hover:shadow-md hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-900 [&_option]:bg-white [&_option]:text-gray-900 [&_optgroup]:bg-white [&_optgroup]:text-gray-900 min-w-[160px]">
-            <option value="">Tất cả loại</option>
-            <option value="vendor">👨‍💼 Vendor</option>
-            <option value="tourist">👤 Tourist</option>
-          </select>
         </div>
 
         {/* Table */}
