@@ -134,6 +134,14 @@ const AdminPackages = () => {
     setIsModalOpen(true);
   };
 
+  // Filter packages
+  const filteredPackages = packages.filter((pkg) => {
+    const matchName = pkg.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    return matchName;
+  });
+
   // Table columns
   const columns = [
     {
