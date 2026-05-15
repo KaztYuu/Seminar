@@ -33,6 +33,8 @@ const SubscriptionPackage = () => {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchPackages = async () => {
       try {
