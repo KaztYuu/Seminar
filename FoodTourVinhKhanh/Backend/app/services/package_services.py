@@ -67,7 +67,7 @@ def createPackage(data):
         query = """
             INSERT INTO subscription_packages 
             (name, price, duration_hours, is_Active)
-            VALUES (%s, %s, %s, %s,)
+            VALUES (%s, %s, %s, %s)
         """
         params = (
             data['name'],
