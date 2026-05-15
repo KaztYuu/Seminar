@@ -21,15 +21,7 @@ class PackageBase(BaseModel):
         description="Thời hạn sử dụng tính theo giờ",
         examples=[720]
     )
-    target_role: Literal["vendor", "tourist"] = Field(
-        ..., 
-        description="Đối tượng áp dụng gói"
-    )
-    daily_poi_limit: int = Field(
-        0,
-        ge=0,
-        description="Giới hạn tổng số POI mà vendor được phép có"
-    )
+    
     is_Active: bool = Field(True, description="Trạng thái kích hoạt")
 
 class PackageCreate(PackageBase):

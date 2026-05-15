@@ -66,7 +66,7 @@ const PaymentResult = () => {
             return;
         }
 
-        navigate(user.role === "tourist" ? "/tourist" : "/vendor");
+        navigate("/vendor");
     };
 
     return (

@@ -30,7 +30,6 @@ import TestRAG from "./pages/ChatBot.jsx";
 import profileImg from "./assets/ProfileImage.png";
 import ServerOverloadPage from "./pages/ServerOverloadPage.jsx";
 import {
-  touristMenu,
   vendorMenu,
   adminMenu,
 } from "./components/MenuConstants.jsx";
@@ -63,7 +62,7 @@ function App() {
           <Route path="transactions" element={<AdminTransactions />} />{" "}
         </Route>
 
-        <Route
+        {/* <Route
           path="/tourist"
           element={
             <ProtectedRoute role="tourist">
@@ -79,7 +78,7 @@ function App() {
           <Route path="transactions" element={<TourisTransactions />} />
           <Route path="explore" element={<TouristExplore />} />
           <Route path="tours" element={<TouristTours />} />
-        </Route>
+        </Route> */}
 
         <Route
           path="/vendor"
@@ -99,6 +98,10 @@ function App() {
         </Route>
 
         <Route path="/" element={<Home />} />
+
+        <Route path="/explore" element={<TouristExplore />} />
+
+        <Route path="/tours" element={<TouristTours />} />
 
         <Route path="/login" element={<Login />} />
 

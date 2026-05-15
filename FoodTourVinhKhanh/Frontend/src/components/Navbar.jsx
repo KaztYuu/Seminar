@@ -32,7 +32,7 @@ const Navbar = ({ userName, profileImg }) => {
 
       <div className="flex items-center gap-6">
         {/* Dropdown Ngôn ngữ */}
-        { user.role == 'tourist' && (
+        { (user.role !== 'vendor' && user.role !== 'admin') && (
 
             <div className="relative group py-4">
               <button className="flex items-center gap-1 bg-orange-700 px-3 py-1 rounded-md hover:bg-orange-800 transition">

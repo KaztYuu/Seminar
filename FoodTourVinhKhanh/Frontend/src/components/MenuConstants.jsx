@@ -1,9 +1,6 @@
 const touristMenu = [
-  { label: 'Tổng quan', icon: '🏠', path: '/tourist' },
   { label: 'Khám phá', icon: '🗺️', path: '/tourist/explore' },
-  { label: 'Tour', icon: '🧳', path: '/tourist/tours' },
-  { label: 'Hồ sơ', icon: '👤', path: '/tourist/profile' },
-  { label: 'Lịch sử giao dịch', icon: '💸', path: '/tourist/transactions' }
+  { label: 'Tour', icon: '🧳', path: '/tourist/tours' }
 ]
 
 const vendorMenu = [
