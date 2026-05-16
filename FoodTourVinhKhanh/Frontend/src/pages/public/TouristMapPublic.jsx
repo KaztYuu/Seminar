@@ -97,16 +97,43 @@ const normalizePoi = (poi) => {
     return null;
   }
 
+  const normalizedName =
+    typeof poi?.name === "string" && poi.name.trim()
+      ? poi.name.trim()
+      : typeof poi?.poi_name === "string" && poi.poi_name.trim()
+        ? poi.poi_name.trim()
+        : "Điểm tham quan";
+
+  const normalizedDescription =
+    typeof poi?.description === "string" && poi.description.trim()
+      ? poi.description.trim()
+      : typeof poi?.original_description === "string" &&
+          poi.original_description.trim()
+        ? poi.original_description.trim()
+        : "";
+
+  const normalizedLanguage =
+    typeof poi?.original_language === "string" && poi.original_language.trim()
+      ? poi.original_language.trim().toLowerCase()
+      : typeof poi?.language === "string" && poi.language.trim()
+        ? poi.language.trim().toLowerCase()
+        : typeof poi?.lang_code === "string" && poi.lang_code.trim()
+          ? poi.lang_code.trim().toLowerCase()
+          : "vi";
+
   return {
     ...poi,
     latitude,
     longitude,
+    name: normalizedName,
+    description: normalizedDescription,
 
     audio_range: Number(poi?.audio_range) || 0,
     access_range: Number(poi?.access_range) || 10,
     address: poi?.address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-    original_description: poi.original_description || poi.description || "",
-    original_language: poi.original_language || poi.language || "vi",
+    original_description: normalizedDescription,
+    original_language: normalizedLanguage,
+    lang_code: normalizedLanguage,
 
     // dùng thống nhất ở UI
     tour_id: tourId,
@@ -125,7 +152,8 @@ const TouristMapPublic = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [playingSource, setPlayingSource] = useState(null);
-
+  const [isLocating, setIsLocating] = useState(false);
+  const [isTourDropdownOpen, setIsTourDropdownOpen] = useState(false);
   const sidebarAudioRef = useRef(null);
   const sourceAudioRef = useRef(null);
   const translatedAudioRef = useRef(null);
@@ -143,10 +171,100 @@ const TouristMapPublic = () => {
   // Tour dropdown (tourist-map)
   const [tours, setTours] = useState([]);
   const [selectedTourId, setSelectedTourId] = useState(null);
-  const [tourPoints, setTourPoints] = useState([]);
   const [tourRouteCoords, setTourRouteCoords] = useState([]); // OSRM polyline lat/lng[]
 
+  // TTS runtime state
+  const activePoiIdRef = useRef(null);
+  const activeAudioRef = useRef(null);
+  const narrationAudioRef = useRef(null); // Track narration audio riêng biệt
+  const currentNarrationPoiRef = useRef(null); // Track POI của narration đang phát
+
+  // TTS stability: chống phát lặp do GPS nhảy ranh giới
+  const lastTtsByPoiRef = useRef(new Map()); // poiId -> timestamp(ms)
+  const TTS_COOLDOWN_MS = 10_000; // chỉ cho phép switch/trigger lại mỗi POI sau 10s
+
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  const selectedTour = useMemo(() => {
+    return tours.find((t) => t.id === selectedTourId) || null;
+  }, [tours, selectedTourId]);
+
+  const tourPoints = useMemo(() => {
+    if (!selectedTour) return [];
+
+    return (selectedTour.points || [])
+      .filter(
+        (p) =>
+          Number.isFinite(Number(p?.latitude)) &&
+          Number.isFinite(Number(p?.longitude)),
+      )
+      .map((p) => ({
+        ...p,
+        latitude: Number(p.latitude),
+        longitude: Number(p.longitude),
+      }));
+  }, [selectedTour]);
+
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Bán kính trái đất tính bằng mét
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const prepareAIVoice = async (text, language = "vi") => {
+    const safeText = typeof text === "string" ? text.trim() : "";
+    const safeLanguage =
+      typeof language === "string" && language.trim()
+        ? language.trim().toLowerCase()
+        : "vi";
+
+    if (!safeText) {
+      return null;
+    }
+
+    try {
+      console.log(
+        `[TouristMapPublic] TTS Request: Calling /pois/ai/tts with text="${safeText.substring(0, 50)}..." language=${safeLanguage}`,
+      );
+      const res = await api.get("/pois/ai/tts", {
+        params: { text: safeText, language: safeLanguage },
+      });
+      if (res.data.success && res.data.audio_base64) {
+        console.log(
+          "[TouristMapPublic] TTS Response: Successfully got audio_base64",
+        );
+        const audioSrc = `data:audio/mp3;base64,${res.data.audio_base64}`;
+        const audio = new Audio(audioSrc);
+
+        return new Promise((resolve) => {
+          audio.oncanplaythrough = () => {
+            console.log("[TouristMapPublic] TTS Audio: Ready to play");
+            resolve(audio);
+          };
+          audio.onerror = (e) => {
+            console.error("[TouristMapPublic] TTS Audio Error:", e);
+            resolve(null);
+          };
+        });
+      } else {
+        console.warn(
+          "[TouristMapPublic] TTS Response: Invalid response structure",
+          res.data,
+        );
+      }
+    } catch (error) {
+      console.error("[TouristMapPublic] TTS API Error:", error.message);
+    }
+    return null;
+  };
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -182,26 +300,31 @@ const TouristMapPublic = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedTourId) {
-      setTourPoints([]);
-      setTourRouteCoords([]);
-      return;
-    }
+    let cancelled = false;
 
-    const tour = tours.find((t) => t.id === selectedTourId) || null;
-    const points = (tour?.points || [])
-      .filter(
-        (p) => Number.isFinite(p?.latitude) && Number.isFinite(p?.longitude),
-      )
-      .map((p) => ({
-        ...p,
-        latitude: Number(p.latitude),
-        longitude: Number(p.longitude),
-      }));
+    const run = async () => {
+      if (!selectedTourId || tourPoints.length < 2) {
+        setTourRouteCoords([]);
+        return;
+      }
 
-    setTourPoints(points);
-    setTourRouteCoords([]);
-  }, [selectedTourId, tours]);
+      const result = await fetchRoute(tourPoints, false);
+
+      if (cancelled || !selectedTourId) return;
+
+      if (result && result.length > 1) {
+        setTourRouteCoords(result);
+      } else {
+        setTourRouteCoords(tourPoints.map((p) => [p.latitude, p.longitude]));
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTourId, tourPoints]);
 
   const fetchRoute = async (points, saveToState = true) => {
     try {
@@ -352,28 +475,267 @@ const TouristMapPublic = () => {
   useEffect(() => {
     fetchPois();
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setUserLoc({ lat: latitude, lng: longitude });
-        },
-        () => {
-          setUserLoc(null);
-        },
-      );
-    }
-
     const handleLangChange = () => {
       fetchPois();
     };
 
+    // Cơ chế di chuyển giả lập bằng phím WASD
+    const moveStep = 0.0001; // Độ nhạy di chuyển
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      if (["w", "s", "a", "d"].includes(key)) {
+        setUserLoc((prev) => {
+          if (!prev) return prev;
+          let newLoc = { ...prev };
+          if (key === "w") newLoc.lat = prev.lat + moveStep;
+          if (key === "s") newLoc.lat = prev.lat - moveStep;
+          if (key === "a") newLoc.lng = prev.lng - moveStep;
+          if (key === "d") newLoc.lng = prev.lng + moveStep;
+          console.log(
+            `[TouristMapPublic] WASD Movement: ${key} -> lat=${newLoc.lat.toFixed(6)}, lng=${newLoc.lng.toFixed(6)}`,
+          );
+          return newLoc;
+        });
+      }
+    };
+
     window.addEventListener("languageChange", handleLangChange);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       window.removeEventListener("languageChange", handleLangChange);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  const requestUserLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Trình duyệt không hỗ trợ định vị");
+      return;
+    }
+
+    setIsLocating(true);
+
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setUserLoc({ lat: latitude, lng: longitude });
+          setIsLocating(false);
+          toast.success("Đã cập nhật vị trí của bạn");
+        },
+        (error) => {
+          console.warn("Geolocation error:", error);
+          setUserLoc(null);
+          setIsLocating(false);
+          toast.error("Không thể lấy vị trí hiện tại");
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        },
+      );
+    } catch (error) {
+      console.warn("Geolocation not available:", error);
+      setUserLoc(null);
+      setIsLocating(false);
+      toast.error("Không thể lấy vị trí hiện tại");
+    }
+  };
+
+  useEffect(() => {
+    stopAllAudio();
+  }, [selectedPoi?.id]);
+
+  // Tách biệt logic phát narration theo vùng (TTS runtime)
+  useEffect(() => {
+    if (!userLoc || normalizedPois.length === 0) {
+      console.log("[TouristMapPublic] TTS Effect: Skip - no userLoc or POIs", {
+        userLoc,
+        poisCount: normalizedPois.length,
+      });
+      return;
+    }
+
+    // chọn POI gần nhất trong audio_range (ưu tiên vùng giao nhau)
+    let closestPoi = null;
+    let minDistance = Infinity;
+
+    normalizedPois.forEach((poi) => {
+      const dist = getDistance(
+        userLoc.lat,
+        userLoc.lng,
+        poi.latitude,
+        poi.longitude,
+      );
+      if (dist <= poi.audio_range && dist < minDistance) {
+        minDistance = dist;
+        closestPoi = poi;
+      }
+    });
+
+    if (closestPoi) {
+      console.log(
+        `[TouristMapPublic] TTS Effect: In audio range of POI "${closestPoi.name}", distance=${minDistance.toFixed(2)}m, audio_range=${closestPoi.audio_range}m`,
+      );
+    } else {
+      console.log("[TouristMapPublic] TTS Effect: Not in any audio range");
+    }
+
+    // Nếu user rời khỏi vùng hoặc chuyển sang POI khác → dừng narration cũ
+    if (closestPoi && currentNarrationPoiRef.current !== closestPoi.id) {
+      if (narrationAudioRef.current) {
+        try {
+          narrationAudioRef.current.pause();
+          narrationAudioRef.current.currentTime = 0;
+          console.log(
+            `[TouristMapPublic] TTS Stopped: Narration of POI "${currentNarrationPoiRef.current}" stopped`,
+          );
+        } catch (e) {
+          console.error("[TouristMapPublic] Error stopping narration:", e);
+        }
+        narrationAudioRef.current = null;
+      }
+      currentNarrationPoiRef.current = null;
+    }
+
+    // đang ở vùng nào đó
+    if (closestPoi) {
+      const now = Date.now();
+      const prevPoiId = activePoiIdRef.current;
+      const lastTtsAt = lastTtsByPoiRef.current.get(closestPoi.id) || 0;
+
+      // nếu vừa trigger POI này trong cooldown => bỏ qua để tránh lặp
+      const withinCooldown = now - lastTtsAt < TTS_COOLDOWN_MS;
+
+      console.log(
+        `[TouristMapPublic] TTS State: prevPoiId=${prevPoiId}, currentPoiId=${closestPoi.id}, withinCooldown=${withinCooldown}, cooldownRemaining=${Math.max(0, TTS_COOLDOWN_MS - (now - lastTtsAt))}ms`,
+      );
+
+      if (prevPoiId !== closestPoi.id) {
+        // stop transition audio hiện tại
+        if (activeAudioRef.current) {
+          try {
+            activeAudioRef.current.pause();
+            activeAudioRef.current.currentTime = 0;
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
+        // nếu POI mới nhưng đang trong cooldown cho chính nó => không chạy narration chuyển sang
+        if (withinCooldown) {
+          console.log(
+            `[TouristMapPublic] TTS Skipped: Within cooldown for POI "${closestPoi.name}"`,
+          );
+          return;
+        }
+
+        activePoiIdRef.current = closestPoi.id;
+        lastTtsByPoiRef.current.set(closestPoi.id, now);
+
+        const transitionText = `Bạn đang tới ${closestPoi.name}`;
+        console.log(
+          `[TouristMapPublic] TTS Trigger: Transition + Narration for "${closestPoi.name}"`,
+        );
+        toast.success(transitionText, { icon: "🔊" });
+
+        (async () => {
+          // 1. Phát transition voice
+          const noticeAudio = await prepareAIVoice(transitionText, "vi");
+          if (noticeAudio) {
+            console.log("[TouristMapPublic] TTS Playing: Transition audio");
+            activeAudioRef.current = noticeAudio;
+
+            // Chờ transition xong hẳn mới phát narration
+            await new Promise((resolve) => {
+              noticeAudio.onended = () => {
+                console.log("[TouristMapPublic] TTS: Transition audio ended");
+                resolve();
+              };
+              noticeAudio.play().catch((e) => {
+                console.error("[TouristMapPublic] Play error:", e);
+                resolve();
+              });
+            });
+          } else {
+            console.warn(
+              "[TouristMapPublic] TTS Failed: Could not prepare transition audio",
+            );
+          }
+
+          // 2. Sau khi transition xong, phát narration
+          const narrationText =
+            closestPoi.original_description || closestPoi.description || "";
+          if (!narrationText.trim()) {
+            console.warn(
+              `[TouristMapPublic] TTS Skipped: No narration text for "${closestPoi.name}"`,
+            );
+            return;
+          }
+
+          // Kiểm tra xem user còn ở POI này không (vì có thể di chuyển sang POI khác trong lúc phát transition)
+          if (
+            currentNarrationPoiRef.current !== null &&
+            currentNarrationPoiRef.current !== closestPoi.id
+          ) {
+            console.log(
+              `[TouristMapPublic] TTS Skipped: POI changed during transition (was ${closestPoi.id}, now ${currentNarrationPoiRef.current})`,
+            );
+            return;
+          }
+
+          const narrationAudio = await prepareAIVoice(
+            narrationText,
+            closestPoi.original_language || closestPoi.lang_code || "vi",
+          );
+          if (narrationAudio) {
+            console.log(
+              `[TouristMapPublic] TTS Playing: Narration for "${closestPoi.name}"`,
+            );
+            narrationAudioRef.current = narrationAudio;
+            currentNarrationPoiRef.current = closestPoi.id;
+            await narrationAudio
+              .play()
+              .catch((e) => console.error("[TouristMapPublic] Play error:", e));
+            console.log(
+              `[TouristMapPublic] TTS: Narration ended for "${closestPoi.name}"`,
+            );
+          } else {
+            console.warn(
+              `[TouristMapPublic] TTS Failed: Could not prepare narration for "${closestPoi.name}"`,
+            );
+          }
+        })();
+      }
+    } else {
+      // rời khỏi tất cả vùng audio
+      if (activePoiIdRef.current !== null) {
+        console.log(
+          `[TouristMapPublic] TTS Stopped: Exited POI "${activePoiIdRef.current}"`,
+        );
+        if (activeAudioRef.current) {
+          try {
+            activeAudioRef.current.pause();
+            activeAudioRef.current.currentTime = 0;
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        if (narrationAudioRef.current) {
+          try {
+            narrationAudioRef.current.pause();
+            narrationAudioRef.current.currentTime = 0;
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        activePoiIdRef.current = null;
+        currentNarrationPoiRef.current = null;
+      }
+    }
+  }, [userLoc, normalizedPois]);
 
   useEffect(() => {
     stopAllAudio();
@@ -568,37 +930,146 @@ const TouristMapPublic = () => {
 
       <div className="relative h-full w-full bg-slate-100">
         <div className="absolute right-4 top-4 z-[1100] md:right-6 md:top-6 flex flex-col items-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-white/95 shadow-lg backdrop-blur-sm"
-            onClick={() => navigate("/login")}>
-            Quay lại đăng nhập
-          </Button>
+          {/* HÀNG TOP ACTION */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/95 shadow-lg backdrop-blur-sm"
+              onClick={requestUserLocation}
+              disabled={isLocating}>
+              {isLocating ? "Đang lấy vị trí..." : "Bật vị trí của tôi"}
+            </Button>
 
-          <div className="w-[240px]">
-            <select
-              className="w-full border border-slate-200 bg-white/95 shadow-lg rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none"
-              value={selectedTourId ?? ""}
-              disabled={!Array.isArray(tours) || tours.length === 0}
-              onChange={(e) => {
-                const next = e.target.value ? Number(e.target.value) : null;
-                setSelectedTourId(next);
-              }}>
-              <option value="">
-                {Array.isArray(tours) && tours.length > 0
-                  ? "Chọn Tour (hiển thị điểm trên map)"
-                  : "Không có tour / đang tải"}
-              </option>
-              {Array.isArray(tours) &&
-                tours.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/95 shadow-lg backdrop-blur-sm"
+              onClick={() => navigate("/login")}>
+              Quay lại đăng nhập
+            </Button>
+          </div>
+
+          {/* SELECT TOUR */}
+          <div className="relative w-[280px]">
+            {/* BUTTON */}
+            <button
+              type="button"
+              onClick={() => setIsTourDropdownOpen((prev) => !prev)}
+              className="
+      flex h-14 w-full items-center justify-between
+      rounded-2xl border border-white/30
+      bg-white/90 backdrop-blur-xl
+      px-4 shadow-xl transition
+      hover:border-slate-300
+    ">
+              <span className="truncate text-sm text-slate-700">
+                {selectedTourId
+                  ? tours.find((t) => t.id === selectedTourId)?.name
+                  : Array.isArray(tours) && tours.length > 0
+                    ? "Chọn Tour hiển thị trên map"
+                    : "Không có tour"}
+              </span>
+
+              <ChevronDown
+                size={18}
+                className={`text-slate-500 transition-transform ${
+                  isTourDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* DROPDOWN */}
+            {isTourDropdownOpen && (
+              <div
+                className="
+                  absolute right-0 z-[1500] mt-3
+                  max-h-[320px] w-full overflow-y-auto
+                  rounded-3xl border border-white/30
+                  bg-white/90 backdrop-blur-xl
+                  py-3 shadow-2xl
+                ">
+                {/* RESET MAP */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTourId(null);
+                    setTourRouteCoords([]);
+                    setIsTourDropdownOpen(false);
+
+                    // optional
+                    setSelectedPoi(null);
+                    setSearchKeyword("");
+                  }}
+                  className="
+                    mx-3 mb-2 flex items-center justify-between
+                    rounded-2xl px-4 py-3
+                    text-left transition-all duration-200
+                    bg-slate-50 text-slate-700
+                    hover:bg-red-50 hover:text-red-600
+                    border border-transparent hover:border-red-200
+                  ">
+                  <div>
+                    <p className="text-sm font-semibold">Reset bản đồ</p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Hiển thị lại toàn bộ POI
+                    </p>
+                  </div>
+
+                  <X size={16} />
+                </button>
+
+                {/* TOUR ITEMS */}
+                {Array.isArray(tours) &&
+                  tours.map((tour) => {
+                    const isActive = selectedTourId === tour.id;
+
+                    return (
+                      <button
+                        key={tour.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTourId(tour.id);
+                          setIsTourDropdownOpen(false);
+                        }}
+                        className={`
+                        mx-3 mb-2 flex items-center justify-between
+                        rounded-2xl px-4 py-4
+                        text-left transition-all duration-200
+                        border border-transparent
+
+                        hover:bg-cyan-50
+                        hover:border-cyan-100
+                        hover:shadow-sm
+
+                          ${
+                            isActive
+                              ? "bg-cyan-50 border-cyan-200 shadow-sm"
+                              : "bg-white"
+                          }
+                        `}>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {tour.name}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            {tour.points?.length || 0} điểm tham quan
+                          </p>
+                        </div>
+
+                        {isActive && (
+                          <div className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
+
         {selectedPoi && (
           <button
             type="button"
@@ -1041,7 +1512,7 @@ const TouristMapPublic = () => {
           </div>
         )}
 
-        <div className="h-full w-full">
+        <div className="relative h-full w-full">
           <MapContainer
             center={DEFAULT_CENTER}
             zoom={15}
@@ -1116,6 +1587,7 @@ const TouristMapPublic = () => {
                 </div>
               </div>
             )}
+
             {userLoc && (
               <RecenterAutomatically lat={userLoc.lat} lng={userLoc.lng} />
             )}
@@ -1137,7 +1609,9 @@ const TouristMapPublic = () => {
               />
             )}
             {/* Zoom/hiển thị Tour points */}
-            {tourPoints.length > 0 && <FitBoundsTour points={tourPoints} />}
+            {selectedTourId && tourPoints.length > 0 && (
+              <FitBoundsTour points={tourPoints} />
+            )}
 
             {/* Lối đi thực tế OSRM */}
             {tourRouteCoords.length > 1 && (
@@ -1148,7 +1622,7 @@ const TouristMapPublic = () => {
               />
             )}
 
-            {tourPoints.length > 0
+            {selectedTourId
               ? renderTourMarkers()
               : normalizedPois.map((poi) => (
                   <React.Fragment key={poi.id}>

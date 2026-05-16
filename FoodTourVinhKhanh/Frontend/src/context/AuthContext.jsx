@@ -19,7 +19,8 @@ export const AuthProvider = ({ children }) => {
         const res = await api.get("/auth/me");
         setUser(res.data);
         return res.data;
-      } catch {
+      } catch (error) {
+        console.error(error);
         setUser(null);
         return null;
       } finally {
@@ -44,13 +45,18 @@ export const AuthProvider = ({ children }) => {
       } else {
         return { success: false, message: "Có lỗi xảy ra khi đăng xuất" };
       }
-    } catch {
-      console.error("Logout error:", err);
+    } catch (error) {
+      console.error("Logout error:", error);
       return { success: false, message: "Không thể kết nối đến server" };
     }
   };
 
   useEffect(() => {
+    if (window.location.pathname === "/tourist-map") {
+      setLoading(false);
+      return;
+    }
+
     fetchUser();
   }, []);
 
