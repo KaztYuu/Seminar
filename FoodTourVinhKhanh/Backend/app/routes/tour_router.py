@@ -40,14 +40,14 @@ def api_delete_tour(tour_id: int, user=Depends(require_role("admin"))):
 # ===== TOURIST =====
 
 @router.get("/")
-def api_get_tours(user=Depends(verify_active_subscription)):
+def api_get_tours():
     """Tourist xem danh sách tour đang hoạt động"""
     tours = getTours()
     return {"success": True, "data": tours}
 
 
 @router.get("/{tour_id}")
-def api_get_tour_by_id(tour_id: int, user=Depends(verify_active_subscription)):
+def api_get_tour_by_id(tour_id: int):
     """Tourist xem chi tiết 1 tour"""
     tour = getTourById(tour_id)
     return {"success": True, "data": tour}

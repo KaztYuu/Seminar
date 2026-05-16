@@ -240,7 +240,7 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {roleCards.map((item) => {
                 const Icon = item.icon;
                 const totalUsers = dashboardStats.total_users || 1;
